@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "main": "src/functions/*.js",
-  "scripts": { "test": "node test/trains.test.js" },
+  "scripts": {
+    "test": "node test/trains.test.js && node test/drive.test.js"
+  },
   "dependencies": {
     "@azure/functions": "^4.5.0",
     "fflate": "^0.8.2",

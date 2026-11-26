@@ -52,24 +52,31 @@ async function getDepartures(stationName, opts = {}) {
   const fetchImpl = opts.fetch || fetch;
   const now = opts.now || Date.now();
   const limit = opts.limit || 4;
-  const key = norm(stationName);
+  const toNames = (opts.to || []).filter(Boolean);
+  const key = norm(stationName) + '>' + toNames.map(norm).join(',');
   const hit = departuresCache.get(key);
   if (!opts.noCache && hit && now - hit.at < DEPARTURES_TTL_MS) return hit.body;
 
   const stops = await loadStops(fetchImpl);
-  const stationIds = new Set([...stops].filter(([, name]) => norm(name) === key).map(([id]) => id));
+  const stationKey = norm(stationName);
+  const stationIds = new Set([...stops].filter(([, name]) => norm(name) === stationKey).map(([id]) => id));
   if (!stationIds.size) throw new Error('Station not found in Metro-North stops: ' + stationName);
 
   const res = await fetchImpl(REALTIME_URL);
   if (!res.ok) throw new Error('Realtime feed failed: HTTP ' + res.status);
   const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(new Uint8Array(await res.arrayBuffer()));
 
+  // Optional: the next train from this station that also stops at each requested destination.
+  const idsFor = (name) => new Set([...stops].filter(([, n]) => norm(n) === norm(name)).map(([id]) => id));
+  const wanted = toNames.map((name) => ({ name, ids: idsFor(name), best: null }));
+
   const departures = [];
   for (const entity of feed.entity) {
     const updates = entity.tripUpdate && entity.tripUpdate.stopTimeUpdate;
     if (!updates || !updates.length) continue;
-    const here = updates.find((u) => stationIds.has(String(u.stopId)));
-    if (!here) continue;
+    const hereIdx = updates.findIndex((u) => stationIds.has(String(u.stopId)));
+    if (hereIdx < 0) continue;
+    const here = updates[hereIdx];
     const last = updates[updates.length - 1];
     if (stationIds.has(String(last.stopId))) continue;           // train ends here: nobody boards it
     const ev = here.departure || here.arrival;
@@ -78,6 +85,12 @@ async function getDepartures(stationName, opts = {}) {
     const timeMs = seconds * 1000;
     if (timeMs < now - 60 * 1000) continue;                      // already gone
     const delayMin = Math.max(0, Math.round((toNumber(ev.delay) || 0) / 60));
+    for (const w of wanted) {
+      const stop = updates.slice(hereIdx + 1).find((u) => w.ids.has(String(u.stopId)));
+      const arr = stop && toNumber((stop.arrival || stop.departure || {}).time);
+      if (!arr || (w.best && w.best.timeMs <= timeMs)) continue;
+      w.best = { timeMs, arriveMs: arr * 1000, delayMin };
+    }
     departures.push({
       time: new Date(timeMs).toISOString(),
       inMin: Math.max(0, Math.round((timeMs - now) / 60000)),
@@ -94,7 +107,19 @@ async function getDepartures(stationName, opts = {}) {
     source: 'MTA Metro-North GTFS-realtime',
     feedTime: feedTime ? new Date(feedTime * 1000).toISOString() : null,
     generatedAt: new Date(now).toISOString(),
-    departures: departures.slice(0, limit)
+    departures: departures.slice(0, limit),
+    destinations: wanted.map((w) => ({
+      destination: w.name,
+      known: w.ids.size > 0,
+      next: w.best && {
+        time: new Date(w.best.timeMs).toISOString(),
+        inMin: Math.max(0, Math.round((w.best.timeMs - now) / 60000)),
+        arrive: new Date(w.best.arriveMs).toISOString(),
+        tripMin: Math.max(0, Math.round((w.best.arriveMs - w.best.timeMs) / 60000)),
+        delayMin: w.best.delayMin,
+        status: w.best.delayMin >= 1 ? w.best.delayMin + ' min late' : 'On time'
+      }
+    }))
   };
   departuresCache.set(key, { at: now, body });
   return body;

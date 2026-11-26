@@ -35,6 +35,15 @@ const fakeFetch = async (url) => { calls++; return { ok: true, status: 200, arra
   await assert.rejects(() => getDepartures('Nowhere', { fetch: fakeFetch, now }), /Station not found/);
   _reset();
   await assert.rejects(() => getDepartures('South Norwalk', { fetch: async () => ({ ok: false, status: 403 }), now }), /HTTP 403/);
+  // Next train per destination: Stamford is served by Grand Central trains; arrival time comes from the feed.
+  _reset();
+  const d = await getDepartures('South Norwalk', { fetch: fakeFetch, now, to: ['Grand Central', 'Stamford', 'New Haven', 'Atlantis'] });
+  const by = Object.fromEntries(d.destinations.map((x) => [x.destination, x]));
+  assert.deepStrictEqual([by['Grand Central'].next.inMin, by['Grand Central'].next.tripMin, by['Grand Central'].next.status], [9, 66, 'On time']);
+  assert.deepStrictEqual([by['Stamford'].next.inMin, by['Stamford'].next.tripMin], [9, 16]);
+  assert.deepStrictEqual([by['New Haven'].next.inMin, by['New Haven'].next.tripMin, by['New Haven'].next.status], [22, 48, '6 min late']);
+  assert.strictEqual(by['Atlantis'].known, false);
+  assert.strictEqual(by['Atlantis'].next, null);
   console.log('all tests passed');
   console.log(JSON.stringify(out.departures[1]));
 })().catch((e) => { console.error(e); process.exit(1); });

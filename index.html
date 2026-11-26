@@ -65,11 +65,11 @@
   .hr .d { font-size: 24px; color: var(--soft); }
   #right { flex: 1 1 0; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
   #trains, #drive { flex: 1 1 0; padding: 22px 36px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
-  .trow { display: grid; grid-template-columns: 210px 1fr 200px; align-items: center; column-gap: 18px; }
+  .trow { display: grid; grid-template-columns: 190px 1fr 190px; align-items: center; column-gap: 18px; }
   .trow .in { font-size: 50px; font-weight: 600; line-height: 1; }
   .trow .in small { font-size: 28px; font-weight: 500; color: var(--muted); margin-left: 8px; }
   .trow .dest { font-size: 33px; font-weight: 600; line-height: 1.15; }
-  .trow .sub { font-size: 22px; color: var(--muted); line-height: 1.2; }
+  .trow .sub { font-size: 22px; color: var(--muted); line-height: 1.2; white-space: nowrap; }
   .trow .st { font-size: 30px; font-weight: 700; text-align: right; }
   .tmsg { font-size: 34px; color: var(--muted); }
   .drow { display: grid; grid-template-columns: 1fr 200px 180px; align-items: center; column-gap: 18px; }
@@ -148,7 +148,7 @@
         <div id="trainRows" class="rows"></div>
       </div>
       <div id="drive" class="card">
-        <div class="head"><span class="label">Drive times now</span><span class="badge sample">Sample data</span></div>
+        <div class="head"><span class="label">Drive times now</span><span id="driveBadge" class="badge sample">Sample data</span></div>
         <div id="driveRows" class="rows"></div>
       </div>
     </div>
@@ -178,7 +178,9 @@ const CONFIG = {
   lat: 41.119,            // max 4 decimals (National Weather Service requirement)
   lon: -73.416,
   timeZone: 'America/New_York',
+  screenId: 'confluence',  // drive-time destinations for this id are set in api/lib/drive.js
   trainStation: 'South Norwalk',
+  trainDestinations: ['Grand Central', 'Stamford', 'New Haven'],
   weatherRefreshMin: 10,
   airRefreshMin: 30,
   newsRotateSec: 12,
@@ -198,12 +200,12 @@ const SAMPLE = {
   drive: [
     { to: 'Stamford', via: 'via I-95 South', min: '18 min', st: 'Light', cls: 'good' },
     { to: 'New Haven', via: 'via I-95 North', min: '52 min', st: 'Heavy', cls: 'bad' },
-    { to: 'Midtown NYC', via: 'via Merritt Pkwy', min: '1 h 14', st: 'Moderate', cls: 'mid' }
+    { to: 'Danbury', via: 'via Route 7', min: '40 min', st: 'Moderate', cls: 'mid' }
   ],
   trains: [
-    { inMin: 9, dest: 'Grand Central', trk: 'Track 1', st: 'On time', cls: 'good' },
-    { inMin: 22, dest: 'New Haven', trk: 'Track 2', st: '6 min late', cls: 'bad' },
-    { inMin: 36, dest: 'Grand Central', trk: 'Track 1', st: 'On time', cls: 'good' }
+    { inMin: 9, tripMin: 66, dest: 'Grand Central', st: 'On time', late: false },
+    { inMin: 9, tripMin: 16, dest: 'Stamford', st: 'On time', late: false },
+    { inMin: 22, tripMin: 48, dest: 'New Haven', st: '6 min late', late: true }
   ]
 };
 
@@ -369,22 +371,45 @@ function renderNews() {
   $('headline').textContent = SAMPLE.news[newsIdx];
   newsIdx = (newsIdx + 1) % SAMPLE.news.length;
 }
-function renderDrive() {
-  $('driveRows').innerHTML = SAMPLE.drive.map((d) =>
+const TRAFFIC_CLS = { Light: 'good', Moderate: 'mid', Heavy: 'bad' };
+function renderDrive(rows) {
+  $('driveRows').innerHTML = rows.map((d) =>
     '<div class="drow"><div><div class="to">' + esc(d.to) + '</div><div class="via">' + esc(d.via) + '</div></div>' +
     '<div class="min num">' + esc(d.min) + '</div><div class="st ' + d.cls + '">' + esc(d.st) + '</div></div>').join('');
 }
-/* ---------- trains: live from /api/trains when hosted; sample data when opened as a local file ---------- */
+/* Drive times: live from /api/drive (Azure Maps) once its key is configured; sample data until then. */
+let lastDriveOk = 0;
+async function loadDrive() {
+  if (HOSTED) {
+    try {
+      const d = await getJSON('/api/drive?screen=' + encodeURIComponent(CONFIG.screenId));
+      renderDrive(d.routes.map((r) => ({ to: r.destination, via: r.via, min: r.text, st: r.traffic, cls: TRAFFIC_CLS[r.traffic] || 'mid' })));
+      lastDriveOk = Date.now();
+      setBadge('driveBadge', 'live', 'Live · ' + fmtTime(new Date()));
+      return;
+    } catch (e) {
+      console.error('Drive times failed', e);
+      // Keep the last live numbers for up to 30 minutes; after that fall back to labeled sample data.
+      if (lastDriveOk && Date.now() - lastDriveOk < 30 * 60000) { setBadge('driveBadge', 'stale', 'Last update ' + fmtTime(new Date(lastDriveOk))); return; }
+    }
+  }
+  renderDrive(SAMPLE.drive);
+  setBadge('driveBadge', 'sample', 'Sample data');
+}
+
+/* ---------- trains: next train to each destination. Live from /api/trains when hosted; sample as a local file. ---------- */
 const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
 let trainList = null, lastTrainsOk = 0;
 async function loadTrains() {
   if (!HOSTED) {
     const now = Date.now();
-    trainList = SAMPLE.trains.map((t) => ({ timeMs: now + t.inMin * 60000, dest: t.dest, trk: t.trk, st: t.st, late: t.cls === 'bad' }));
+    trainList = SAMPLE.trains.map((t) => ({ dest: t.dest, timeMs: now + t.inMin * 60000, arriveMs: now + (t.inMin + t.tripMin) * 60000, st: t.st, late: t.late }));
   } else {
     try {
-      const d = await getJSON('/api/trains?station=' + encodeURIComponent(CONFIG.trainStation));
-      trainList = d.departures.map((x) => ({ timeMs: new Date(x.time).getTime(), dest: x.destination, trk: '', st: x.status, late: x.delayMin >= 1 }));
+      const d = await getJSON('/api/trains?station=' + encodeURIComponent(CONFIG.trainStation) + '&to=' + encodeURIComponent(CONFIG.trainDestinations.join(',')));
+      trainList = d.destinations.map((x) => x.next
+        ? { dest: x.destination, timeMs: new Date(x.next.time).getTime(), arriveMs: new Date(x.next.arrive).getTime(), st: x.next.status, late: x.next.delayMin >= 1 }
+        : { dest: x.destination, none: true });
       lastTrainsOk = Date.now();
       setBadge('trainBadge', 'live', 'Live · ' + fmtTime(new Date()));
     } catch (e) {
@@ -399,12 +424,13 @@ async function loadTrains() {
 function renderTrains() {
   if (!trainList) { $('trainRows').innerHTML = '<div class="tmsg">Live train times are unavailable right now</div>'; return; }
   const now = Date.now();
-  const rows = trainList.filter((t) => t.timeMs > now - 30000).slice(0, 3);
-  if (!rows.length) { $('trainRows').innerHTML = '<div class="tmsg">No upcoming departures listed</div>'; return; }
-  $('trainRows').innerHTML = rows.map((t) => {
+  $('trainRows').innerHTML = trainList.map((t) => {
+    if (t.none || t.timeMs < now - 30000) {
+      return '<div class="trow"><div class="in num">—</div><div><div class="dest">' + esc(t.dest) + '</div><div class="sub">No train listed right now</div></div><div class="st"></div></div>';
+    }
     const inMin = Math.max(0, Math.round((t.timeMs - now) / 60000));
     return '<div class="trow"><div class="in num">' + (inMin < 1 ? 'Now' : inMin + '<small>min</small>') + '</div>' +
-      '<div><div class="dest">' + esc(t.dest) + '</div><div class="sub">' + esc(fmtTime(new Date(t.timeMs))) + (t.trk ? ' · ' + esc(t.trk) : '') + '</div></div>' +
+      '<div><div class="dest">' + esc(t.dest) + '</div><div class="sub">' + esc(fmtTime(new Date(t.timeMs))) + ' → arrives ' + esc(fmtTime(new Date(t.arriveMs))) + '</div></div>' +
       '<div class="st ' + (t.late ? 'bad' : 'good') + '">' + esc(t.st) + '</div></div>';
   }).join('');
 }
@@ -412,10 +438,10 @@ function renderTrains() {
 /* ---------- start ---------- */
 function start() {
   $('bnameText').textContent = CONFIG.buildingName + ' · ' + CONFIG.city;
-  $('trainLabel').textContent = 'Trains · ' + CONFIG.trainStation;
+  $('trainLabel').textContent = 'Next train from ' + CONFIG.trainStation;
   fit(); window.addEventListener('resize', fit);
   tickClock(); setInterval(tickClock, 1000);
-  renderDrive();
+  loadDrive(); setInterval(loadDrive, 5 * 60000);
   loadTrains(); setInterval(loadTrains, 30000); setInterval(renderTrains, 15000);
   renderNews(); setInterval(renderNews, CONFIG.newsRotateSec * 1000);
   loadWeather(); setInterval(loadWeather, CONFIG.weatherRefreshMin * 60000);
