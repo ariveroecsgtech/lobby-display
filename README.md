@@ -12,7 +12,8 @@ Informational screen for a building lobby. Pilot: Confluence, 26 Belden Ave, Nor
 | Trains | Live when hosted | `/api/trains`: next train from South Norwalk to Grand Central, Stamford and New Haven, with arrival time |
 | Drive times | Sample until `AZURE_MAPS_KEY` is set | `/api/drive`: Stamford, New Haven and Danbury with live traffic from Azure Maps |
 | Markets strip | **Simulated** | Random demo numbers for showing the layout, labeled "Simulated · demo only" on screen. Not real quotes |
-| News headline | Off (`CONFIG.footer = 'markets'`) | `/api/news` (NewsData.io) works; turned off pending a decision on the news source. Set `CONFIG.footer = 'news'` to show it |
+| Headlines (demo) | **Simulated** | Invented headlines for Norwalk, New York, New Haven and national, labeled "Simulated · demo only". They take turns with the markets strip (`CONFIG.footer = 'demo'`). Not real news |
+| Live headlines | Off | `/api/news` (NewsData.io) works; turned off pending a decision on the news source. Set `CONFIG.footer = 'news'` to show it |
 | QR code | Live | `qr.svg`, points to https://display.ecsgapps.com. Regenerate it if the address changes |
 
 On a phone in portrait the same page switches to a one-column layout (this is what the QR code opens).

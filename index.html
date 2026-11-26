@@ -83,7 +83,7 @@
   #footer { height: 140px; display: flex; gap: 24px; align-items: stretch; }
   #news { flex-grow: 1; min-width: 0; padding: 0 32px; display: flex; align-items: center; gap: 20px; }
   #news .tag { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--bg); background: var(--soft); padding: 6px 14px; border-radius: 8px; }
-  #headline { font-size: 36px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; }
+  #headline { font-size: 34px; font-weight: 500; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex-grow: 1; min-width: 0; }
   #mkt { flex-grow: 1; min-width: 0; padding: 14px 32px; display: none; flex-direction: column; justify-content: space-between; }
   #mkt .mhead { display: flex; align-items: center; justify-content: space-between; }
   #mkt .label { font-size: 20px; }
@@ -95,6 +95,7 @@
   .mk svg { width: 110px; height: 44px; flex-shrink: 0; }
   .footer-markets #mkt { display: flex; }
   .footer-markets #news, .footer-none #news { display: none; }
+  #news .tag { white-space: nowrap; }
   .mobile #mkt { padding: 22px 28px; gap: 16px; }
   .mobile #mktRows { flex-direction: column; gap: 14px; }
   .mobile .mk { justify-content: space-between; }
@@ -171,7 +172,7 @@
 
   <div id="footer">
     <div id="news" class="card">
-      <span class="tag">News</span>
+      <span class="tag" id="newsTag">News</span>
       <span id="headline"></span>
       <span id="newsBadge" class="badge sample">Sample</span>
     </div>
@@ -203,7 +204,8 @@ const CONFIG = {
   weatherRefreshMin: 10,
   airRefreshMin: 30,
   newsRotateSec: 12,
-  footer: 'markets',      // 'markets' = simulated index demo, 'news' = live headlines from /api/news, 'none' = QR only
+  footer: 'demo',         // 'demo' = simulated markets and simulated headlines taking turns, 'markets' = simulated markets only,
+                          // 'news' = live headlines from /api/news, 'none' = QR only
   eveningStartsHour: 15,  // from this hour the screen leads with tomorrow's forecast
   nightDim: [23, 5],      // dim the screen between these hours
   aqiNotable: 100,        // air quality only appears above this value
@@ -490,6 +492,31 @@ function tickMarkets() {
   }).join('');
 }
 
+/* ---------- headlines demo: INVENTED headlines for showing the layout. Not real news; labeled on screen. ---------- */
+const DEMO_NEWS = [
+  { place: 'Norwalk', title: 'Local library adds weekend hours for the winter season' },
+  { place: 'New York', title: 'Holiday markets open across the city' },
+  { place: 'New Haven', title: 'Food festival returns to the downtown green' },
+  { place: 'National', title: 'Holiday travel season gets under way' },
+  { place: 'Norwalk', title: 'Community cleanup day draws volunteers to the waterfront' },
+  { place: 'New York', title: 'Museum unveils new winter exhibition' },
+  { place: 'New Haven', title: 'University hosts free public lecture series' },
+  { place: 'National', title: 'Small businesses prepare for weekend shopping rush' }
+];
+let demoStep = 0, demoNewsIdx = 0;
+function demoFooterStep() {
+  // One markets view, then two headlines, and repeat.
+  const showNews = demoStep % 3 !== 0;
+  if (showNews) {
+    const n = DEMO_NEWS[demoNewsIdx++ % DEMO_NEWS.length];
+    $('newsTag').textContent = n.place;
+    $('headline').textContent = n.title;
+    setBadge('newsBadge', 'sample', 'Simulated · demo only');
+  }
+  document.documentElement.classList.toggle('footer-markets', !showNews);
+  demoStep++;
+}
+
 /* ---------- start ---------- */
 function start() {
   $('bnameText').textContent = CONFIG.buildingName + ' · ' + CONFIG.city;
@@ -502,9 +529,10 @@ function start() {
   if (CONFIG.footer === 'news') {
     renderNews(); setInterval(renderNews, CONFIG.newsRotateSec * 1000);
     loadNews(); setInterval(loadNews, 15 * 60000);
-  } else if (CONFIG.footer === 'markets') {
+  } else if (CONFIG.footer === 'markets' || CONFIG.footer === 'demo') {
     for (let i = 0; i < 40; i++) tickMarkets();        // pre-fill the sparklines
     setInterval(tickMarkets, 2000);
+    if (CONFIG.footer === 'demo') { demoFooterStep(); setInterval(demoFooterStep, 8000); }
   }
   loadWeather(); setInterval(loadWeather, CONFIG.weatherRefreshMin * 60000);
   loadAlerts(); setInterval(loadAlerts, CONFIG.weatherRefreshMin * 60000);
