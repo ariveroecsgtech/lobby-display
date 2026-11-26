@@ -22,5 +22,8 @@ const { getHeadlines, _reset } = require('../lib/news');
   const seen = [];
   await getHeadlines({ key: '  apikey=pub_abc \n', fetch: async (u) => { seen.push(u); return { ok: true, json: async () => ({ results: [{ title: 'T' }] }) }; } });
   assert.ok(seen[0].includes('?apikey=pub_abc&'), 'pasted prefix and spaces are cleaned');
+  _reset();
+  await getHeadlines({ key: 'https://newsdata.io/api/1/latest? \n  apikey=pub_81ab', fetch: async (u) => { seen.push(u); return { ok: true, json: async () => ({ results: [{ title: 'T' }] }) }; } });
+  assert.ok(seen[1].startsWith('https://newsdata.io/api/1/latest?apikey=pub_81ab&'), 'a pasted sample URL still yields the key');
   console.log('news tests passed');
 })().catch((e) => { console.error(e); process.exit(1); });

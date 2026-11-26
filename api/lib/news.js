@@ -8,7 +8,11 @@ async function getHeadlines(opts = {}) {
   const now = opts.now || Date.now();
   const rawKey = opts.key !== undefined ? opts.key : process.env.NEWSDATA_API_KEY;
   // Tolerate the usual paste mistakes: stray spaces, quotes, or the "apikey=" prefix copied from NewsData's sample URL.
-  const key = String(rawKey || '').trim().replace(/^["']|["']$/g, '').replace(/^apikey=/i, '').trim();
+  // NewsData keys look like "pub_" plus letters and digits: if the stored value contains one (for example
+  // the whole sample URL was pasted), use just that part.
+  const cleaned = String(rawKey || '').trim().replace(/^["']|["']$/g, '').replace(/^apikey=/i, '').trim();
+  const found = cleaned.match(/pub_[A-Za-z0-9]+/);
+  const key = found ? found[0] : cleaned;
   if (!key) { const e = new Error('NEWSDATA_API_KEY is not set'); e.code = 'not_configured'; throw e; }
   if (!opts.noCache && cached && now - cached.at < TTL_MS) return cached.body;
 
