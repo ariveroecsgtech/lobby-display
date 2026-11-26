@@ -12,7 +12,9 @@ Informational screen for a building lobby. Pilot: Confluence, 26 Belden Ave, Nor
 | Trains | Live when hosted | `/api/trains`, reading MTA Metro-North GTFS + GTFS-realtime |
 | Drive times | Sample | Planned: Azure Maps |
 | News headline | Sample | Planned: licensed news provider |
-| QR code | Placeholder | Needs the public URL |
+| QR code | Live | `qr.svg`, points to https://display.ecsgapps.com. Regenerate it if the address changes |
+
+On a phone in portrait the same page switches to a one-column layout (this is what the QR code opens).
 
 Anything not live is labeled "Sample data" on screen. Opened as a local file, trains also fall back to sample data.
 
