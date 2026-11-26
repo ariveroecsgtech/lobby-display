@@ -11,7 +11,7 @@ app.http('news', {
     } catch (err) {
       if (err.code === 'not_configured') return { status: 503, jsonBody: { error: 'not_configured' } };
       context.error('news failed', err);
-      return { status: 502, jsonBody: { error: 'Headlines unavailable' } };
+      return { status: 502, jsonBody: { error: 'Headlines unavailable', detail: err.detail || String(err.message || '').slice(0, 200) } };
     }
   }
 });

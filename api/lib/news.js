@@ -13,7 +13,14 @@ async function getHeadlines(opts = {}) {
   const query = process.env.NEWS_QUERY || 'country=us&language=en&category=top';
   // NewsData.io documents the key as the `apikey` query parameter.
   const res = await fetchImpl('https://newsdata.io/api/1/latest?apikey=' + encodeURIComponent(key) + '&' + query);
-  if (!res.ok) throw new Error('NewsData request failed: HTTP ' + res.status);
+  if (!res.ok) {
+    // Pass NewsData's own explanation along (never the key) so a bad parameter or plan limit is easy to diagnose.
+    let why = '';
+    try { const b = await res.json(); why = String((b.results && (b.results.message || b.results.code)) || b.message || '').split(key).join('***').slice(0, 200); } catch (e) { /* no body */ }
+    const err = new Error('NewsData request failed: HTTP ' + res.status + (why ? ' - ' + why : ''));
+    err.detail = 'HTTP ' + res.status + (why ? ' - ' + why : '');
+    throw err;
+  }
   const data = await res.json();
   const seen = new Set();
   const headlines = [];

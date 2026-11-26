@@ -15,5 +15,8 @@ const { getHeadlines, _reset } = require('../lib/news');
   assert.strictEqual(calls.length, 1, 'cached within 15 minutes');
   _reset();
   await assert.rejects(() => getHeadlines({ key: 'k', fetch: async () => ({ ok: true, json: async () => ({ results: [] }) }) }), /no usable/);
+  _reset();
+  await assert.rejects(() => getHeadlines({ key: 'secretkey', fetch: async () => ({ ok: false, status: 422, json: async () => ({ status: 'error', results: { message: 'Bad param for secretkey', code: 'UnsupportedFilter' } }) }) }),
+    (e) => e.detail === 'HTTP 422 - Bad param for ***');
   console.log('news tests passed');
 })().catch((e) => { console.error(e); process.exit(1); });
