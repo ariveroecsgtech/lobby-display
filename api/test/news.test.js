@@ -10,7 +10,7 @@ const { getHeadlines, _reset } = require('../lib/news');
   const out = await getHeadlines({ key: 'k', fetch: fakeFetch, now: 1000 });
   assert.deepStrictEqual(out.headlines.slice(0, 2), [{ title: 'First headline', source: 'Example Times' }, { title: 'Second headline', source: 'wire' }]);
   assert.strictEqual(out.headlines.length, 6);
-  assert.ok(calls[0].startsWith('https://newsdata.io/api/1/latest?apikey=k&country=us'));
+  assert.ok(calls[0].startsWith('https://newsdata.io/api/1/latest?apikey=k&country=us&language=en&category=top&prioritydomain=top'));
   await getHeadlines({ key: 'k', fetch: fakeFetch, now: 2000 });
   assert.strictEqual(calls.length, 1, 'cached within 15 minutes');
   _reset();

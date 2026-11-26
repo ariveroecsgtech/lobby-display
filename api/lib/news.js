@@ -16,7 +16,8 @@ async function getHeadlines(opts = {}) {
   if (!key) { const e = new Error('NEWSDATA_API_KEY is not set'); e.code = 'not_configured'; throw e; }
   if (!opts.noCache && cached && now - cached.at < TTL_MS) return cached.body;
 
-  const query = process.env.NEWS_QUERY || 'country=us&language=en&category=top';
+  // prioritydomain=top keeps only NewsData's top-ranked outlets, which filters out most fringe and local-foreign sources.
+  const query = process.env.NEWS_QUERY || 'country=us&language=en&category=top&prioritydomain=top';
   // NewsData.io documents the key as the `apikey` query parameter.
   const res = await fetchImpl('https://newsdata.io/api/1/latest?apikey=' + encodeURIComponent(key) + '&' + query);
   if (!res.ok) {
@@ -36,7 +37,7 @@ async function getHeadlines(opts = {}) {
     const id = title.toLowerCase();
     if (!title || title.length > 160 || seen.has(id)) continue;   // skip empty, very long and duplicate titles
     seen.add(id);
-    headlines.push({ title, source: String(a.source_name || a.source_id || '').trim() });
+    headlines.push({ title, source: String(a.source_name || a.source_id || '').split('|')[0].trim().slice(0, 32) });
     if (headlines.length === 6) break;
   }
   if (!headlines.length) throw new Error('NewsData returned no usable headlines');
