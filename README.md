@@ -11,7 +11,7 @@ Informational screen for a building lobby. Pilot: Confluence, 26 Belden Ave, Nor
 | Air quality, UV (shown only when notable) | Live | Open-Meteo. Free tier is non-commercial: replace before selling |
 | Trains | Live when hosted | `/api/trains`: next train from South Norwalk to Grand Central, Stamford and New Haven, with arrival time |
 | Drive times | Sample until `AZURE_MAPS_KEY` is set | `/api/drive`: Stamford, New Haven and Danbury with live traffic from Azure Maps |
-| News headline | Sample | Planned: licensed news provider |
+| News headline | Sample until `NEWSDATA_API_KEY` is set | `/api/news`: top US headlines from NewsData.io, title and source name only |
 | QR code | Live | `qr.svg`, points to https://display.ecsgapps.com. Regenerate it if the address changes |
 
 On a phone in portrait the same page switches to a one-column layout (this is what the QR code opens).
@@ -46,11 +46,13 @@ The test builds a fake Metro-North feed, so it runs offline. The real MTA feed h
 
 ## Optional settings (Static Web App → Environment variables)
 
+- `NEWSDATA_API_KEY` — NewsData.io API key. Without it `/api/news` answers 503 and the screen shows sample headlines. `NEWS_QUERY` overrides the default `country=us&language=en&category=top`.
 - `AZURE_MAPS_KEY` — Azure Maps subscription key. Without it `/api/drive` answers 503 and the screen shows labeled sample drive times.
 - `DEFAULT_STATION` — station used when the request has none.
 - `MNR_STATIC_URL`, `MNR_REALTIME_URL` — override the MTA feed addresses if they change.
 
 ## Known gaps
 
-- Track numbers are not shown: they come in an MTA extension the standard decoder does not read.
+- Track numbers appear only when Metro-North has posted one for that stop; the feed often has none until shortly before departure.
+- The NewsData.io and Azure Maps calls are tested with simulated responses only until their keys are configured.
 - MTA feeds are subject to MTA's developer terms and conditions.

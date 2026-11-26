@@ -45,6 +45,48 @@ async function loadStops(fetchImpl) {
   return byId;
 }
 
+// --- Track numbers -------------------------------------------------------------------------
+// Metro-North publishes the track in a GTFS-realtime extension (field 1005 on StopTimeUpdate,
+// message { track = 1; trainStatus = 2 }) that the standard decoder drops, so it is read
+// straight from the protobuf wire format here.
+function readFields(buf, start, end, onField) {
+  let pos = start;
+  const varint = () => { let r = 0, shift = 0, b; do { b = buf[pos++]; if (shift < 28) r |= (b & 0x7f) << shift; else r += (b & 0x7f) * Math.pow(2, shift); shift += 7; } while (b & 0x80 && pos <= end); return r >>> 0; };
+  while (pos < end) {
+    const tag = varint(), field = tag >>> 3, wire = tag & 7;
+    if (wire === 0) varint();
+    else if (wire === 1) pos += 8;
+    else if (wire === 5) pos += 4;
+    else if (wire === 2) { const len = varint(); onField(field, pos, pos + len); pos += len; }
+    else return; // groups are not used by GTFS-realtime
+  }
+}
+function extractTracks(buf) {
+  const text = (s, e) => Buffer.from(buf.subarray(s, e)).toString('utf8');
+  const tracks = new Map(); // entity id -> Map(stop id -> track)
+  try {
+    readFields(buf, 0, buf.length, (f, s, e) => {
+      if (f !== 2) return;                                   // FeedMessage.entity
+      let id = '', perStop = null;
+      readFields(buf, s, e, (f2, s2, e2) => {
+        if (f2 === 1) id = text(s2, e2);                     // FeedEntity.id
+        if (f2 !== 3) return;                                // FeedEntity.trip_update
+        readFields(buf, s2, e2, (f3, s3, e3) => {
+          if (f3 !== 2) return;                              // TripUpdate.stop_time_update
+          let stopId = '', track = '';
+          readFields(buf, s3, e3, (f4, s4, e4) => {
+            if (f4 === 4) stopId = text(s4, e4);             // StopTimeUpdate.stop_id
+            if (f4 === 1005) readFields(buf, s4, e4, (f5, s5, e5) => { if (f5 === 1 && e5 > s5) track = text(s5, e5).trim(); });
+          });
+          if (stopId && track) (perStop = perStop || new Map()).set(stopId, track);
+        });
+      });
+      if (id && perStop) tracks.set(id, perStop);
+    });
+  } catch (e) { /* track is optional: never fail the request over it */ }
+  return tracks;
+}
+
 const toNumber = (v) => (v == null ? null : typeof v === 'number' ? v : Number(v.toString()));
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -64,7 +106,9 @@ async function getDepartures(stationName, opts = {}) {
 
   const res = await fetchImpl(REALTIME_URL);
   if (!res.ok) throw new Error('Realtime feed failed: HTTP ' + res.status);
-  const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(new Uint8Array(await res.arrayBuffer()));
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(bytes);
+  const tracks = extractTracks(bytes);
 
   // Optional: the next train from this station that also stops at each requested destination.
   const idsFor = (name) => new Set([...stops].filter(([, n]) => norm(n) === norm(name)).map(([id]) => id));
@@ -85,17 +129,19 @@ async function getDepartures(stationName, opts = {}) {
     const timeMs = seconds * 1000;
     if (timeMs < now - 60 * 1000) continue;                      // already gone
     const delayMin = Math.max(0, Math.round((toNumber(ev.delay) || 0) / 60));
+    const track = (tracks.get(String(entity.id)) || new Map()).get(String(here.stopId)) || null;
     for (const w of wanted) {
       const stop = updates.slice(hereIdx + 1).find((u) => w.ids.has(String(u.stopId)));
       const arr = stop && toNumber((stop.arrival || stop.departure || {}).time);
       if (!arr || (w.best && w.best.timeMs <= timeMs)) continue;
-      w.best = { timeMs, arriveMs: arr * 1000, delayMin };
+      w.best = { timeMs, arriveMs: arr * 1000, delayMin, track };
     }
     departures.push({
       time: new Date(timeMs).toISOString(),
       inMin: Math.max(0, Math.round((timeMs - now) / 60000)),
       destination: stops.get(String(last.stopId)) || 'Unknown',
       delayMin,
+      track,
       status: delayMin >= 1 ? delayMin + ' min late' : 'On time'
     });
   }
@@ -117,6 +163,7 @@ async function getDepartures(stationName, opts = {}) {
         arrive: new Date(w.best.arriveMs).toISOString(),
         tripMin: Math.max(0, Math.round((w.best.arriveMs - w.best.timeMs) / 60000)),
         delayMin: w.best.delayMin,
+        track: w.best.track,
         status: w.best.delayMin >= 1 ? w.best.delayMin + ' min late' : 'On time'
       }
     }))
@@ -125,4 +172,4 @@ async function getDepartures(stationName, opts = {}) {
   return body;
 }
 
-module.exports = { getDepartures, parseCsv, _reset: () => { stopsCache = null; departuresCache.clear(); } };
+module.exports = { getDepartures, parseCsv, extractTracks, _reset: () => { stopsCache = null; departuresCache.clear(); } };

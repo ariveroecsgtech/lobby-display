@@ -71,6 +71,7 @@
   .trow .dest { font-size: 33px; font-weight: 600; line-height: 1.15; }
   .trow .sub { font-size: 22px; color: var(--muted); line-height: 1.2; white-space: nowrap; }
   .trow .st { font-size: 30px; font-weight: 700; text-align: right; }
+  .trow .trk { font-size: 24px; font-weight: 600; color: var(--soft); line-height: 1.2; }
   .tmsg { font-size: 34px; color: var(--muted); }
   .drow { display: grid; grid-template-columns: 1fr 200px 180px; align-items: center; column-gap: 18px; }
   .drow .to { font-size: 33px; font-weight: 600; line-height: 1.15; }
@@ -158,7 +159,7 @@
     <div id="news" class="card">
       <span class="tag">News</span>
       <span id="headline"></span>
-      <span class="badge sample">Sample</span>
+      <span id="newsBadge" class="badge sample">Sample</span>
     </div>
     <div id="qr" class="card">
       <div class="txt">Take this screen with you<small>Scan for live updates on your phone</small></div>
@@ -203,7 +204,7 @@ const SAMPLE = {
     { to: 'Danbury', via: 'via Route 7', min: '40 min', st: 'Moderate', cls: 'mid' }
   ],
   trains: [
-    { inMin: 9, tripMin: 66, dest: 'Grand Central', st: 'On time', late: false },
+    { inMin: 9, tripMin: 66, dest: 'Grand Central', st: 'On time', late: false, trk: '3' },
     { inMin: 9, tripMin: 16, dest: 'Stamford', st: 'On time', late: false },
     { inMin: 22, tripMin: 48, dest: 'New Haven', st: '6 min late', late: true }
   ]
@@ -366,10 +367,24 @@ async function loadAir() {
 }
 
 /* ---------- sample sections ---------- */
-let newsIdx = 0;
+/* Headlines: live from /api/news (NewsData.io) once its key is configured; sample text until then. */
+let newsIdx = 0, newsList = SAMPLE.news.map((t) => ({ title: t, source: '' })), newsLive = false;
 function renderNews() {
-  $('headline').textContent = SAMPLE.news[newsIdx];
-  newsIdx = (newsIdx + 1) % SAMPLE.news.length;
+  const n = newsList[newsIdx % newsList.length];
+  $('headline').textContent = n.title;
+  if (newsLive) { const b = $('newsBadge'); b.className = 'badge sample'; b.textContent = n.source || 'News'; }
+  newsIdx++;
+}
+async function loadNews() {
+  if (!HOSTED) return;
+  try {
+    const d = await getJSON('/api/news');
+    newsList = d.headlines; newsLive = true; newsIdx = 0;
+    renderNews();
+  } catch (e) {
+    console.error('Headlines failed', e);
+    if (!newsLive) setBadge('newsBadge', 'sample', 'Sample');
+  }
 }
 const TRAFFIC_CLS = { Light: 'good', Moderate: 'mid', Heavy: 'bad' };
 function renderDrive(rows) {
@@ -403,12 +418,12 @@ let trainList = null, lastTrainsOk = 0;
 async function loadTrains() {
   if (!HOSTED) {
     const now = Date.now();
-    trainList = SAMPLE.trains.map((t) => ({ dest: t.dest, timeMs: now + t.inMin * 60000, arriveMs: now + (t.inMin + t.tripMin) * 60000, st: t.st, late: t.late }));
+    trainList = SAMPLE.trains.map((t) => ({ dest: t.dest, timeMs: now + t.inMin * 60000, arriveMs: now + (t.inMin + t.tripMin) * 60000, st: t.st, late: t.late, trk: t.trk }));
   } else {
     try {
       const d = await getJSON('/api/trains?station=' + encodeURIComponent(CONFIG.trainStation) + '&to=' + encodeURIComponent(CONFIG.trainDestinations.join(',')));
       trainList = d.destinations.map((x) => x.next
-        ? { dest: x.destination, timeMs: new Date(x.next.time).getTime(), arriveMs: new Date(x.next.arrive).getTime(), st: x.next.status, late: x.next.delayMin >= 1 }
+        ? { dest: x.destination, timeMs: new Date(x.next.time).getTime(), arriveMs: new Date(x.next.arrive).getTime(), st: x.next.status, late: x.next.delayMin >= 1, trk: x.next.track }
         : { dest: x.destination, none: true });
       lastTrainsOk = Date.now();
       setBadge('trainBadge', 'live', 'Live · ' + fmtTime(new Date()));
@@ -431,7 +446,7 @@ function renderTrains() {
     const inMin = Math.max(0, Math.round((t.timeMs - now) / 60000));
     return '<div class="trow"><div class="in num">' + (inMin < 1 ? 'Now' : inMin + '<small>min</small>') + '</div>' +
       '<div><div class="dest">' + esc(t.dest) + '</div><div class="sub">' + esc(fmtTime(new Date(t.timeMs))) + ' → arrives ' + esc(fmtTime(new Date(t.arriveMs))) + '</div></div>' +
-      '<div class="st ' + (t.late ? 'bad' : 'good') + '">' + esc(t.st) + '</div></div>';
+      '<div class="st ' + (t.late ? 'bad' : 'good') + '">' + esc(t.st) + (t.trk ? '<div class="trk">Track ' + esc(t.trk) + '</div>' : '') + '</div></div>';
   }).join('');
 }
 
@@ -444,6 +459,7 @@ function start() {
   loadDrive(); setInterval(loadDrive, 5 * 60000);
   loadTrains(); setInterval(loadTrains, 30000); setInterval(renderTrains, 15000);
   renderNews(); setInterval(renderNews, CONFIG.newsRotateSec * 1000);
+  loadNews(); setInterval(loadNews, 15 * 60000);
   loadWeather(); setInterval(loadWeather, CONFIG.weatherRefreshMin * 60000);
   loadAlerts(); setInterval(loadAlerts, CONFIG.weatherRefreshMin * 60000);
   loadAir(); setInterval(loadAir, CONFIG.airRefreshMin * 60000);

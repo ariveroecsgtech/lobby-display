@@ -44,6 +44,38 @@ const fakeFetch = async (url) => { calls++; return { ok: true, status: 200, arra
   assert.deepStrictEqual([by['New Haven'].next.inMin, by['New Haven'].next.tripMin, by['New Haven'].next.status], [22, 48, '6 min late']);
   assert.strictEqual(by['Atlantis'].known, false);
   assert.strictEqual(by['Atlantis'].next, null);
+  // Track numbers come from Metro-North's extension field 1005, which the standard decoder ignores.
+  const { Writer } = require('protobufjs/minimal');
+  const { extractTracks } = require('../lib/mnr');
+  const stu = (stopId, min, track, twice) => {
+    const base = rt.TripUpdate.StopTimeUpdate.encode({ stopId, departure: { time: sec(min) } }).finish();
+    const w = Writer.create();
+    const ext = () => w.uint32((1005 << 3) | 2).bytes(Writer.create().uint32(10).string(track).uint32(18).string('On-Time').finish());
+    if (track !== null) { if (twice) w.uint32((1005 << 3) | 2).bytes(Writer.create().uint32(18).string('x').finish()); ext(); }
+    return Buffer.concat([base, w.finish()]);
+  };
+  const tripBytes = (id, stus) => {
+    const tu = Writer.create(); tu.uint32(10).bytes(rt.TripDescriptor.encode({ tripId: id }).finish());
+    for (const s of stus) tu.uint32(18).bytes(s);
+    return Writer.create().uint32(10).string(id).uint32(26).bytes(tu.finish()).finish();
+  };
+  const fm = Writer.create();
+  fm.uint32(10).bytes(rt.FeedHeader.encode({ gtfsRealtimeVersion: '2.0', timestamp: sec(0) }).finish());
+  fm.uint32(18).bytes(tripBytes('t-gct', [stu('128', 9, '3', true), stu('116', 25, '5'), stu('1', 75, null)]));
+  fm.uint32(18).bytes(tripBytes('t-nh', [stu('128', 22, null), stu('149', 70, '14')]));
+  const feed2 = fm.finish();
+  assert.strictEqual(rt.FeedMessage.decode(feed2).entity.length, 2, 'hand-built feed is valid GTFS-realtime');
+  const tk = extractTracks(feed2);
+  assert.strictEqual(tk.get('t-gct').get('128'), '3');
+  assert.strictEqual(tk.get('t-gct').get('116'), '5');
+  assert.strictEqual(tk.has('t-nh') && tk.get('t-nh').has('128'), false);
+  assert.strictEqual(extractTracks(new Uint8Array([255, 255, 255])).size, 0, 'garbage never throws');
+  _reset();
+  const fetch2 = async (url) => ({ ok: true, arrayBuffer: async () => { const u = url.includes('gtfsmnr.zip') ? zip : feed2; return u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength); } });
+  const t = await getDepartures('South Norwalk', { fetch: fetch2, now, to: ['Grand Central', 'New Haven'] });
+  assert.strictEqual(t.destinations[0].next.track, '3');
+  assert.strictEqual(t.destinations[1].next.track, null);
+  assert.deepStrictEqual(t.departures.map((x) => x.track), ['3', null]);
   console.log('all tests passed');
   console.log(JSON.stringify(out.departures[1]));
 })().catch((e) => { console.error(e); process.exit(1); });
