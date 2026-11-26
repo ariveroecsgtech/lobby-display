@@ -84,6 +84,20 @@
   #news { flex-grow: 1; min-width: 0; padding: 0 32px; display: flex; align-items: center; gap: 20px; }
   #news .tag { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--bg); background: var(--soft); padding: 6px 14px; border-radius: 8px; }
   #headline { font-size: 36px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; }
+  #mkt { flex-grow: 1; min-width: 0; padding: 14px 32px; display: none; flex-direction: column; justify-content: space-between; }
+  #mkt .mhead { display: flex; align-items: center; justify-content: space-between; }
+  #mkt .label { font-size: 20px; }
+  #mktRows { display: flex; justify-content: space-between; gap: 28px; }
+  .mk { display: flex; align-items: center; gap: 18px; min-width: 0; }
+  .mk .nm { font-size: 22px; color: var(--muted); white-space: nowrap; }
+  .mk .val { font-size: 38px; font-weight: 600; line-height: 1.1; white-space: nowrap; }
+  .mk .chg { font-size: 22px; font-weight: 700; white-space: nowrap; margin-left: 8px; }
+  .mk svg { width: 110px; height: 44px; flex-shrink: 0; }
+  .footer-markets #mkt { display: flex; }
+  .footer-markets #news, .footer-none #news { display: none; }
+  .mobile #mkt { padding: 22px 28px; gap: 16px; }
+  .mobile #mktRows { flex-direction: column; gap: 14px; }
+  .mobile .mk { justify-content: space-between; }
   #qr { width: 560px; flex-shrink: 0; padding: 0 8px 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
   #qr .txt { font-size: 28px; font-weight: 600; line-height: 1.25; }
   #qr .txt small { display: block; font-size: 22px; font-weight: 400; color: var(--muted); }
@@ -161,6 +175,10 @@
       <span id="headline"></span>
       <span id="newsBadge" class="badge sample">Sample</span>
     </div>
+    <div id="mkt" class="card">
+      <div class="mhead"><span class="label">Markets</span><span class="badge sample">Simulated · demo only</span></div>
+      <div id="mktRows"></div>
+    </div>
     <div id="qr" class="card">
       <div class="txt">Take this screen with you<small>Scan for live updates on your phone</small></div>
       <div id="qrBox"><img src="qr.svg" alt="QR code for this screen on your phone"></div>
@@ -185,6 +203,7 @@ const CONFIG = {
   weatherRefreshMin: 10,
   airRefreshMin: 30,
   newsRotateSec: 12,
+  footer: 'markets',      // 'markets' = simulated index demo, 'news' = live headlines from /api/news, 'none' = QR only
   eveningStartsHour: 15,  // from this hour the screen leads with tomorrow's forecast
   nightDim: [23, 5],      // dim the screen between these hours
   aqiNotable: 100,        // air quality only appears above this value
@@ -450,6 +469,27 @@ function renderTrains() {
   }).join('');
 }
 
+/* ---------- markets demo: SIMULATED numbers for showing the layout. Not real quotes; labeled on screen. ---------- */
+const MARKETS = [
+  { nm: 'S&P 500', open: 7412.36 },
+  { nm: 'Dow Jones', open: 51208.14 },
+  { nm: 'Nasdaq', open: 25930.77 }
+].map((m) => ({ ...m, val: m.open * (1 + (Math.random() - 0.5) * 0.008), hist: [] }));
+function tickMarkets() {
+  for (const m of MARKETS) {
+    m.val *= 1 + (Math.random() - 0.5) * 0.0009;       // small random walk, no connection to any real market
+    m.hist.push(m.val); if (m.hist.length > 40) m.hist.shift();
+  }
+  $('mktRows').innerHTML = MARKETS.map((m) => {
+    const pct = (m.val / m.open - 1) * 100, up = pct >= 0;
+    const lo = Math.min(...m.hist), hi = Math.max(...m.hist), span = hi - lo || 1;
+    const pts = m.hist.map((v, i) => (i * (110 / 39)).toFixed(1) + ',' + (40 - ((v - lo) / span) * 36).toFixed(1)).join(' ');
+    return '<div class="mk"><div><div class="nm">' + esc(m.nm) + ' <span class="chg ' + (up ? 'good' : 'bad') + '">' + (up ? '▲ ' : '▼ ') + Math.abs(pct).toFixed(2) + '%</span></div>' +
+      '<div class="val num">' + m.val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div></div>' +
+      '<svg viewBox="0 0 110 44" aria-hidden="true"><polyline fill="none" stroke="' + (up ? 'var(--good)' : 'var(--bad)') + '" stroke-width="2.5" stroke-linejoin="round" points="' + pts + '"></polyline></svg></div>';
+  }).join('');
+}
+
 /* ---------- start ---------- */
 function start() {
   $('bnameText').textContent = CONFIG.buildingName + ' · ' + CONFIG.city;
@@ -458,8 +498,14 @@ function start() {
   tickClock(); setInterval(tickClock, 1000);
   loadDrive(); setInterval(loadDrive, 5 * 60000);
   loadTrains(); setInterval(loadTrains, 30000); setInterval(renderTrains, 15000);
-  renderNews(); setInterval(renderNews, CONFIG.newsRotateSec * 1000);
-  loadNews(); setInterval(loadNews, 15 * 60000);
+  document.documentElement.classList.add('footer-' + CONFIG.footer);
+  if (CONFIG.footer === 'news') {
+    renderNews(); setInterval(renderNews, CONFIG.newsRotateSec * 1000);
+    loadNews(); setInterval(loadNews, 15 * 60000);
+  } else if (CONFIG.footer === 'markets') {
+    for (let i = 0; i < 40; i++) tickMarkets();        // pre-fill the sparklines
+    setInterval(tickMarkets, 2000);
+  }
   loadWeather(); setInterval(loadWeather, CONFIG.weatherRefreshMin * 60000);
   loadAlerts(); setInterval(loadAlerts, CONFIG.weatherRefreshMin * 60000);
   loadAir(); setInterval(loadAir, CONFIG.airRefreshMin * 60000);
