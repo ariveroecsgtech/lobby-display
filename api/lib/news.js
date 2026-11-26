@@ -1,4 +1,5 @@
 // Top headlines from NewsData.io. Only the headline and the source name are shown on screen.
+// Note: the free plan serves news with a 12-hour delay.
 const TTL_MS = 15 * 60 * 1000; // 96 requests a day, inside NewsData.io's free daily credits
 let cached = null;
 
@@ -10,7 +11,8 @@ async function getHeadlines(opts = {}) {
   if (!opts.noCache && cached && now - cached.at < TTL_MS) return cached.body;
 
   const query = process.env.NEWS_QUERY || 'country=us&language=en&category=top';
-  const res = await fetchImpl('https://newsdata.io/api/1/latest?' + query, { headers: { 'X-ACCESS-KEY': key } });
+  // NewsData.io documents the key as the `apikey` query parameter.
+  const res = await fetchImpl('https://newsdata.io/api/1/latest?apikey=' + encodeURIComponent(key) + '&' + query);
   if (!res.ok) throw new Error('NewsData request failed: HTTP ' + res.status);
   const data = await res.json();
   const seen = new Set();
