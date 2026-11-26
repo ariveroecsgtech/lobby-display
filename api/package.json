@@ -1,0 +1,12 @@
+{
+  "name": "lobby-display-api",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/functions/*.js",
+  "scripts": { "test": "node test/trains.test.js" },
+  "dependencies": {
+    "@azure/functions": "^4.5.0",
+    "fflate": "^0.8.2",
+    "gtfs-realtime-bindings": "^1.1.1"
+  }
+}

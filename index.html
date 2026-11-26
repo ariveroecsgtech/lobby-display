@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confluence — Lobby Display</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #0B1220; --card: #131C2E; --line: #25324A;
+    --text: #F4F7FB; --soft: #C9D4E5; --muted: #9FB0C8;
+    --accent: #F5B544; --good: #5EE0A0; --bad: #FFA48F;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  body { font-family: Inter, system-ui, sans-serif; color: var(--text); }
+  .num { font-family: 'Space Grotesk', Inter, sans-serif; }
+  #stage {
+    position: absolute; left: 50%; top: 50%;
+    width: 1920px; height: 1080px; padding: 48px;
+    transform-origin: center center; transition: opacity 2s;
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  #stage.night { opacity: 0.55; }
+  .card { background: var(--card); border-radius: 24px; }
+  .label { font-size: 24px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
+  .badge { font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 6px; padding: 4px 10px; white-space: nowrap; }
+  .badge.sample { color: var(--muted); border: 1.5px solid #6B7C99; }
+  .badge.live { color: var(--bg); background: var(--good); }
+  .badge.stale { color: var(--bg); background: var(--bad); }
+  .head { display: flex; align-items: center; gap: 14px; }
+  .head .badge { margin-left: auto; }
+  .rows { display: flex; flex-direction: column; flex-grow: 1; justify-content: space-around; }
+  .good { color: var(--good); } .bad { color: var(--bad); } .mid { color: var(--accent); }
+
+  /* header */
+  #header { height: 104px; display: flex; justify-content: space-between; align-items: center; }
+  #bname { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--soft); }
+  #bname i { display: block; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); }
+  #clock { display: flex; align-items: baseline; gap: 18px; }
+  #date { font-size: 34px; font-weight: 500; color: var(--soft); margin-right: 20px; }
+  #time { font-size: 104px; font-weight: 600; line-height: 1; letter-spacing: -2px; }
+  #ampm { font-size: 40px; font-weight: 500; color: var(--muted); }
+
+  /* alert takeover */
+  #alert { display: none; height: 84px; border-radius: 18px; background: var(--accent); color: var(--bg); padding: 0 32px; align-items: center; gap: 18px; font-size: 38px; font-weight: 700; }
+  #alert.active { display: flex; }
+  #alertText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* main */
+  #main { flex-grow: 1; display: flex; gap: 24px; min-height: 0; }
+  #weather { flex: 1 1 0; padding: 36px 44px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  #wxNow { display: flex; align-items: center; gap: 36px; }
+  #wxIcon { width: 190px; height: 190px; flex-shrink: 0; }
+  #wxTemp { font-size: 210px; font-weight: 600; line-height: 0.95; letter-spacing: -6px; }
+  #wxDesc { font-size: 38px; color: var(--soft); }
+  #wxHint { font-size: 46px; font-weight: 700; color: var(--accent); line-height: 1.1; min-height: 60px; }
+  #wxExtra { display: flex; gap: 14px; flex-wrap: wrap; }
+  #wxExtra span { font-size: 26px; font-weight: 600; color: var(--bg); background: var(--bad); border-radius: 10px; padding: 6px 16px; }
+  #hourly { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 22px; }
+  .hr { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 110px; }
+  .hr .t { font-size: 26px; color: var(--muted); }
+  .hr .v { font-size: 46px; font-weight: 600; }
+  .hr .d { font-size: 24px; color: var(--soft); }
+  #right { flex: 1 1 0; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  #trains, #drive { flex: 1 1 0; padding: 26px 36px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+  .trow { display: grid; grid-template-columns: 210px 1fr 200px; align-items: center; column-gap: 18px; }
+  .trow .in { font-size: 56px; font-weight: 600; line-height: 1; }
+  .trow .in small { font-size: 28px; font-weight: 500; color: var(--muted); margin-left: 8px; }
+  .trow .dest { font-size: 36px; font-weight: 600; }
+  .trow .sub { font-size: 24px; color: var(--muted); }
+  .trow .st { font-size: 30px; font-weight: 700; text-align: right; }
+  .tmsg { font-size: 34px; color: var(--muted); }
+  .drow { display: grid; grid-template-columns: 1fr 200px 180px; align-items: center; column-gap: 18px; }
+  .drow .to { font-size: 36px; font-weight: 600; }
+  .drow .via { font-size: 24px; color: var(--muted); }
+  .drow .min { font-size: 48px; font-weight: 600; text-align: right; }
+  .drow .st { font-size: 30px; font-weight: 700; text-align: right; }
+
+  /* footer */
+  #footer { height: 112px; display: flex; gap: 24px; align-items: stretch; }
+  #news { flex-grow: 1; min-width: 0; padding: 0 32px; display: flex; align-items: center; gap: 20px; }
+  #news .tag { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--bg); background: var(--soft); padding: 6px 14px; border-radius: 8px; }
+  #headline { font-size: 32px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; }
+  #qr { width: 520px; flex-shrink: 0; padding: 0 12px 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  #qr .txt { font-size: 28px; font-weight: 600; line-height: 1.25; }
+  #qr .txt small { display: block; font-size: 22px; font-weight: 400; color: var(--muted); }
+  #qrBox { width: 92px; height: 92px; border: 2px dashed #6B7C99; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <div id="header">
+    <div id="bname"><i></i><span id="bnameText"></span></div>
+    <div id="clock">
+      <div id="date"></div>
+      <div id="time" class="num">--:--</div>
+      <div id="ampm" class="num"></div>
+    </div>
+  </div>
+
+  <div id="alert">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17h-19L12 3z"></path><path d="M12 10v4.5M12 17.5h.01"></path></svg>
+    <span id="alertText"></span>
+  </div>
+
+  <div id="main">
+    <div id="weather" class="card">
+      <div class="head"><span class="label" id="wxLabel">Weather</span><span id="wxBadge" class="badge sample">Loading</span></div>
+      <div id="wxNow">
+        <svg id="wxIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+        <div>
+          <div id="wxTemp" class="num">--°</div>
+          <div id="wxDesc">Loading weather…</div>
+        </div>
+      </div>
+      <div>
+        <div id="wxHint" class="num"></div>
+        <div id="wxExtra"></div>
+      </div>
+      <div id="hourly"></div>
+    </div>
+
+    <div id="right">
+      <div id="trains" class="card">
+        <div class="head"><span class="label" id="trainLabel"></span><span id="trainBadge" class="badge sample">Sample data</span></div>
+        <div id="trainRows" class="rows"></div>
+      </div>
+      <div id="drive" class="card">
+        <div class="head"><span class="label">Drive times now</span><span class="badge sample">Sample data</span></div>
+        <div id="driveRows" class="rows"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <div id="news" class="card">
+      <span class="tag">News</span>
+      <span id="headline"></span>
+      <span class="badge sample">Sample</span>
+    </div>
+    <div id="qr" class="card">
+      <div class="txt">Take this screen with you<small>Scan for live updates on your phone</small></div>
+      <div id="qrBox">QR code</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — one block per screen. Everything below reads from it.
+   ============================================================ */
+const CONFIG = {
+  buildingName: 'Confluence',
+  city: 'Norwalk, CT',
+  address: '26 Belden Ave, Norwalk, CT 06850',
+  lat: 41.119,            // max 4 decimals (National Weather Service requirement)
+  lon: -73.416,
+  timeZone: 'America/New_York',
+  trainStation: 'South Norwalk',
+  weatherRefreshMin: 10,
+  airRefreshMin: 30,
+  newsRotateSec: 12,
+  eveningStartsHour: 15,  // from this hour the screen leads with tomorrow's forecast
+  nightDim: [23, 5],      // dim the screen between these hours
+  aqiNotable: 100,        // air quality only appears above this value
+  uvNotable: 6            // UV only appears at or above this value
+};
+
+/* ---------- SAMPLE DATA (replace with real feeds later) ---------- */
+const SAMPLE = {
+  news: [
+    'Sample headline from your licensed news provider',
+    'Sample headline: morning business update',
+    'Sample headline: local events this weekend'
+  ],
+  drive: [
+    { to: 'Stamford', via: 'via I-95 South', min: '18 min', st: 'Light', cls: 'good' },
+    { to: 'New Haven', via: 'via I-95 North', min: '52 min', st: 'Heavy', cls: 'bad' },
+    { to: 'Midtown NYC', via: 'via Merritt Pkwy', min: '1 h 14', st: 'Moderate', cls: 'mid' }
+  ],
+  trains: [
+    { inMin: 9, dest: 'Grand Central', trk: 'Track 1', st: 'On time', cls: 'good' },
+    { inMin: 22, dest: 'New Haven', trk: 'Track 2', st: '6 min late', cls: 'bad' },
+    { inMin: 36, dest: 'Grand Central', trk: 'Track 1', st: 'On time', cls: 'good' }
+  ]
+};
+
+/* ---------- helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmtTime = (d) => new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: CONFIG.timeZone }).format(d);
+const fmtHour = (d) => new Intl.DateTimeFormat('en-US', { hour: 'numeric', timeZone: CONFIG.timeZone }).format(d);
+const localHour = () => Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: CONFIG.timeZone }).format(new Date()));
+async function getJSON(url) {
+  const r = await fetch(url, { headers: { Accept: 'application/geo+json, application/json' } });
+  if (!r.ok) throw new Error(url + ' -> HTTP ' + r.status);
+  return r.json();
+}
+
+/* ---------- layout scale: 1920x1080 design fitted to any screen ---------- */
+function fit() {
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  $('stage').style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+}
+
+/* ---------- clock + night dimming ---------- */
+function tickClock() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: CONFIG.timeZone }).formatToParts(now);
+  const get = (t) => (parts.find((p) => p.type === t) || {}).value || '';
+  $('time').textContent = get('hour') + ':' + get('minute');
+  $('ampm').textContent = get('dayPeriod');
+  $('date').textContent = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: CONFIG.timeZone }).format(now);
+  const h = localHour(), a = CONFIG.nightDim[0], b = CONFIG.nightDim[1];
+  $('stage').classList.toggle('night', a > b ? (h >= a || h < b) : (h >= a && h < b));
+}
+
+/* ---------- weather: National Weather Service (free, no key) ---------- */
+const ICONS = {
+  sun: '<circle cx="12" cy="12" r="4.5" stroke="var(--accent)"></circle><path stroke="var(--accent)" d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8"></path>',
+  partly: '<circle cx="8" cy="8" r="3" stroke="var(--accent)"></circle><path stroke="var(--accent)" d="M8 1.5v1.5M1.5 8H3M3.4 3.4l1.1 1.1M12.6 3.4l-1.1 1.1"></path><path d="M8.5 19.5h9a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.6 13 3.3 3.3 0 0 0 8.5 19.5z"></path>',
+  cloud: '<path d="M7 18.5h10.5a4.2 4.2 0 0 0 .6-8.35A6 6 0 0 0 6.4 11.6 3.5 3.5 0 0 0 7 18.5z"></path>',
+  rain: '<path d="M7 15.5h10.5a4.2 4.2 0 0 0 .6-8.35A6 6 0 0 0 6.4 8.6 3.5 3.5 0 0 0 7 15.5z"></path><path stroke="var(--accent)" d="M8.5 18.5l-1 2.5M12.5 18.5l-1 2.5M16.5 18.5l-1 2.5"></path>',
+  snow: '<path d="M7 15.5h10.5a4.2 4.2 0 0 0 .6-8.35A6 6 0 0 0 6.4 8.6 3.5 3.5 0 0 0 7 15.5z"></path><path stroke="var(--accent)" d="M8 19.5h.01M12 19.5h.01M16 19.5h.01M10 22h.01M14 22h.01"></path>',
+  moon: '<path stroke="var(--accent)" d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"></path>'
+};
+const WET = /rain|shower|drizzle|thunder|storm|snow|sleet|flurr|ice|wintry/i;
+const FROZEN = /snow|flurr|sleet|ice|wintry/i;
+function iconFor(text, isDay) {
+  const t = (text || '').toLowerCase();
+  if (FROZEN.test(t)) return 'snow';
+  if (/rain|shower|drizzle|thunder|storm/.test(t)) return 'rain';
+  if (/partly|mostly sunny|mostly clear/.test(t)) return isDay ? 'partly' : 'moon';
+  if (/cloud|overcast|fog|haze/.test(t)) return 'cloud';
+  return isDay ? 'sun' : 'moon';
+}
+function shortWord(text) {
+  const t = (text || '').toLowerCase();
+  if (/thunder|storm/.test(t)) return 'Storms';
+  if (/snow|flurr/.test(t)) return 'Snow';
+  if (/sleet|ice|wintry/.test(t)) return 'Ice';
+  if (/rain|shower|drizzle/.test(t)) return 'Rain';
+  if (/fog|haze/.test(t)) return 'Fog';
+  if (/partly|mostly sunny|mostly clear/.test(t)) return 'Partly';
+  if (/cloud|overcast/.test(t)) return 'Cloudy';
+  return 'Clear';
+}
+/* The one line people act on: is it wet now, or will it be in the next 12 hours? */
+function precipHint(periods) {
+  if (WET.test(periods[0].shortForecast)) {
+    const kind = FROZEN.test(periods[0].shortForecast) ? 'Snow' : 'Rain';
+    const end = periods.slice(1, 13).find((p) => !WET.test(p.shortForecast));
+    return end ? kind + ' until about ' + fmtHour(new Date(end.startTime)) : kind + ' all day';
+  }
+  const next = periods.slice(1, 13).find((p) => WET.test(p.shortForecast));
+  if (!next) return 'No rain in the next 12 hours';
+  return (FROZEN.test(next.shortForecast) ? 'Snow' : 'Rain') + ' starts around ' + fmtHour(new Date(next.startTime));
+}
+let nwsUrls = null, lastWeatherOk = 0;
+async function loadWeather() {
+  try {
+    if (!nwsUrls) {
+      const pt = await getJSON('https://api.weather.gov/points/' + CONFIG.lat + ',' + CONFIG.lon);
+      nwsUrls = { hourly: pt.properties.forecastHourly, daily: pt.properties.forecast };
+    }
+    const [hourly, daily] = await Promise.all([getJSON(nwsUrls.hourly), getJSON(nwsUrls.daily)]);
+    renderWeather(hourly.properties.periods, daily.properties.periods);
+    lastWeatherOk = Date.now();
+    setBadge('wxBadge', 'live', 'Live · ' + fmtTime(new Date()));
+  } catch (e) {
+    console.error('Weather failed', e);
+    if (lastWeatherOk) setBadge('wxBadge', 'stale', 'Last update ' + fmtTime(new Date(lastWeatherOk)));
+    else { setBadge('wxBadge', 'stale', 'Offline'); $('wxDesc').textContent = 'Weather unavailable'; }
+  }
+}
+function renderWeather(hp, dp) {
+  const now = hp[0];
+  $('wxTemp').textContent = now.temperature + '°';
+  $('wxIcon').innerHTML = ICONS[iconFor(now.shortForecast, now.isDaytime)];
+  const evening = localHour() >= CONFIG.eveningStartsHour;
+  const nextDay = dp.find((p) => p.isDaytime && new Date(p.startTime).getTime() > Date.now());
+  if (evening && nextDay) {
+    // Evening mode: people are planning tomorrow, not today.
+    $('wxLabel').textContent = 'Weather · tonight and tomorrow';
+    $('wxDesc').textContent = now.shortForecast + ' now';
+    $('wxHint').textContent = nextDay.name + ': ' + nextDay.temperature + '°, ' + nextDay.shortForecast;
+  } else {
+    $('wxLabel').textContent = 'Weather · today';
+    const hi = dp.find((p) => p.isDaytime), lo = dp.find((p) => !p.isDaytime);
+    $('wxDesc').textContent = now.shortForecast + (hi ? ' · High ' + hi.temperature + '°' : '') + (lo ? ' · Low ' + lo.temperature + '°' : '');
+    $('wxHint').textContent = precipHint(hp);
+  }
+  $('hourly').innerHTML = [1, 3, 5, 7, 9].filter((i) => hp[i]).map((i) => {
+    const p = hp[i];
+    return '<div class="hr"><div class="t">' + esc(fmtHour(new Date(p.startTime))) + '</div><div class="v num">' +
+      esc(p.temperature) + '°</div><div class="d">' + esc(shortWord(p.shortForecast)) + '</div></div>';
+  }).join('');
+}
+function setBadge(id, cls, text) { const b = $(id); b.className = 'badge ' + cls; b.textContent = text; }
+
+/* ---------- alert takeover: only shows when there is something to say ---------- */
+async function loadAlerts() {
+  if (location.hash === '#alert') { showAlert('Winter Storm Warning until 6:00 PM (demo alert)'); return; }
+  try {
+    const a = await getJSON('https://api.weather.gov/alerts/active?point=' + CONFIG.lat + ',' + CONFIG.lon);
+    const f = (a.features || [])[0];
+    if (!f) { showAlert(''); return; }
+    const extra = a.features.length > 1 ? '  (+' + (a.features.length - 1) + ' more)' : '';
+    showAlert(f.properties.event + (f.properties.ends ? ' until ' + fmtTime(new Date(f.properties.ends)) : '') + extra);
+  } catch (e) {
+    console.error('Alerts failed', e);
+    showAlert('');
+  }
+}
+function showAlert(text) {
+  $('alert').classList.toggle('active', !!text);
+  $('alertText').textContent = text;
+}
+
+/* ---------- air quality + UV: Open-Meteo (free for non-commercial use). Hidden unless notable. ---------- */
+async function loadAir() {
+  try {
+    const d = await getJSON('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + CONFIG.lat +
+      '&longitude=' + CONFIG.lon + '&current=us_aqi,uv_index&timezone=' + encodeURIComponent(CONFIG.timeZone));
+    const aqi = Math.round(d.current.us_aqi), uv = Math.round(d.current.uv_index);
+    const out = [];
+    if (aqi > CONFIG.aqiNotable) out.push('Poor air quality · AQI ' + aqi);
+    if (uv >= CONFIG.uvNotable) out.push('High UV · ' + uv);
+    $('wxExtra').innerHTML = out.map((t) => '<span>' + esc(t) + '</span>').join('');
+  } catch (e) {
+    console.error('Air quality failed', e);
+    $('wxExtra').innerHTML = '';
+  }
+}
+
+/* ---------- sample sections ---------- */
+let newsIdx = 0;
+function renderNews() {
+  $('headline').textContent = SAMPLE.news[newsIdx];
+  newsIdx = (newsIdx + 1) % SAMPLE.news.length;
+}
+function renderDrive() {
+  $('driveRows').innerHTML = SAMPLE.drive.map((d) =>
+    '<div class="drow"><div><div class="to">' + esc(d.to) + '</div><div class="via">' + esc(d.via) + '</div></div>' +
+    '<div class="min num">' + esc(d.min) + '</div><div class="st ' + d.cls + '">' + esc(d.st) + '</div></div>').join('');
+}
+/* ---------- trains: live from /api/trains when hosted; sample data when opened as a local file ---------- */
+const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
+let trainList = null, lastTrainsOk = 0;
+async function loadTrains() {
+  if (!HOSTED) {
+    const now = Date.now();
+    trainList = SAMPLE.trains.map((t) => ({ timeMs: now + t.inMin * 60000, dest: t.dest, trk: t.trk, st: t.st, late: t.cls === 'bad' }));
+  } else {
+    try {
+      const d = await getJSON('/api/trains?station=' + encodeURIComponent(CONFIG.trainStation));
+      trainList = d.departures.map((x) => ({ timeMs: new Date(x.time).getTime(), dest: x.destination, trk: '', st: x.status, late: x.delayMin >= 1 }));
+      lastTrainsOk = Date.now();
+      setBadge('trainBadge', 'live', 'Live · ' + fmtTime(new Date()));
+    } catch (e) {
+      console.error('Trains failed', e);
+      // Keep showing the last good list for 5 minutes, then stop: old train times are worse than none.
+      if (lastTrainsOk && Date.now() - lastTrainsOk < 5 * 60000) setBadge('trainBadge', 'stale', 'Last update ' + fmtTime(new Date(lastTrainsOk)));
+      else { trainList = null; setBadge('trainBadge', 'stale', 'Offline'); }
+    }
+  }
+  renderTrains();
+}
+function renderTrains() {
+  if (!trainList) { $('trainRows').innerHTML = '<div class="tmsg">Live train times are unavailable right now</div>'; return; }
+  const now = Date.now();
+  const rows = trainList.filter((t) => t.timeMs > now - 30000).slice(0, 3);
+  if (!rows.length) { $('trainRows').innerHTML = '<div class="tmsg">No upcoming departures listed</div>'; return; }
+  $('trainRows').innerHTML = rows.map((t) => {
+    const inMin = Math.max(0, Math.round((t.timeMs - now) / 60000));
+    return '<div class="trow"><div class="in num">' + (inMin < 1 ? 'Now' : inMin + '<small>min</small>') + '</div>' +
+      '<div><div class="dest">' + esc(t.dest) + '</div><div class="sub">' + esc(fmtTime(new Date(t.timeMs))) + (t.trk ? ' · ' + esc(t.trk) : '') + '</div></div>' +
+      '<div class="st ' + (t.late ? 'bad' : 'good') + '">' + esc(t.st) + '</div></div>';
+  }).join('');
+}
+
+/* ---------- start ---------- */
+function start() {
+  $('bnameText').textContent = CONFIG.buildingName + ' · ' + CONFIG.city;
+  $('trainLabel').textContent = 'Trains · ' + CONFIG.trainStation;
+  fit(); window.addEventListener('resize', fit);
+  tickClock(); setInterval(tickClock, 1000);
+  renderDrive();
+  loadTrains(); setInterval(loadTrains, 30000); setInterval(renderTrains, 15000);
+  renderNews(); setInterval(renderNews, CONFIG.newsRotateSec * 1000);
+  loadWeather(); setInterval(loadWeather, CONFIG.weatherRefreshMin * 60000);
+  loadAlerts(); setInterval(loadAlerts, CONFIG.weatherRefreshMin * 60000);
+  loadAir(); setInterval(loadAir, CONFIG.airRefreshMin * 60000);
+}
+start();
+</script>
+</body>
+</html>
