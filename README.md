@@ -25,7 +25,7 @@ Anything not live is labeled "Sample data" on screen. Opened as a local file, tr
 
 - `index.html` — the whole screen. Per-screen settings are in the `CONFIG` block at the top of the script.
 - `api/` — Azure Functions (Node 20, v4 model). `GET /api/trains?station=South%20Norwalk&to=Grand%20Central,Stamford,New%20Haven` and `GET /api/drive?screen=confluence`.
-- `api/lib/drive.js` — drive-time destinations per screen and the Azure Maps call (cached 15 minutes).
+- `api/lib/drive.js` — drive-time destinations per screen and the Azure Maps call (cached 15 minutes, paused from 11 PM to 5 AM local time).
 - `api/lib/mnr.js` — downloads the Metro-North station list (cached 24 h) and the realtime feed (cached 30 s).
 - `staticwebapp.config.json` — Azure Static Web Apps settings.
 

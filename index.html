@@ -436,6 +436,13 @@ async function loadDrive() {
   if (HOSTED) {
     try {
       const d = await getJSON('/api/drive?screen=' + encodeURIComponent(CONFIG.screenId));
+      if (d.paused) {
+        // The backend makes no traffic requests overnight to save Azure Maps usage.
+        const hr = d.resumesAtHour % 12 || 12;
+        $('driveRows').innerHTML = '<div class="tmsg">Drive times are paused overnight and return at ' + hr + (d.resumesAtHour < 12 ? ' AM' : ' PM') + '</div>';
+        setBadge('driveBadge', 'sample', 'Paused');
+        return;
+      }
       renderDrive(d.routes.map((r) => ({ to: r.destination, via: r.via, min: r.text, st: r.traffic, cls: TRAFFIC_CLS[r.traffic] || 'mid' })));
       lastDriveOk = Date.now();
       setBadge('driveBadge', 'live', 'Live · ' + fmtTime(new Date()));

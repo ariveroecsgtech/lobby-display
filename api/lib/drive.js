@@ -3,6 +3,8 @@
 const SCREENS = {
   confluence: {
     origin: [41.119, -73.416], // 26 Belden Ave, Norwalk, CT
+    timeZone: 'America/New_York',
+    quietHours: [23, 5],       // no Azure Maps calls from 11 PM to 5 AM local time
     destinations: [
       { name: 'Stamford', via: 'via I-95 South', at: [41.0534, -73.5387] },
       { name: 'New Haven', via: 'via I-95 North', at: [41.3083, -72.9279] },
@@ -17,6 +19,14 @@ function fmtMinutes(seconds) {
   const m = Math.max(1, Math.round(seconds / 60));
   return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0');
 }
+function localHour(ms, timeZone) {
+  return Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone }).format(new Date(ms)));
+}
+function isQuiet(screen, ms) {
+  if (!screen.quietHours) return false;
+  const [from, to] = screen.quietHours, h = localHour(ms, screen.timeZone || 'UTC');
+  return from > to ? (h >= from || h < to) : (h >= from && h < to);
+}
 function level(travel, noTraffic) {
   const ratio = noTraffic > 0 ? travel / noTraffic : 1;
   return ratio < 1.15 ? 'Light' : ratio < 1.4 ? 'Moderate' : 'Heavy';
@@ -29,6 +39,8 @@ async function getDriveTimes(screenId, opts = {}) {
   const screen = SCREENS[screenId];
   if (!screen) { const e = new Error('Unknown screen: ' + screenId); e.code = 'unknown_screen'; throw e; }
   if (!key) { const e = new Error('AZURE_MAPS_KEY is not set'); e.code = 'not_configured'; throw e; }
+  // Overnight pause: answer without calling Azure Maps at all, whoever asks.
+  if (isQuiet(screen, now)) return { screen: screenId, paused: true, resumesAtHour: screen.quietHours[1], generatedAt: new Date(now).toISOString(), routes: [] };
   const hit = cache.get(screenId);
   if (!opts.noCache && hit && now - hit.at < TTL_MS) return hit.body;
 
@@ -53,4 +65,4 @@ async function getDriveTimes(screenId, opts = {}) {
   return body;
 }
 
-module.exports = { getDriveTimes, fmtMinutes, level, _reset: () => cache.clear() };
+module.exports = { getDriveTimes, fmtMinutes, level, isQuiet, _reset: () => cache.clear() };

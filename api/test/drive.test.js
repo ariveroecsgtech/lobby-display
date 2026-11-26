@@ -24,6 +24,15 @@ const { getDriveTimes, fmtMinutes, level, _reset } = require('../lib/drive');
   await getDriveTimes('confluence', { key: 'k', fetch: fakeFetch, now: 1000 + 60000 });
   assert.strictEqual(calls.length, 3, 'cached within 15 minutes');
   _reset();
-  await assert.rejects(() => getDriveTimes('confluence', { key: 'k', fetch: async () => ({ ok: false, status: 401 }) }), /HTTP 401/);
+  await assert.rejects(() => getDriveTimes('confluence', { key: 'k', now: 1000, fetch: async () => ({ ok: false, status: 401 }) }), /HTTP 401/);
+  // Overnight pause, in New York time: 11 PM to 5 AM makes no Azure Maps calls.
+  const at = (h, m) => Date.UTC(2026, 10, 27, h + 5, m || 0); // EST = UTC-5
+  let n = 0; const counting = async (u, i) => { n++; return fakeFetch(u, i); };
+  for (const [h, paused] of [[23, true], [0, true], [3, true], [4, true], [5, false], [12, false], [22, false]]) {
+    _reset(); n = 0;
+    const r = await getDriveTimes('confluence', { key: 'k', fetch: counting, now: at(h, 30) });
+    assert.strictEqual(!!r.paused, paused, 'hour ' + h);
+    assert.strictEqual(n, paused ? 0 : 3, 'calls at hour ' + h);
+  }
   console.log('drive tests passed');
 })().catch((e) => { console.error(e); process.exit(1); });
