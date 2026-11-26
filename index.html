@@ -96,6 +96,18 @@
   .footer-markets #mkt { display: flex; }
   .footer-markets #news, .footer-none #news { display: none; }
   #news .tag { white-space: nowrap; }
+  #sports { flex-grow: 1; min-width: 0; padding: 0 32px; display: none; align-items: center; gap: 24px; }
+  #sports .tag { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--bg); background: var(--soft); padding: 6px 14px; border-radius: 8px; white-space: nowrap; }
+  #sportsRows { flex-grow: 1; min-width: 0; display: flex; justify-content: space-around; gap: 20px; }
+  .gm { display: grid; grid-template-columns: auto auto; column-gap: 16px; row-gap: 2px; align-items: baseline; }
+  .gm div { font-size: 28px; color: var(--soft); white-space: nowrap; line-height: 1.25; }
+  .gm .sc { text-align: right; font-family: 'Space Grotesk', Inter, sans-serif; }
+  .gm .win { color: var(--text); font-weight: 700; }
+  .gm .note { grid-column: 1 / -1; font-size: 18px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .footer-sports #sports { display: flex; }
+  .footer-sports #news { display: none; }
+  .mobile #sports { padding: 22px 28px; flex-wrap: wrap; }
+  .mobile #sportsRows { flex-basis: 100%; order: 3; flex-direction: column; gap: 14px; }
   .mobile #mkt { padding: 22px 28px; gap: 16px; }
   .mobile #mktRows { flex-direction: column; gap: 14px; }
   .mobile .mk { justify-content: space-between; }
@@ -176,6 +188,11 @@
       <span id="headline"></span>
       <span id="newsBadge" class="badge sample">Sample</span>
     </div>
+    <div id="sports" class="card">
+      <span class="tag" id="sportsTag">NBA</span>
+      <div id="sportsRows"></div>
+      <span class="badge sample">Simulated · demo only</span>
+    </div>
     <div id="mkt" class="card">
       <div class="mhead"><span class="label">Markets</span><span class="badge sample">Simulated · demo only</span></div>
       <div id="mktRows"></div>
@@ -204,7 +221,7 @@ const CONFIG = {
   weatherRefreshMin: 10,
   airRefreshMin: 30,
   newsRotateSec: 12,
-  footer: 'demo',         // 'demo' = simulated markets and simulated headlines taking turns, 'markets' = simulated markets only,
+  footer: 'demo',         // 'demo' = simulated markets, headlines and sports results taking turns, 'markets' = simulated markets only,
                           // 'news' = live headlines from /api/news, 'none' = QR only
   eveningStartsHour: 15,  // from this hour the screen leads with tomorrow's forecast
   nightDim: [23, 5],      // dim the screen between these hours
@@ -503,18 +520,55 @@ const DEMO_NEWS = [
   { place: 'New Haven', title: 'University hosts free public lecture series' },
   { place: 'National', title: 'Small businesses prepare for weekend shopping rush' }
 ];
-let demoStep = 0, demoNewsIdx = 0;
+/* ---------- sports demo: INVENTED results for showing the layout. City names only, no real games; labeled on screen. ---------- */
+const DEMO_SPORTS = [
+  { league: 'NBA', lo: 95, hi: 128, note: 'Final', cities: ['New York', 'Boston', 'Miami', 'Chicago', 'Denver', 'Dallas', 'Phoenix', 'Milwaukee'] },
+  { league: 'Golf', golf: true },
+  { league: 'NFL', lo: 10, hi: 38, note: 'Final', cities: ['New York', 'Dallas', 'Kansas City', 'Buffalo', 'Green Bay', 'Seattle', 'Miami', 'Denver'] },
+  { league: 'NHL', lo: 1, hi: 6, note: 'Final', cities: ['New York', 'Boston', 'Toronto', 'Chicago', 'Tampa Bay', 'Colorado', 'Dallas', 'Seattle'] },
+  { league: 'MLB', lo: 1, hi: 9, note: 'Final', cities: ['New York', 'Boston', 'Chicago', 'Houston', 'Atlanta', 'Seattle', 'Toronto', 'San Diego'] }
+];
+const rnd = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+function renderDemoSports(s) {
+  $('sportsTag').textContent = s.league;
+  if (s.golf) {
+    // Made-up player names on a made-up tournament.
+    const names = ['A. Morgan', 'L. Reyes', 'T. Okafor', 'J. Lindqvist', 'M. Castell', 'R. Tanaka'].sort(() => Math.random() - 0.5).slice(0, 3);
+    let score = -rnd(9, 14);
+    $('sportsRows').innerHTML = names.map((n, i) => {
+      const html = '<div class="gm"><div class="' + (i === 0 ? 'win' : '') + '">' + (i + 1) + '. ' + esc(n) + '</div><div class="sc ' + (i === 0 ? 'win' : '') + '">' + score + '</div>' +
+        '<div class="note">' + (i === 0 ? 'Demo Open · Round 3' : '&nbsp;') + '</div></div>';
+      score += rnd(1, 2);
+      return html;
+    }).join('');
+    return;
+  }
+  const cities = s.cities.slice().sort(() => Math.random() - 0.5);
+  $('sportsRows').innerHTML = [0, 1, 2].map((g) => {
+    const a = rnd(s.lo, s.hi); let b = rnd(s.lo, s.hi); if (b === a) b = a > s.lo ? a - 1 : a + 1;   // no ties
+    const home = cities[g * 2], away = cities[g * 2 + 1];
+    return '<div class="gm"><div class="' + (a > b ? 'win' : '') + '">' + esc(home) + '</div><div class="sc ' + (a > b ? 'win' : '') + '">' + a + '</div>' +
+      '<div class="' + (b > a ? 'win' : '') + '">' + esc(away) + '</div><div class="sc ' + (b > a ? 'win' : '') + '">' + b + '</div>' +
+      '<div class="note">' + esc(s.note) + '</div></div>';
+  }).join('');
+}
+
+/* Demo footer: markets, a headline, a sports league, a headline, a sports league, and repeat. */
+const DEMO_ORDER = ['markets', 'news', 'sports', 'news', 'sports'];
+let demoStep = 0, demoNewsIdx = 0, demoSportsIdx = 0;
 function demoFooterStep() {
-  // One markets view, then two headlines, and repeat.
-  const showNews = demoStep % 3 !== 0;
-  if (showNews) {
+  const view = DEMO_ORDER[demoStep++ % DEMO_ORDER.length];
+  if (view === 'news') {
     const n = DEMO_NEWS[demoNewsIdx++ % DEMO_NEWS.length];
     $('newsTag').textContent = n.place;
     $('headline').textContent = n.title;
     setBadge('newsBadge', 'sample', 'Simulated · demo only');
+  } else if (view === 'sports') {
+    renderDemoSports(DEMO_SPORTS[demoSportsIdx++ % DEMO_SPORTS.length]);
   }
-  document.documentElement.classList.toggle('footer-markets', !showNews);
-  demoStep++;
+  const root = document.documentElement.classList;
+  root.toggle('footer-markets', view === 'markets');
+  root.toggle('footer-sports', view === 'sports');
 }
 
 /* ---------- start ---------- */
