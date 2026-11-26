@@ -6,7 +6,9 @@ let cached = null;
 async function getHeadlines(opts = {}) {
   const fetchImpl = opts.fetch || fetch;
   const now = opts.now || Date.now();
-  const key = opts.key !== undefined ? opts.key : process.env.NEWSDATA_API_KEY;
+  const rawKey = opts.key !== undefined ? opts.key : process.env.NEWSDATA_API_KEY;
+  // Tolerate the usual paste mistakes: stray spaces, quotes, or the "apikey=" prefix copied from NewsData's sample URL.
+  const key = String(rawKey || '').trim().replace(/^["']|["']$/g, '').replace(/^apikey=/i, '').trim();
   if (!key) { const e = new Error('NEWSDATA_API_KEY is not set'); e.code = 'not_configured'; throw e; }
   if (!opts.noCache && cached && now - cached.at < TTL_MS) return cached.body;
 
@@ -18,7 +20,8 @@ async function getHeadlines(opts = {}) {
     let why = '';
     try { const b = await res.json(); why = String((b.results && (b.results.message || b.results.code)) || b.message || '').split(key).join('***').slice(0, 200); } catch (e) { /* no body */ }
     const err = new Error('NewsData request failed: HTTP ' + res.status + (why ? ' - ' + why : ''));
-    err.detail = 'HTTP ' + res.status + (why ? ' - ' + why : '');
+    err.detail = 'HTTP ' + res.status + (why ? ' - ' + why : '') +
+      ' [key as stored: ' + String(rawKey).length + ' characters, ' + (/^pub_/.test(key) ? 'starts with pub_' : 'does not start with pub_') + (key !== rawKey ? ', cleaned before use' : '') + ']';
     throw err;
   }
   const data = await res.json();

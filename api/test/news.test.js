@@ -17,6 +17,10 @@ const { getHeadlines, _reset } = require('../lib/news');
   await assert.rejects(() => getHeadlines({ key: 'k', fetch: async () => ({ ok: true, json: async () => ({ results: [] }) }) }), /no usable/);
   _reset();
   await assert.rejects(() => getHeadlines({ key: 'secretkey', fetch: async () => ({ ok: false, status: 422, json: async () => ({ status: 'error', results: { message: 'Bad param for secretkey', code: 'UnsupportedFilter' } }) }) }),
-    (e) => e.detail === 'HTTP 422 - Bad param for ***');
+    (e) => e.detail === 'HTTP 422 - Bad param for *** [key as stored: 9 characters, does not start with pub_]');
+  _reset();
+  const seen = [];
+  await getHeadlines({ key: '  apikey=pub_abc \n', fetch: async (u) => { seen.push(u); return { ok: true, json: async () => ({ results: [{ title: 'T' }] }) }; } });
+  assert.ok(seen[0].includes('?apikey=pub_abc&'), 'pasted prefix and spaces are cleaned');
   console.log('news tests passed');
 })().catch((e) => { console.error(e); process.exit(1); });
