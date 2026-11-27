@@ -41,6 +41,9 @@
   .rc-display .big b { color: var(--accent); font-weight: 700; }
   .rc-display .small { font-size: 14px; color: var(--soft); }
   .rc-display .greet { font-size: 13px; font-weight: 600; }
+  #updBar { border-radius: 16px; padding: 12px 14px; background: #10261B; border: 1px solid var(--good); display: flex; align-items: center; gap: 12px; }
+  #updBar .main { flex: 1 1 0; min-width: 0; } #updBar .t { font-size: 15px; font-weight: 700; } #updBar .s { font-size: 13px; color: var(--soft); }
+  #updBar button { flex-shrink: 0; min-height: 44px; padding: 0 18px; border: 0; border-radius: 22px; background: var(--good); color: #062014; font-size: 14px; font-weight: 700; }
   #pushRow { border-radius: 16px; padding: 12px 14px; background: #0B1527; border: 1px solid var(--accent); display: flex; align-items: center; gap: 12px; }
   #pushRow.done { border-color: #24334F; } #pushRow .main { flex: 1 1 0; min-width: 0; } #pushRow .t { font-size: 15px; font-weight: 700; } #pushRow .s { font-size: 13px; color: var(--muted); }
   #pushRow button { flex-shrink: 0; min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: var(--accent); color: #1F1503; font-size: 14px; font-weight: 700; }
@@ -159,6 +162,7 @@
 <body>
 <div id="app">
 
+  <div id="updBar" role="status" hidden><div class="main"><div class="t">A new version is ready</div><div class="s" id="updS">Tap Update to get it.</div></div><button type="button" id="updBtn">Update</button></div>
   <div id="msg" role="status"></div>
 
   <!-- HOME -->
@@ -422,6 +426,7 @@
 <script src="files.js"></script>
 <script src="../season.js"></script>
 <script src="../push-client.js"></script>
+<script src="../update.js"></script>
 <script>
 const SCREEN = 'confluence';
 const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
@@ -955,6 +960,14 @@ $('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').va
 document.addEventListener('input', () => { if ($('vSet').classList.contains('on')) drawSettings(); if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
 window.addEventListener('resize', sizeFrames);
 if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
+/* New version: if the manager is on the home view it updates by itself; in the middle of a form it shows a bar
+   with an Update button instead, so nothing being written is lost. */
+$('updBtn').addEventListener('click', () => location.reload());
+if (window.lobbyUpdate) window.lobbyUpdate(['/manage/', '/manage/files.js', '/templates.js', '/season.js', '/push-client.js', '/update.js'], () => {
+  const idle = $('vHome').classList.contains('on');
+  if (idle) { $('updS').textContent = 'Updating…'; $('updBtn').hidden = true; $('updBar').hidden = false; setTimeout(() => location.reload(), 1500); }
+  else { $('updS').textContent = 'Finish what you are doing, then tap Update.'; $('updBar').hidden = false; window.scrollTo(0, 0); }
+});
 /* Notifications on this device. They cannot be switched on without one tap on "Allow"; after that they stay on. */
 function drawPush(st) {
   const txt = { ask: ['Notifications are off on this device', 'Turn them on to get every alert and announcement here.'], install: ['Notifications need the installed app', 'Tap Install below, add it to your home screen, then open it from its icon.'],

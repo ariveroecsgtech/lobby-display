@@ -119,3 +119,7 @@ The screen is a support for the building's emergency plan, not a life-safety sys
 - A device row holds only the push address and keys: no name, no email. Only Google, Apple, Mozilla and Microsoft push hosts are accepted.
 - Needs app settings `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (generate with `npx web-push generate-vapid-keys`). Without them push is off and everything else works.
 - No browser allows notifications without one tap on "Allow". iPhone: only from the installed app (iOS 16.4+).
+
+## Updates
+
+`update.js` compares the app's own files with what was loaded, every 5 minutes and when the app returns to the front. Lobby screen and resident app: reload by themselves. Manager app: reloads by itself on the home view; inside a form it shows "A new version is ready" with an Update button.

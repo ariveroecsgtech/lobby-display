@@ -380,6 +380,7 @@
 <script src="templates.js"></script>
 <script src="season.js"></script>
 <script src="push-client.js"></script>
+<script src="update.js"></script>
 <script>
 /* ============================================================
    CONFIG — one block per screen. Everything below reads from it.
@@ -1051,6 +1052,8 @@ function start() {
     if (txt) { $('pushT').textContent = txt[0]; $('pushS').textContent = txt[1]; }
     if (st === 'on') setTimeout(() => bar.classList.remove('show'), 6000);
   };
+  // New version published: the lobby TV and the resident app reload by themselves (there is nobody to press a button on a TV).
+  if (window.lobbyUpdate && !PREVIEW) window.lobbyUpdate(['/', '/templates.js', '/season.js', '/push-client.js', '/update.js'], () => setTimeout(() => location.reload(), 3000));
   // The bar itself only exists in the phone layout (see CSS), so the lobby TV never shows it.
   if (window.lobbyPush && HOSTED && !PREVIEW) {
     window.lobbyPush.refresh(CONFIG.screenId, 'resident').then((st) => drawPush(st === 'on' ? '' : st));
