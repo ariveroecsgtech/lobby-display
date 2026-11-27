@@ -49,7 +49,7 @@ async function send(store, screen, item, opts = {}) {
   if (!configured() && !opts.sender) return { sent: 0, devices: 0, reason: 'not_configured' };
   const rows = await store.pushList(screen);
   if (!rows.length) return { sent: 0, devices: 0 };
-  const msg = compose(item, screen, opts.brand || await Mail.brand(store, screen)), payload = JSON.stringify(msg);
+  const msg = compose(item, screen, opts.brand || await Mail.brand(store, screen)), payloadFor = (row) => JSON.stringify(row.app === 'manager' ? { ...msg, url: '/manage/' } : msg);
   const sender = opts.sender || ((row, body, options) => webpush.sendNotification({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } }, body, options));
   const options = { TTL: msg.emergency ? 3600 : 86400, urgency: msg.urgent ? 'high' : 'normal', topic: undefined,
     vapidDetails: opts.sender ? undefined : { subject: process.env.VAPID_SUBJECT || 'mailto:support@ecsgapps.com', publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY } };
@@ -57,7 +57,7 @@ async function send(store, screen, item, opts = {}) {
   const worker = async () => {
     while (next < rows.length) {
       const row = rows[next++];
-      try { await sender(row, payload, options); sent++; }
+      try { await sender(row, payloadFor(row), options); sent++; }
       catch (e) { if (e && (e.statusCode === 404 || e.statusCode === 410)) { gone++; await store.pushRemove(screen, row.id).catch(() => {}); } else failed++; }
     }
   };

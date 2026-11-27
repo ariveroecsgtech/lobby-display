@@ -10,8 +10,8 @@
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Lobby Manager">
-<title>Lobby screen manager</title>
+<meta name="apple-mobile-web-app-title" content="Display Mgr">
+<title>ECSG Display Manager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
 <style>
@@ -28,7 +28,10 @@
   @media (max-width: 470px) { #app { margin: 8px 8px 20px; border-radius: 32px; } }
   .rc-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .rc-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  #hMark { display: flex; flex-shrink: 0; } #hMark svg { width: 34px; height: 34px; } #hMark i { display: block; width: 14px; height: 14px; border-radius: 4px; background: var(--accent); }
+  #hMark { display: flex; flex-shrink: 0; } #hMark svg { height: 50px; width: auto; display: block; }
+  .rc-app { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
+  .navk { min-height: 44px; padding: 0 16px; border-radius: 22px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
+  .navk svg { width: 16px; height: 16px; } .navrow { display: flex; gap: 8px; } #hMark i { display: block; width: 14px; height: 14px; border-radius: 4px; background: var(--accent); }
   #hLogo { height: 40px; max-width: 120px; object-fit: contain; flex-shrink: 0; } #hLogo.onlight { background: #FFFFFF; border-radius: 8px; padding: 4px 8px; }
   .rc-brand h1 { font-size: 21px; overflow-wrap: anywhere; }
   .led { display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--good); }
@@ -168,9 +171,10 @@
   <!-- HOME -->
   <section id="vHome" class="view on">
     <div class="rc-top">
-      <div class="rc-brand"><span id="hMark"><i></i></span><img id="hLogo" alt="" hidden><div><h1 id="hName">Lobby screen</h1><div class="who" id="hWho"></div></div></div>
+      <div class="rc-brand"><span id="hMark"><i></i></span><div class="rc-app">Display<br>Manager</div></div>
       <span class="led" id="hLed"><i></i><span id="hLedTxt">LIVE</span></span>
     </div>
+    <div class="rc-brand"><img id="hLogo" alt="" hidden><div><h1 id="hName">Lobby screen</h1><div class="who" id="hWho"></div></div></div>
     <div class="rc-display" aria-live="polite">
       <div class="lbl">On the lobby screen</div>
       <div class="big" id="hNow">…</div>
@@ -208,7 +212,8 @@
 
   <!-- COMPOSE -->
   <section id="vNew" class="view">
-    <div class="top"><h1>New announcement</h1><button type="button" class="link" data-home>Cancel</button></div>
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><h1>New announcement</h1></div>
     <div class="seg" role="group" aria-label="Format">
       <button type="button" id="kCard" aria-pressed="true">Card</button>
       <button type="button" id="kPoster" aria-pressed="false">Poster</button>
@@ -273,7 +278,8 @@
 
   <!-- PREVIEW: the real lobby screen, drawn with this draft, before anything is published -->
   <section id="vPreview" class="view">
-    <div class="top"><h1 id="pTitle">Preview</h1><button type="button" class="link" id="pBack">Back to edit</button></div>
+    <div class="navrow"><button type="button" class="key navk" id="pBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><h1 id="pTitle">Preview</h1></div>
     <div class="field" id="pPanelBox">
       <div class="lbl">Community panel, as residents will see it</div>
       <div class="frame" id="pPanel"><iframe id="pPanelFrame" title="Preview of the Community panel" tabindex="-1"></iframe></div>
@@ -289,7 +295,8 @@
 
   <!-- SETTINGS: administrators only. What is set here shows on the lobby screen and in emails. -->
   <section id="vSet" class="view">
-    <div class="top"><div><h1>Building settings</h1><div class="who">Only an ECSG administrator can change these.</div></div><button type="button" class="link" data-home>Back</button></div>
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><div><h1>Building settings</h1><div class="who">Only an ECSG administrator can change these.</div></div></div>
     <div class="field"><div class="row"><label class="lbl" for="sName">Building or property name</label><span class="count" id="cSName"></span></div><input type="text" id="sName" maxlength="40" autocomplete="off"></div>
     <div class="field"><div class="row"><label class="lbl" for="sAddr">Address</label><span class="count">Optional</span></div><input type="text" id="sAddr" maxlength="90" autocomplete="off" placeholder="26 Belden Ave, Norwalk, CT 06850"></div>
     <div class="field"><div class="row"><label class="lbl" for="sEmail">Office email</label><span class="count">Optional</span></div><input type="email" id="sEmail" maxlength="120" autocomplete="off" inputmode="email"><div class="note">Shown on the screen, and where residents' replies to emails go.</div></div>
@@ -309,7 +316,8 @@
 
   <!-- ROLES -->
   <section id="vRoles" class="view">
-    <div class="top"><h1>Roles</h1><button type="button" class="link" data-home>Back</button></div>
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><h1>Roles</h1></div>
     <div class="empty" id="roMe"></div>
     <table class="perm">
       <thead><tr><th>What</th><th>Manager</th><th>ECSG admin</th></tr></thead>
@@ -332,7 +340,8 @@
 
   <!-- RESIDENTS: the list announcements and alerts will be emailed to -->
   <section id="vRes" class="view">
-    <div class="top"><div><h1>Residents</h1><div class="who" id="rCount"></div></div><button type="button" class="link" data-home>Back</button></div>
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><div><h1>Residents</h1><div class="who" id="rCount"></div></div></div>
     <div class="note">Only first name, last name and email are kept. They are used to email announcements and alerts, and are never shown on the lobby screen. <b id="rMail">Email delivery is not turned on yet.</b></div>
     <details class="box" id="rAddBox">
       <summary>Add one resident</summary>
@@ -372,7 +381,8 @@
 
   <!-- ALERTS: three levels -->
   <section id="vAlerts" class="view">
-    <div class="top"><h1>Alerts and notices</h1><button type="button" class="link" data-home>Cancel</button></div>
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><h1>Alerts and notices</h1></div>
     <button type="button" class="opt" data-go="vNotice"><b>Service notice</b><span>Water, elevator, power, parking. Shows in a strip under the clock. The rest of the screen stays visible.</span></button>
     <button type="button" class="opt" data-go="vDrill"><b>Scheduled test</b><span>Fire alarm test and similar. Covers the screen only for the time you set. Can be scheduled days ahead and cancelled.</span></button>
     <button type="button" class="opt red" data-go="vEmerg"><b>Real emergency</b><span>Fire, security threat, earthquake, severe storm. Red alarm screen, right now, until you clear it.</span></button>
@@ -380,7 +390,8 @@
   </section>
 
   <section id="vNotice" class="view">
-    <div class="top"><h1>Service notice</h1><button type="button" class="link" data-home>Back</button></div>
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><h1>Service notice</h1></div>
     <div class="field"><div class="lbl">What is it about</div><div class="presets" id="nTypes"></div></div>
     <div class="field"><div class="row"><label class="lbl" for="nTitle">Notice</label><span class="count" id="cNTitle"></span></div><input type="text" id="nTitle" autocomplete="off"></div>
     <div class="field"><div class="row"><label class="lbl" for="nText">Details</label><span class="count" id="cNText"></span></div><textarea id="nText" rows="2"></textarea></div>
@@ -390,7 +401,8 @@
   </section>
 
   <section id="vDrill" class="view">
-    <div class="top"><h1>Scheduled test</h1><button type="button" class="link" data-home>Back</button></div>
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><h1>Scheduled test</h1></div>
     <div class="field"><div class="row"><label class="lbl" for="dTitle">Name of the test</label><span class="count" id="cDTitle"></span></div><input type="text" id="dTitle" autocomplete="off"></div>
     <div class="field"><div class="row"><label class="lbl" for="dText">What residents should know</label><span class="count" id="cDText"></span></div><textarea id="dText" rows="2"></textarea></div>
     <div class="field">
@@ -408,7 +420,8 @@
   </section>
 
   <section id="vEmerg" class="view">
-    <div class="top"><h1>Real emergency</h1><button type="button" class="link" data-home>Back</button></div>
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><h1>Real emergency</h1></div>
     <div class="note">Call 911 first. This puts a red alarm screen on the lobby display right away.</div>
     <div class="field"><div class="lbl">What is happening</div><div class="presets" id="eTypes"></div></div>
     <div id="eBig" class="ebig" hidden></div>
@@ -496,7 +509,9 @@ async function api(method, path, body) {
   return d;
 }
 function say(text, cls) { const m = $('msg'); m.textContent = text || ''; m.className = text ? cls : ''; if (text) window.scrollTo(0, 0); }
-function show(view) { for (const v of ['vHome', 'vNew', 'vSet', 'vRoles', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
+let trail = [];
+function show(view) { const cur = (document.querySelector('.view.on') || {}).id; if (view === 'vHome') trail = []; else if (cur && cur !== view && trail[trail.length - 1] !== view) trail.push(cur); else if (trail[trail.length - 1] === view) trail.pop();
+  for (const v of ['vHome', 'vNew', 'vSet', 'vRoles', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
 const fmtEnd = (iso) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 
 function renderHome() {
@@ -508,7 +523,7 @@ function renderHome() {
   $('hLogo').hidden = !logoOk; if (logoOk) { $('hLogo').src = st.logo; $('hLogo').className = st.logoOnLight ? 'onlight' : ''; $('hLogo').alt = (state.screenName || '') + ' logo'; }
   // the mark and a greeting follow the US calendar, the same as on the lobby screen
   const season = window.lobbySeason ? window.lobbySeason(new Date()) : null;
-  $('hMark').innerHTML = season ? '<svg viewBox="0 0 24 24" role="img" aria-label="' + esc(season.label) + '">' + season.icon + '</svg>' : '<i></i>';
+  $('hMark').innerHTML = window.lobbyMascot ? window.lobbyMascot(new Date()) : '<i></i>';
   $('hGreet').hidden = !season; if (season) { $('hGreet').textContent = season.label; $('hGreet').style.color = season.color; }
   const alarm = state.items.find((x) => x.kind === 'emergency');
   $('alarmOn').hidden = !alarm;
@@ -914,6 +929,7 @@ $('rSearch').addEventListener('input', () => { rShown = 60; drawResidents(); });
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button, a'); if (!t) return;
   if (t.hasAttribute('data-home')) { say(''); show('vHome'); }
+  else if (t.hasAttribute('data-back')) { say(''); show(trail.length ? trail[trail.length - 1] : 'vHome'); }
   else if (t.id === 'goNew') openCompose();
   else if (t.id === 'goAlarm') { say(''); show('vAlerts'); }
   else if (t.id === 'goRes') openResidents();
@@ -960,6 +976,10 @@ $('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').va
 document.addEventListener('input', () => { if ($('vSet').classList.contains('on')) drawSettings(); if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
 window.addEventListener('resize', sizeFrames);
 if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
+/* A tapped notification opens the app and shows its message here. */
+function showPushMsg(m) { if (m && typeof m.t === 'string' && m.t) say(m.t.slice(0, 120) + (m.b ? ' — ' + String(m.b).slice(0, 300) : ''), m.e === true ? 'err' : 'ok'); }
+(function () { const h = /^#msg=(.+)$/.exec(location.hash); if (!h) return; try { showPushMsg(JSON.parse(decodeURIComponent(h[1]))); } catch (e) { /* not a message */ } history.replaceState(null, '', location.pathname + location.search); })();
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', (ev) => { if (ev.data && ev.data.type === 'lobby-msg') showPushMsg(ev.data.msg); });
 /* New version: if the manager is on the home view it updates by itself; in the middle of a form it shows a bar
    with an Update button instead, so nothing being written is lost. */
 $('updBtn').addEventListener('click', () => location.reload());

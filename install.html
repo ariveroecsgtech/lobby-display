@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Install the app — Lobby Display</title>
+<title>Install the app — ECSG Display</title>
 <link rel="icon" href="/icons/icon-192.png">
 <style>
   :root { --bg: #0B1220; --card: #131C2E; --line: #25324A; --text: #F4F7FB; --soft: #C9D4E5; --muted: #9FB0C8; --accent: #F5B544; }
@@ -22,12 +22,14 @@
   ol li::before { content: counter(n); position: absolute; left: 14px; top: 13px; width: 30px; height: 30px; border-radius: 15px; background: var(--accent); color: var(--bg); font-weight: 700; display: flex; align-items: center; justify-content: center; }
   b { color: var(--text); }
   .note { font-size: 15px; color: var(--muted); margin-top: 14px; }
+  .nav { display: flex; gap: 10px; margin-bottom: 18px; } .nav a { min-height: 44px; padding: 0 18px; display: inline-flex; align-items: center; border-radius: 22px; background: var(--card); border: 1px solid var(--line); color: var(--text); font-weight: 600; font-size: 15px; text-decoration: none; }
   a.back { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 600; text-decoration: none; margin-top: 22px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Install the app</h1>
+  <nav class="nav"><a id="home" href="/">Home</a><a id="back2" href="/">Back</a></nav>
+  <h1>Install ECSG Display</h1>
   <p id="lead">Put your building's screen on your phone or computer, like any other app. It takes less than a minute and there is nothing to download from a store.</p>
   <div class="tabs" role="tablist" aria-label="Your device">
     <button type="button" role="tab" id="t-iphone" aria-controls="p-iphone" aria-selected="true">iPhone</button>
@@ -57,7 +59,7 @@
     <ol>
       <li>Open this page in <b>Chrome</b> or <b>Edge</b>.</li>
       <li>Look at the right end of the address bar for the <b>install icon</b>: a small screen with an arrow. Click it.</li>
-      <li>If you do not see it, open the browser menu (three dots) and choose <b>Install Lobby Display</b>, or <b>Apps</b>, then <b>Install this site as an app</b>.</li>
+      <li>If you do not see it, open the browser menu (three dots) and choose <b>Install ECSG Display</b>, or <b>Apps</b>, then <b>Install this site as an app</b>.</li>
       <li>Click <b>Install</b>. The app opens in its own window and is added to your Start menu or Dock.</li>
     </ol>
     <div class="note">On a Mac with Safari: File menu, then "Add to Dock".</div>
@@ -69,9 +71,10 @@
 const manager = /[?&]app=manager\b/.test(location.search);
 if (manager) {
   document.getElementById('lead').textContent = 'Put the manager app on your phone or computer, like any other app. Sign in first, then follow the steps on the manager page itself.';
-  document.getElementById('back').href = '/manage/'; document.getElementById('back').textContent = 'Back to the manager app';
-  document.title = 'Install the manager app — Lobby Display';
+  document.getElementById('back').href = '/manage/'; document.getElementById('home').href = '/manage/'; document.getElementById('back').textContent = 'Back to the manager app';
+  document.title = 'Install the manager app — ECSG Display';
 }
+document.getElementById('back2').addEventListener('click', (e) => { if (history.length > 1) { e.preventDefault(); history.back(); } else e.currentTarget.href = document.getElementById('home').href; });
 const tabs = [...document.querySelectorAll('[role=tab]')];
 function pick(id) { for (const t of tabs) { const on = t.id === id; t.setAttribute('aria-selected', on); document.getElementById(t.getAttribute('aria-controls')).classList.toggle('on', on); } }
 for (const t of tabs) t.addEventListener('click', () => pick(t.id));

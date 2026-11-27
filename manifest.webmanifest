@@ -1,6 +1,6 @@
 {
-  "name": "Lobby Display",
-  "short_name": "Lobby",
+  "name": "ECSG Display",
+  "short_name": "ECSG Display",
   "description": "Your building's lobby screen on your phone: weather, trains, traffic and announcements.",
   "start_url": "/",
   "scope": "/",

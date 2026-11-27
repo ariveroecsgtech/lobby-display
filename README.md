@@ -1,4 +1,4 @@
-# Lobby Display
+# ECSG Display (lobby display)
 
 Informational screen for a building lobby. Pilot: Confluence, 26 Belden Ave, Norwalk, CT.
 
@@ -123,3 +123,8 @@ The screen is a support for the building's emergency plan, not a life-safety sys
 ## Updates
 
 `update.js` compares the app's own files with what was loaded, every 5 minutes and when the app returns to the front. Lobby screen and resident app: reload by themselves. Manager app: reloads by itself on the home view; inside a form it shows "A new version is ready" with an Update button.
+
+## Name and mascot
+
+The product is called **ECSG Display** (manager app: ECSG Display Manager). The ECSG monogram is the mascot: `window.lobbyMascot(date)` in `season.js` draws it with a hat on the "g" and a seasonal ornament in place of the dot. App icons use the white monogram on navy.
+Tapping a notification opens the app and shows the message at the top (`#msg=` hash or a message from `sw.js`). Every manager view has Back and Home keys.

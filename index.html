@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Confluence — Lobby Display</title>
+<title>Confluence — ECSG Display</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0B1220">
 <link rel="icon" href="/icons/icon-192.png">
@@ -45,13 +45,21 @@
   #bname { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--soft); }
   #bname i { display: block; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); }
   #bMark { display: flex; align-items: center; flex-shrink: 0; }
-  #bMark svg { width: 46px; height: 46px; }
+  #bMark svg { height: 76px; width: auto; display: block; }
+  .mobile #bMark svg { height: 64px; }
   /* the building's logo: any shape fits a 300 by 72 box; a dark logo gets a light plate so it stays visible */
   #bLogo { height: 72px; max-width: 300px; object-fit: contain; flex-shrink: 0; }
   #bLogo.onlight { background: #FFFFFF; border-radius: 12px; padding: 6px 14px; }
   #bSub { font-size: 21px; font-weight: 500; letter-spacing: 0.5px; text-transform: none; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 760px; }
   #bSub:empty { display: none; }
-  #installHint, #pushBar { display: none; }
+  #installHint, #pushBar, #inbox { display: none; }
+  /* the message a resident tapped on in a notification, shown at the top of the app until they close it */
+  #inbox.show { display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: 22px; background: #FFF4D6; color: #1F1503; order: -2; }
+  #inbox .il { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
+  #inbox .it { font-size: 36px; font-weight: 700; line-height: 1.15; } #inbox .ib { font-size: 28px; line-height: 1.35; }
+  #inbox.urgent { background: #B42318; color: #FFFFFF; }
+  #inbox button { align-self: flex-start; min-height: 68px; padding: 0 36px; border: 0; border-radius: 34px; background: #0B1220; color: #FFFFFF; font: inherit; font-size: 26px; font-weight: 700; cursor: pointer; }
+  html:not(.mobile) #inbox.show { position: fixed; z-index: 50; left: 50%; top: 40px; transform: translateX(-50%); width: 720px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
   .mobile #pushBar.show { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; padding: 24px; border-radius: 22px; background: var(--card); border: 2px solid var(--accent); }
   #pushBar .pt { font-size: 30px; font-weight: 700; } #pushBar .ps { font-size: 24px; color: var(--soft); line-height: 1.35; }
   #pushBar button { min-height: 76px; border: 0; border-radius: 38px; background: var(--accent); color: #1F1503; font: inherit; font-size: 30px; font-weight: 700; cursor: pointer; }
@@ -370,6 +378,7 @@
       <div id="hoursRows"></div>
     </div>
   </div>
+  <div id="inbox" role="alert"><div class="il" id="inL"></div><div class="it" id="inT"></div><div class="ib" id="inB"></div><button type="button" id="inOk">OK</button></div>
   <div id="pushBar" role="region" aria-label="Building alerts">
     <div class="pt" id="pushT"></div><div class="ps" id="pushS"></div>
     <button type="button" id="pushBtn">Turn on alerts</button>
@@ -846,15 +855,14 @@ function applyBrand(b) {
   CONFIG.buildingName = b.name || CONFIG.buildingName;
   $('bnameText').textContent = CONFIG.buildingName + (b.address ? '' : ' · ' + CONFIG.city);
   $('bSub').textContent = [b.address, b.email].filter(Boolean).join(' · ');
-  document.title = CONFIG.buildingName + ' — Lobby Display';
+  document.title = CONFIG.buildingName + ' — ECSG Display';
   const logo = $('bLogo'), src = typeof b.logo === 'string' && /^\/api\/image\/[a-z0-9]{12,40}$/.test(b.logo) ? b.logo : '';
   logo.hidden = !src; logo.classList.toggle('onlight', !!b.logoOnLight); logo.alt = src ? CONFIG.buildingName + ' logo' : '';
   if (src) { if (logo.getAttribute('src') !== src) logo.src = src; } else logo.removeAttribute('src');
 }
-/* The mark beside the name follows the US calendar: a tree in December, a leaf at Thanksgiving, a flag on July 4, and so on. */
+/* The ECSG monogram beside the name is the mascot: it dresses for the US calendar (Santa hat in December, pilgrim hat at Thanksgiving, and so on). */
 function applySeason() {
-  const s = window.lobbySeason ? window.lobbySeason(new Date()) : null;
-  $('bMark').innerHTML = s ? '<svg viewBox="0 0 24 24" role="img" aria-label="' + esc(s.label) + '">' + s.icon + '</svg>' : '<i></i>';
+  $('bMark').innerHTML = window.lobbyMascot ? window.lobbyMascot(new Date()) : '<i></i>';
 }
 /* Takeovers. A real emergency always wins over a scheduled test. */
 function showEmergency(em, drill) {
@@ -1052,6 +1060,17 @@ function start() {
     if (txt) { $('pushT').textContent = txt[0]; $('pushS').textContent = txt[1]; }
     if (st === 'on') setTimeout(() => bar.classList.remove('show'), 6000);
   };
+  // A resident tapped a notification: show that message at the top of the app until they close it.
+  const showMsg = (m) => {
+    if (!m || typeof m.t !== 'string' || !m.t) return;
+    $('inL').textContent = 'Message from your building' + (m.ts ? ' · ' + new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(m.ts)) : '');
+    $('inT').textContent = m.t.slice(0, 120); $('inB').textContent = String(m.b || '').slice(0, 300);
+    $('inbox').classList.toggle('urgent', m.e === true); $('inbox').classList.add('show'); window.scrollTo(0, 0);
+  };
+  $('inOk').addEventListener('click', () => $('inbox').classList.remove('show'));
+  const fromHash = () => { const h = /^#msg=(.+)$/.exec(location.hash); if (!h) return; try { showMsg(JSON.parse(decodeURIComponent(h[1]))); } catch (e) { /* not a message */ } history.replaceState(null, '', location.pathname + location.search); };
+  fromHash(); window.addEventListener('hashchange', fromHash);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', (ev) => { if (ev.data && ev.data.type === 'lobby-msg') showMsg(ev.data.msg); });
   // New version published: the lobby TV and the resident app reload by themselves (there is nobody to press a button on a TV).
   if (window.lobbyUpdate && !PREVIEW) window.lobbyUpdate(['/', '/templates.js', '/season.js', '/push-client.js', '/update.js'], () => setTimeout(() => location.reload(), 3000));
   // The bar itself only exists in the phone layout (see CSS), so the lobby TV never shows it.

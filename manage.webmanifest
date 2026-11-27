@@ -1,6 +1,6 @@
 {
-  "name": "Lobby Display Manager",
-  "short_name": "Lobby Manager",
+  "name": "ECSG Display Manager",
+  "short_name": "Display Mgr",
   "description": "Publish announcements and alerts to your building's lobby screen.",
   "id": "/manage/",
   "start_url": "/manage/",
