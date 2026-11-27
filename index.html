@@ -739,6 +739,16 @@ const C_ICONS = {
 const WELCOME = { kind: 'card', theme: 'navy', icon: 'note', eyebrow: 'From the management office', title: 'Welcome home',
   text: 'Announcements and events from the management office appear here.', tags: [] };
 let cItems = [], cIdx = -1, cShownId = null, cSample = false;
+/* The order cards take turns in. A featured card gets a second turn half a lap later, so it is on screen twice as often. */
+let cSeq = [], cPos = -1;
+function buildSequence() {
+  const n = cItems.length, seq = cItems.slice();
+  if (n >= 3) cItems.filter((x) => x.featured).slice(0, 3).forEach((f, k) => {
+    const at = Math.min(seq.length, seq.indexOf(f) + Math.ceil(n / 2) + k);
+    if (seq[at - 1] !== f && seq[at] !== f) seq.splice(at, 0, f);
+  });
+  cSeq = seq;
+}
 async function loadCommunity() {
   if (PREVIEW) {
     cItems = PREVIEW.item ? [PREVIEW.item] : []; cSample = false;
@@ -753,9 +763,10 @@ async function loadCommunity() {
     } catch (e) { console.error('Announcements failed', e); }     // keep what is on screen; the next check is 15 seconds away
   }
   // Redraw right away when the card on screen was removed, or when something new arrives while the welcome card is up.
+  buildSequence();
   const ids = cItems.map((x) => x.id || x.title);
-  if (cIdx < 0 || !ids.includes(cShownId)) { cIdx = Math.max(-1, Math.min(cIdx, cItems.length) - 1); showCommunity(); }
-  else { cIdx = ids.indexOf(cShownId); drawCommunityExtras(); }
+  if (cIdx < 0 || !ids.includes(cShownId)) { cPos = Math.max(-1, Math.min(cPos, cSeq.length) - 1); showCommunity(); }
+  else { cIdx = ids.indexOf(cShownId); const here = cSeq.findIndex((x, i) => i >= cPos && (x.id || x.title) === cShownId); cPos = here >= 0 ? here : cSeq.findIndex((x) => (x.id || x.title) === cShownId); drawCommunityExtras(); }
 }
 function showEmergency(em) {
   $('emergency').classList.toggle('active', !!em);
@@ -765,9 +776,10 @@ function showEmergency(em) {
   $('emFrom').textContent = CONFIG.buildingName + ' management office';
 }
 function showCommunity() {
-  const items = cItems.length ? cItems : [WELCOME];
-  cIdx = (cIdx + 1) % items.length;
-  const it = items[cIdx], sponsor = it.kind === 'sponsor';
+  const seq = cSeq.length ? cSeq : [WELCOME];
+  cPos = (cPos + 1) % seq.length;
+  const it = seq[cPos], sponsor = it.kind === 'sponsor';
+  cIdx = Math.max(0, cItems.indexOf(it));
   cShownId = it.id || it.title;
   // A poster uses its template's palette and illustration; anything else uses a built-in theme and a small icon.
   const tpl = it.design && window.LOBBY_TEMPLATES ? window.LOBBY_TEMPLATES[it.design] : null;
@@ -906,7 +918,7 @@ function start() {
   loadDrive(); setInterval(loadDrive, 5 * 60000);
   loadTrains(); setInterval(loadTrains, 30000); setInterval(renderTrains, 15000);
   loadNotices(); setInterval(loadNotices, 3 * 60000); setInterval(showNotice, 12000);
-  loadCommunity().then(() => { if (START_CARD) { cIdx = Number(START_CARD) - 2; showCommunity(); } });
+  loadCommunity().then(() => { if (START_CARD) { cPos = Number(START_CARD) - 2; showCommunity(); } });
   setInterval(loadCommunity, 15000); setInterval(rotateCommunity, CONFIG.community.rotateSec * 1000);
   renderHours();
   document.documentElement.classList.add('footer-' + CONFIG.footer);

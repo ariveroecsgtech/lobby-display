@@ -33,12 +33,10 @@ const memStore = () => { const rows = new Map(), images = new Map(); return {
   assert.ok(a1.title.startsWith('Rooftop Yoga'));
   assert.strictEqual(a1.createdBy, 'm@x.com');
 
-  // Limits: 5 cards, 3 posters, 1 emergency. Scheduled ones count; expired ones do not.
+  // One emergency at a time. (The shared limit of 10 announcements is checked further down, on its own store.)
   for (let i = 0; i < 3; i++) await A.create(store, 'confluence', card({ title: 'Card ' + i, endsAt: at((3 + i) * D) }), 'm', now + i);
   await A.create(store, 'confluence', card({ title: 'Later', startsAt: at(D), endsAt: at(9 * D) }), 'm', now + 9);
-  await assert.rejects(() => A.create(store, 'confluence', card({ title: 'Sixth' }), 'm', now + 10), (e) => e.code === 'limit');
   for (let i = 0; i < 3; i++) await A.create(store, 'confluence', { kind: 'poster', design: 'coffee', title: 'Coffee ' + i, endsAt: at(D) }, 'm', now + 20 + i);
-  await assert.rejects(() => A.create(store, 'confluence', { kind: 'poster', design: 'movie', title: 'Fourth', endsAt: at(D) }, 'm', now + 30), (e) => e.code === 'limit');
   await A.create(store, 'confluence', { kind: 'emergency', title: 'Fire alarm test', text: 'No action needed', endsAt: at(H) }, 'm', now + 40);
   await assert.rejects(() => A.create(store, 'confluence', { kind: 'emergency', title: 'Another', endsAt: at(H) }, 'm', now + 41), /already on screen/);
 
@@ -94,6 +92,17 @@ const memStore = () => { const rows = new Map(), images = new Map(); return {
   // Rows that ended more than a week ago are cleaned up; the saved places stay.
   await A.listOpen(store, 'confluence', now + 30 * D);
   assert.deepStrictEqual([...store.rows.keys()], ['confluence/_places']);
+
+  // Limit: 10 announcements in total, cards and posters in any mix. Scheduled ones count, expired ones and the emergency do not.
+  const s3 = memStore();
+  for (let i = 0; i < 6; i++) await A.create(s3, 'confluence', card({ title: 'Card ' + i, startsAt: i === 0 ? at(D) : undefined }), 'm', now + i);
+  for (let i = 0; i < 4; i++) await A.create(s3, 'confluence', { kind: 'poster', design: 'pizza', title: 'Poster ' + i, endsAt: at(H), featured: i === 0 }, 'm', now + 10 + i);
+  await assert.rejects(() => A.create(s3, 'confluence', card({ title: 'Eleventh' }), 'm', now + 20), /limit is 10 announcements/);
+  await assert.rejects(() => A.create(s3, 'confluence', { kind: 'poster', design: 'pizza', title: 'Eleventh', endsAt: at(D) }, 'm', now + 20), (e) => e.code === 'limit');
+  await A.create(s3, 'confluence', { kind: 'emergency', title: 'Still allowed', endsAt: at(H) }, 'm', now + 21);
+  assert.strictEqual(A.publicView(await s3.list('confluence'), now + 30).items[0].title, 'Poster 0', 'a featured poster goes first');
+  await A.create(s3, 'confluence', card({ title: 'After posters ended' }), 'm', now + 2 * H);
+  assert.strictEqual(A.totalFor('confluence'), 10);
 
   // Uploaded images: real JPG, PNG or WebP only, size capped, and removed with their announcement.
   const s2 = memStore(); clock.now = now;

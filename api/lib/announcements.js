@@ -6,7 +6,11 @@ const crypto = require('crypto');
 const SCREENS = { confluence: { name: 'Confluence', timeZone: 'America/New_York',
   places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'] } };
 const PLACES_ROW = '_places', MAX_SAVED_PLACES = 20;
-const LIMITS = { card: 5, poster: 3, emergency: 1 };
+// How many announcements can be on air or scheduled at once: cards and posters share one total, so the manager
+// decides the mix. A screen can set its own total with maxAnnouncements (only ECSG changes it).
+const LIMITS = { total: 10, emergency: 1 };
+const KINDS = ['card', 'poster', 'emergency'];
+const totalFor = (screen) => (SCREENS[screen] && SCREENS[screen].maxAnnouncements) || LIMITS.total;
 // Poster templates the manager can pick. The artwork and colors live in /templates.js; the keys must match.
 const DESIGNS = {
   coffee: { label: 'Coffee social', cat: 'Social' }, pizza: { label: 'Pizza night', cat: 'Social' },
@@ -41,7 +45,7 @@ const isOpen = (a, now) => new Date(a.endsAt).getTime() > now;      // on air no
 
 function build(input, user, now) {
   const kind = String(input.kind || '');
-  if (!LIMITS[kind]) throw fail('Choose card, poster or emergency');
+  if (!KINDS.includes(kind)) throw fail('Choose card, poster or emergency');
   const title = clean(input.title, MAX.title);
   if (!title) throw fail('A title is required');
   const startsAt = input.startsAt ? new Date(input.startsAt).getTime() : now;
@@ -63,7 +67,7 @@ function build(input, user, now) {
     timeText: kind === 'emergency' ? '' : clean(input.timeText, MAX.time),
     whereText: kind === 'emergency' ? '' : clean(input.whereText, MAX.where),
     design, imageId,
-    featured: kind === 'card' && input.featured === true,
+    featured: kind !== 'emergency' && input.featured === true,
     startsAt: new Date(startsAt).toISOString(),
     endsAt: new Date(endsAt).toISOString(),
     createdBy: clean(user, 120),
@@ -75,10 +79,11 @@ async function create(store, screen, input, user, now = Date.now()) {
   assertScreen(screen);
   const item = { ...build(input || {}, user, now), screen };
   if (item.imageId && !(await store.imageExists(item.imageId))) throw fail('The image was not found. Upload it again.');
-  const open = (await store.list(screen)).filter((a) => a.kind === item.kind && isOpen(a, now));
-  if (open.length >= LIMITS[item.kind]) {
-    throw fail(item.kind === 'emergency' ? 'An emergency alert is already on screen. Clear it first.'
-      : 'The limit is ' + LIMITS[item.kind] + ' ' + item.kind + 's at a time. End one before adding another.', 'limit');
+  const open = (await store.list(screen)).filter((a) => KINDS.includes(a.kind) && isOpen(a, now));
+  if (item.kind === 'emergency') {
+    if (open.filter((a) => a.kind === 'emergency').length >= LIMITS.emergency) throw fail('An emergency alert is already on screen. Clear it first.', 'limit');
+  } else if (open.filter((a) => a.kind !== 'emergency').length >= totalFor(screen)) {
+    throw fail('The limit is ' + totalFor(screen) + ' announcements at a time. End one before adding another.', 'limit');
   }
   await store.put(item);
   if (input.savePlace === true && item.whereText) await addPlace(store, screen, item.whereText);
@@ -172,4 +177,4 @@ function principal(headerValue) {
   } catch (e) { return { user: '', roles: [], allowed: false }; }
 }
 
-module.exports = { IMAGE, IMAGE_ID, sniffImage, saveImage, SCREENS, LIMITS, DESIGNS, MAX, create, listOpen, end, publicView, principal, assertScreen, getPlaces };
+module.exports = { totalFor, IMAGE, IMAGE_ID, sniffImage, saveImage, SCREENS, LIMITS, DESIGNS, MAX, create, listOpen, end, publicView, principal, assertScreen, getPlaces };

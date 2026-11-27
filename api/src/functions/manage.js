@@ -33,7 +33,7 @@ app.http('manageList', {
         _clearCache(screen);
         context.log('announcement created', screen, item.kind, item.id, 'by', p.user);
       }
-      return { status: 200, jsonBody: { screen, screenName: A.assertScreen(screen).name, user: p.user, limits: A.LIMITS, max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
+      return { status: 200, jsonBody: { screen, screenName: A.assertScreen(screen).name, user: p.user, limits: { total: A.totalFor(screen), emergency: A.LIMITS.emergency }, max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
     } catch (err) { return problem(err, context); }
   }
 });

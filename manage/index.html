@@ -157,7 +157,7 @@
         <div class="note">With your own image, the lobby screen shows only the image, whole and never cropped. Put the date, time and place in the image itself. The title, when and where you enter here are still used in your list and under "Also coming up".</div>
       </div>
     </div>
-    <label class="check" id="featBox"><input type="checkbox" id="fFeat"> Featured: shown first, with a gold frame</label>
+    <label class="check" id="featBox"><input type="checkbox" id="fFeat"> Featured: shown first and twice as often</label>
     <div class="field">
       <label class="lbl" for="fUntil">Show on the screen until the end of</label>
       <input type="date" id="fUntil">
@@ -217,7 +217,7 @@ const PRESETS = [
   ['Elevator out of service', 'Please use the other elevator or the stairs.'],
   ['Severe weather', 'Stay indoors and away from windows until further notice.']
 ];
-let state = { items: [], limits: { card: 5, poster: 3 }, max: { title: 40, text: 140, when: 24, time: 24, where: 32 }, designs: {}, places: [] };
+let state = { items: [], limits: { total: 10 }, max: { title: 40, text: 140, when: 24, time: 24, where: 32 }, designs: {}, places: [] };
 const ADD_PLACE = '__add__';
 /* When: a date from the calendar and optional start and end times, turned into the short labels the screen shows. */
 function whenLabel() {
@@ -253,7 +253,7 @@ async function api(method, path, body) {
   if (!HOSTED) {
     if (method === 'POST') mock.items.push({ ...body, id: 'n' + Date.now(), live: true });
     if (method === 'DELETE') mock.items = mock.items.filter((x) => x.id !== path.split('/').pop().split('?')[0]);
-    return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { card: 5, poster: 3, emergency: 1 }, max: state.max, places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'],
+    return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { total: 10, emergency: 1 }, max: state.max, places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'],
       designs: Object.fromEntries(Object.entries(window.LOBBY_TEMPLATES).map(([k, t]) => [k, { label: t.label, cat: t.cat }])), items: mock.items };
   }
   const r = await fetch('/api/manage/' + path + (path.includes('?') ? '&' : '?') + 'screen=' + SCREEN, {
@@ -276,7 +276,8 @@ function renderHome() {
   $('goAlarm').hidden = !!alarm;
   const rest = state.items.filter((x) => x.kind !== 'emergency');
   const n = (k) => rest.filter((x) => x.kind === k).length;
-  $('hCount').textContent = n('card') + ' of ' + state.limits.card + ' cards · ' + n('poster') + ' of ' + state.limits.poster + ' posters';
+  $('hCount').textContent = rest.length + ' of ' + state.limits.total + ' · ' + n('card') + (n('card') === 1 ? ' card, ' : ' cards, ') + n('poster') + (n('poster') === 1 ? ' poster' : ' posters');
+  $('goNew').disabled = rest.length >= state.limits.total; $('goNew').textContent = rest.length >= state.limits.total ? 'Limit reached: end one to add another' : 'New announcement';
   $('hList').innerHTML = rest.length ? rest.map((x) =>
     '<div class="item"><div class="main"><div class="t">' + esc(x.title) + '</div><div class="s"><span class="kind ' + esc(x.kind) + '">' + esc(x.kind) + '</span>' +
     (x.live ? '' : '<span class="kind sched">Scheduled</span>') + (x.featured ? '<span class="kind sched">Featured</span>' : '') +
@@ -361,7 +362,7 @@ function renderTiles() {
 }
 function drawCompose() {
   $('kCard').setAttribute('aria-pressed', kind === 'card'); $('kPoster').setAttribute('aria-pressed', kind === 'poster');
-  $('designBox').hidden = kind !== 'poster'; $('featBox').hidden = kind !== 'card';
+  $('designBox').hidden = kind !== 'poster';
   drawUpload();
   const M = state.max;
   $('fTitle').maxLength = M.title; $('fText').maxLength = M.text; $('fWhereNew').maxLength = M.where;
@@ -390,7 +391,7 @@ function composeBody() {
   const [y, m, d] = until.split('-').map(Number);
   return { kind, title: $('fTitle').value.trim(), text: $('fText').value.trim(), whenText: whenLabel(), timeText: timeLabel(), whereText: whereValue(),
     savePlace: $('fPlace').value === ADD_PLACE && $('fSavePlace').checked,
-    design: kind === 'poster' && source === 'gallery' ? design : '', ownImage: kind === 'poster' && source === 'upload', featured: kind === 'card' && $('fFeat').checked, endsAt: new Date(y, m - 1, d, 23, 59, 59).toISOString() };
+    design: kind === 'poster' && source === 'gallery' ? design : '', ownImage: kind === 'poster' && source === 'upload', featured: $('fFeat').checked, endsAt: new Date(y, m - 1, d, 23, 59, 59).toISOString() };
 }
 function sizeFrames() {
   const w = $('pFull').clientWidth; if (!w) return;
