@@ -64,6 +64,14 @@
   };
   const WEAR = { christmas: 'christmas', newyear: 'newyear', thanksgiving: 'thanksgiving', halloween: 'halloween', july4: 'july4', memorial: 'patriotic', veterans: 'patriotic', labor: 'patriotic', presidents: 'patriotic',
     stpatrick: 'stpatrick', valentine: 'valentine', mlk: 'gold', juneteenth: 'gold' };
+  /* The season's dress for the building's own logo: a hat (or, on days without a hat, a small badge) that the pages
+     place on the top corner of whatever logo the building uploaded. Returns { kind: 'hat' | 'badge', label, svg } or null. */
+  window.lobbyDress = function (date) {
+    const s = window.lobbySeason(date), c = s ? COSTUME[WEAR[s.key]] : null;
+    if (!c) return null;
+    const hat = !!c.hat, body = hat ? c.hat : c.dot, box = hat ? '266 -56 112 96' : '358 30 58 62';
+    return { kind: hat ? 'hat' : 'badge', label: s.label, svg: ('<svg viewBox="' + box + '" role="img" aria-label="' + s.label.replace(/"/g, '') + '">' + body + '</svg>').replace(/(\d)\.(\d)00\b/g, '$1.$2') };
+  };
   window.lobbyMascot = function (date, fill) {
     const s = window.lobbySeason(date), c = s ? COSTUME[WEAR[s.key]] : null, f = /^#[0-9a-fA-F]{6}$/.test(fill || '') ? fill : '#F4F7FB';
     const label = 'ECSG Display' + (s ? ' — ' + s.label : '');

@@ -181,16 +181,17 @@ const memStore = () => { const rows = new Map(), images = new Map(); return {
 
   // Building settings: defaults, validation, logo handling, and what the screen receives.
   const s6 = memStore(); clock.now = now;
-  assert.deepStrictEqual(await A.getSettings(s6, 'confluence'), { name: 'Confluence', address: '', email: '', logo: '', logoOnLight: false });
+  assert.deepStrictEqual(await A.getSettings(s6, 'confluence'), { name: 'Confluence', address: '', email: '', logo: '', logoOnLight: false, logoHatX: 0.5 });
   await assert.rejects(() => A.saveSettings(s6, 'confluence', { name: ' ' }, 'a'), /name is required/);
   await assert.rejects(() => A.saveSettings(s6, 'confluence', { name: 'X', email: 'nope' }, 'a'), /not valid/);
   await assert.rejects(() => A.saveSettings(s6, 'confluence', { name: 'X', logoId: 'abcdefabcdef12345678' }, 'a'), /logo was not found/);
   const logo1 = await A.saveImage(s6, 'confluence', png, now), logo2 = await A.saveImage(s6, 'confluence', jpg, now);
-  let st = await A.saveSettings(s6, 'confluence', { name: '  The  Confluence ', address: '26 Belden Ave, Norwalk, CT', email: 'Office@Example.com', logoId: logo1.id, logoOnLight: true }, 'admin@x.com', now);
-  assert.deepStrictEqual(st, { name: 'The Confluence', address: '26 Belden Ave, Norwalk, CT', email: 'office@example.com', logo: '/api/image/' + logo1.id, logoOnLight: true });
+  let st = await A.saveSettings(s6, 'confluence', { name: '  The  Confluence ', address: '26 Belden Ave, Norwalk, CT', email: 'Office@Example.com', logoId: logo1.id, logoOnLight: true, logoHatX: 0.4567 }, 'admin@x.com', now);
+  assert.deepStrictEqual(st, { name: 'The Confluence', address: '26 Belden Ave, Norwalk, CT', email: 'office@example.com', logo: '/api/image/' + logo1.id, logoOnLight: true, logoHatX: 0.46 });
   assert.deepStrictEqual(A.publicView(await s6.list('confluence'), now, 'confluence').building, st);
   assert.ok(!JSON.stringify(A.publicView(await s6.list('confluence'), now, 'confluence')).includes('admin@x.com'), 'who saved it is not public');
   st = await A.saveSettings(s6, 'confluence', { name: 'The Confluence', logoId: logo2.id }, 'a', now);
+  assert.strictEqual(st.logoHatX, 0.5, 'a new logo without a measured top gets the middle');
   assert.ok(!s6.images.has(logo1.id) && s6.images.has(logo2.id), 'replacing the logo deletes the old file');
   await A.listOpen(s6, 'confluence', now + 30 * D);
   assert.ok(s6.images.has(logo2.id), 'the logo in use is never cleaned up as an unused upload');

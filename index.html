@@ -49,11 +49,17 @@
   #bname { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--soft); }
   #bname i { display: block; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); }
   #bMark { display: flex; align-items: center; flex-shrink: 0; }
-  #bMark svg { height: 76px; width: auto; display: block; }
-  .mobile #bMark svg { height: 64px; }
+  #bMark svg { width: 46px; height: 46px; display: block; }
+  /* the season's hat sits on the top-left corner of the building's logo; days without a hat get a small badge on the top-right */
+  #bLogoWrap { display: flex; flex-shrink: 0; }
+  #bLogoWrap.onlight { background: #FFFFFF; border-radius: 12px; padding: 6px 14px; }
+  #bLogoWrap .lg { position: relative; display: flex; }
+  #bDress { position: absolute; pointer-events: none; }
+  #bDress.hat { left: calc(var(--hx, 0.5) * 100%); top: 0; transform: translate(-50%, -80%) rotate(-8deg); } #bDress.hat svg { height: 40px; width: auto; display: block; }
+  #bDress.badge { right: -18px; top: -14px; } #bDress.badge svg { height: 32px; width: auto; display: block; }
   /* the building's logo: any shape fits a 300 by 72 box; a dark logo gets a light plate so it stays visible */
-  #bLogo { height: 72px; max-width: 300px; object-fit: contain; flex-shrink: 0; }
-  #bLogo.onlight { background: #FFFFFF; border-radius: 12px; padding: 6px 14px; }
+  #bLogo { height: 80px; max-width: 300px; object-fit: contain; flex-shrink: 0; }
+  #bLogoWrap.onlight #bLogo { height: 72px; }
   #bSub { font-size: 21px; font-weight: 500; letter-spacing: 0.5px; text-transform: none; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 760px; }
   #bSub:empty { display: none; }
   #installHint, #pushBar, #inbox { display: none; }
@@ -283,7 +289,7 @@
 <div id="stage">
 
   <div id="header">
-    <div id="bname"><span id="bMark"><i></i></span><img id="bLogo" alt="" hidden><div><div id="bnameText"></div><div id="bSub"></div></div></div>
+    <div id="bname"><span id="bMark"><i></i></span><span id="bLogoWrap" hidden><span class="lg"><img id="bLogo" alt=""><span id="bDress"></span></span></span><div><div id="bnameText"></div><div id="bSub"></div></div></div>
     <div id="hright">
       <div id="clock">
         <div id="date"></div>
@@ -862,12 +868,16 @@ function applyBrand(b) {
   $('bSub').textContent = [b.address, b.email].filter(Boolean).join(' · ');
   document.title = CONFIG.buildingName + ' — ECSG Display';
   const logo = $('bLogo'), src = typeof b.logo === 'string' && /^\/api\/image\/[a-z0-9]{12,40}$/.test(b.logo) ? b.logo : '';
-  logo.hidden = !src; logo.classList.toggle('onlight', !!b.logoOnLight); logo.alt = src ? CONFIG.buildingName + ' logo' : '';
+  $('bLogoWrap').hidden = !src; $('bLogoWrap').classList.toggle('onlight', !!b.logoOnLight); $('bDress').style.setProperty('--hx', typeof b.logoHatX === 'number' ? Math.min(1, Math.max(0, b.logoHatX)) : 0.5); applySeason(); logo.alt = src ? CONFIG.buildingName + ' logo' : '';
   if (src) { if (logo.getAttribute('src') !== src) logo.src = src; } else logo.removeAttribute('src');
 }
-/* The ECSG monogram beside the name is the mascot: it dresses for the US calendar (Santa hat in December, pilgrim hat at Thanksgiving, and so on). */
+/* The building's logo dresses for the US calendar: Santa hat in December, pilgrim hat at Thanksgiving, and so on. */
 function applySeason() {
-  $('bMark').innerHTML = window.lobbyMascot ? window.lobbyMascot(new Date()) : '<i></i>';
+  // With a logo: the logo wears the season. Without one: a small seasonal mark beside the building's name.
+  const hasLogo = !$('bLogoWrap').hidden, s = window.lobbySeason ? window.lobbySeason(new Date()) : null, d = window.lobbyDress ? window.lobbyDress(new Date()) : null;
+  $('bMark').style.display = hasLogo ? 'none' : '';
+  $('bMark').innerHTML = s ? '<svg viewBox="0 0 24 24" role="img" aria-label="' + esc(s.label) + '">' + s.icon + '</svg>' : '<i></i>';
+  $('bDress').className = d ? d.kind : ''; $('bDress').innerHTML = d ? d.svg : '';
 }
 /* Takeovers. A real emergency always wins over a scheduled test. */
 function showEmergency(em, drill) {

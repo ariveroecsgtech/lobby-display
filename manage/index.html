@@ -32,7 +32,11 @@
   .rc-app { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
   .navk { min-height: 44px; padding: 0 16px; border-radius: 22px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
   .navk svg { width: 16px; height: 16px; } .navrow { display: flex; gap: 8px; } #hMark i { display: block; width: 14px; height: 14px; border-radius: 4px; background: var(--accent); }
-  #hLogo { height: 40px; max-width: 120px; object-fit: contain; flex-shrink: 0; } #hLogo.onlight { background: #FFFFFF; border-radius: 8px; padding: 4px 8px; }
+  #hLogoWrap, #sMockWrap { display: flex; flex-shrink: 0; margin-top: 14px; } #hLogoWrap.onlight, #sMockWrap.onlight { background: #FFFFFF; border-radius: 8px; padding: 4px 8px; }
+  .lg { position: relative; display: flex; } .dress { position: absolute; pointer-events: none; }
+  .dress.hat { left: calc(var(--hx, 0.5) * 100%); top: 0; transform: translate(-50%, -80%) rotate(-8deg); } .dress.hat svg { height: 24px; width: auto; display: block; } .dress.badge { right: -12px; top: -10px; } .dress.badge svg { height: 20px; width: auto; display: block; }
+  #hMark svg { width: 34px !important; height: 34px !important; }
+  #hLogo { height: 44px; max-width: 130px; object-fit: contain; flex-shrink: 0; }
   .rc-brand h1 { font-size: 21px; overflow-wrap: anywhere; }
   .led { display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--good); }
   .led i { width: 9px; height: 9px; border-radius: 5px; background: var(--good); box-shadow: 0 0 10px var(--good); animation: ledpulse 2.4s ease-in-out infinite; }
@@ -77,7 +81,7 @@
   .chip { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; border-radius: 6px; padding: 2px 7px; border: 1.5px solid #6B7C99; color: var(--muted); margin-left: 6px; vertical-align: middle; }
   .chip.admin { border-color: var(--accent); color: var(--accent); }
   .mock { border-radius: 14px; background: #0B1220; border: 2px solid var(--line); padding: 14px 16px; display: flex; align-items: center; gap: 12px; min-height: 76px; }
-  .mock img { height: 44px; max-width: 150px; object-fit: contain; } .mock img.onlight { background: #FFFFFF; border-radius: 8px; padding: 4px 8px; }
+  .mock img { height: 44px; max-width: 150px; object-fit: contain; }
   .mock .n { font-size: 17px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); overflow-wrap: anywhere; } .mock .a { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
   table.perm { width: 100%; border-collapse: collapse; font-size: 14px; } table.perm th, table.perm td { text-align: left; padding: 9px 6px; border-bottom: 1px solid var(--line); } table.perm th { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); } table.perm td:nth-child(n+2), table.perm th:nth-child(n+2) { text-align: center; width: 76px; }
   pre.cmd { margin: 0; white-space: pre-wrap; word-break: break-all; background: #050912; border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 12px; color: var(--soft); }
@@ -175,10 +179,10 @@
   <!-- HOME -->
   <section id="vHome" class="view on">
     <div class="rc-top">
-      <div class="rc-brand"><span id="hMark"><i></i></span><div class="rc-app">Display<br>Manager</div></div>
+      <div class="rc-brand"><div class="rc-app">ECSG Display<br>Manager</div></div>
       <span class="led" id="hLed"><i></i><span id="hLedTxt">LIVE</span></span>
     </div>
-    <div class="rc-brand"><img id="hLogo" alt="" hidden><div><h1 id="hName">Lobby screen</h1><div class="who" id="hWho"></div></div></div>
+    <div class="rc-brand"><span id="hLogoWrap" hidden><span class="lg"><img id="hLogo" alt=""><span id="hDress" class="dress"></span></span></span><span id="hMark"></span><div><h1 id="hName">Lobby screen</h1><div class="who" id="hWho"></div></div></div>
     <div class="rc-display" aria-live="polite">
       <div class="lbl">On the lobby screen</div>
       <div class="big" id="hNow">…</div>
@@ -328,12 +332,13 @@
       <div class="lbl">Logo</div>
       <input type="file" id="sFile" accept="image/png,image/jpeg,image/webp" hidden>
       <div class="two"><button type="button" class="btn ghost small" id="sPick">Choose a logo</button><button type="button" class="btn ghost small" id="sNoLogo">Remove logo</button></div>
-      <div class="note">PNG, JPG or WebP, up to 8 MB. Any shape: empty margins are trimmed and it is sized to fit automatically. A PNG with a transparent background looks best.</div>
+      <div class="note">PNG, JPG or WebP, up to 8 MB. Any shape: empty margins are trimmed and it is sized to fit automatically. A plain background is removed, and the season's hat is placed on the highest point of the logo.</div>
       <div class="note" id="sLogoInfo"></div>
+      <label class="check" id="sWhiteBox" hidden><input type="checkbox" id="sWhite"> Show the logo in white, with no plate behind it</label>
     </div>
     <div class="field">
       <div class="lbl">How it will look at the top of the screen</div>
-      <div class="mock"><img id="sMockLogo" alt="" hidden><div><div class="n" id="sMockName"></div><div class="a" id="sMockSub"></div></div></div>
+      <div class="mock"><span id="sMockWrap"><span class="lg"><img id="sMockLogo" alt="" hidden><span id="sMockDress" class="dress"></span></span></span><div><div class="n" id="sMockName"></div><div class="a" id="sMockSub"></div></div></div>
     </div>
     <button type="button" class="btn" id="sSave">Save settings</button>
   </section>
@@ -509,7 +514,7 @@ const mockRes = [['Ana', 'Abreu'], ['Bruno', 'Baker'], ['Carla', 'Castillo'], ['
   .map(([f, l], i) => ({ id: String(i).padStart(32, '0'), firstName: f, lastName: l, email: (f + (l ? '.' + l : '')).toLowerCase().replace(/[^a-z.]/g, '') + '@example.com' }));
 async function api(method, path, body) {
   if (!HOSTED && path === 'sent') { if (method === 'POST') mockLog.unshift({ id: 'l' + Date.now(), kind: 'correction', title: body.title, text: body.text, by: 'preview@example.com', at: new Date().toISOString(), pushSent: 14, pushDevices: 14, mail: 'off', mailRecipients: 0 }); return { log: mockLog.slice(), mailOn: false, pushOn: true, result: method === 'POST' ? { push: { sent: 14 }, mail: { queued: false } } : null }; }
-  if (!HOSTED && path === 'settings') { mockSettings = { ...mockSettings, name: body.name.trim(), address: body.address.trim(), email: body.email.trim(), logo: body.removeLogo ? '' : (newLogo ? newLogo.url : mockSettings.logo), logoOnLight: !!body.logoOnLight }; return { settings: mockSettings }; }
+  if (!HOSTED && path === 'settings') { mockSettings = { ...mockSettings, name: body.name.trim(), address: body.address.trim(), email: body.email.trim(), logo: body.removeLogo ? '' : (newLogo ? newLogo.url : mockSettings.logo), logoOnLight: !!body.logoOnLight, logoHatX: typeof body.logoHatX === 'number' ? body.logoHatX : (mockSettings.logoHatX || 0.5) }; return { settings: mockSettings }; }
   if (!HOSTED && path.startsWith('residents')) {
     if (path === 'residents/import') { const ok = body.rows.filter((r) => /^\S+@\S+\.\S+$/.test(r.email) && (r.firstName || r.lastName));
       const summary = { mode: body.mode, rows: body.rows.length, added: ok.length, updated: 0, unchanged: 0, removed: body.mode === 'replace' ? mockRes.length : 0, skippedCount: body.rows.length - ok.length, skipped: body.rows.map((r, i) => [r, i]).filter(([r]) => !ok.includes(r)).map(([r, i]) => ({ row: i + 2, reason: 'email is not valid' })), total: (body.mode === 'replace' ? 0 : mockRes.length) + ok.length };
@@ -547,10 +552,12 @@ function renderHome() {
   $('hWho').innerHTML = state.user ? esc(state.user) + '<span class="chip' + (admin ? ' admin' : '') + '">' + (admin ? 'ECSG admin' : 'Manager') + '</span>' : '';
   $('goSet').hidden = !admin;
   const logoOk = typeof st.logo === 'string' && (/^\/api\/image\/[a-z0-9]{12,40}$/.test(st.logo) || (!HOSTED && st.logo.startsWith('blob:')));
-  $('hLogo').hidden = !logoOk; if (logoOk) { $('hLogo').src = st.logo; $('hLogo').className = st.logoOnLight ? 'onlight' : ''; $('hLogo').alt = (state.screenName || '') + ' logo'; }
+  $('hLogoWrap').hidden = !logoOk; if (logoOk) { $('hLogo').src = st.logo; $('hLogoWrap').className = st.logoOnLight ? 'onlight' : ''; $('hDress').style.setProperty('--hx', typeof st.logoHatX === 'number' ? st.logoHatX : 0.5); $('hLogo').alt = (state.screenName || '') + ' logo'; }
   // the mark and a greeting follow the US calendar, the same as on the lobby screen
   const season = window.lobbySeason ? window.lobbySeason(new Date()) : null;
-  $('hMark').innerHTML = window.lobbyMascot ? window.lobbyMascot(new Date()) : '<i></i>';
+  const dress = window.lobbyDress ? window.lobbyDress(new Date()) : null;
+  $('hDress').className = 'dress' + (dress ? ' ' + dress.kind : ''); $('hDress').innerHTML = dress ? dress.svg : '';
+  $('hMark').style.display = logoOk ? 'none' : ''; $('hMark').innerHTML = !logoOk && season ? '<svg viewBox="0 0 24 24" role="img" aria-label="' + esc(season.label) + '">' + season.icon + '</svg>' : '';
   $('hGreet').hidden = !season; if (season) { $('hGreet').textContent = season.label; $('hGreet').style.color = season.color; }
   const alarm = state.items.find((x) => x.kind === 'emergency');
   $('alarmOn').hidden = !alarm;
@@ -862,9 +869,10 @@ function drawSettings() {
   $('sMockName').textContent = ($('sName').value || 'Building name');
   $('sMockSub').textContent = [$('sAddr').value, $('sEmail').value].filter(Boolean).join(' · ');
   const src = newLogo ? newLogo.url : newLogo === false ? '' : (st.logo || ''), onLight = newLogo ? newLogo.onLight : st.logoOnLight;
-  $('sMockLogo').hidden = !src; if (src) { $('sMockLogo').src = src; $('sMockLogo').className = onLight ? 'onlight' : ''; }
+  { const dr = src && window.lobbyDress ? window.lobbyDress(new Date()) : null; $('sMockDress').className = 'dress' + (dr ? ' ' + dr.kind : ''); $('sMockDress').innerHTML = dr ? dr.svg : ''; $('sMockDress').style.setProperty('--hx', newLogo ? newLogo.hatX : typeof st.logoHatX === 'number' ? st.logoHatX : 0.5); $('sMockWrap').className = src && onLight ? 'onlight' : ''; }
+  $('sMockLogo').hidden = !src; if (src) { $('sMockLogo').src = src; }
   $('sLogoInfo').textContent = newLogo ? newLogo.info : newLogo === false ? 'The logo will be removed when you save.' : '';
-  $('sNoLogo').disabled = !src;
+  $('sNoLogo').disabled = !src; $('sWhiteBox').hidden = !(newLogo && newLogo.dark); if (newLogo) $('sWhite').checked = newLogo.white;
 }
 function openSettings() {
   const st = state.settings || {}; newLogo = null; say('');
@@ -889,15 +897,34 @@ async function pickLogo(file) {
   for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { const i = (yy * w + xx) * 4; if (empty(i)) continue; if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; lum += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]; n++; }
   if (x1 < 0) return say('That image looks empty.', 'err');
   const cw = x1 - x0 + 1, ch = y1 - y0 + 1, fit = Math.min(600 / cw, 144 / ch, 2), ow = Math.max(1, Math.round(cw * fit)), oh = Math.max(1, Math.round(ch * fit));
+  // A logo saved on a flat background (a JPG, a screenshot): the background is made transparent so only the artwork remains.
+  if (opaqueBg) { const id = x.getImageData(0, 0, w, h), q = id.data; for (let i = 0; i < q.length; i += 4) { const dist = Math.abs(q[i] - corner[0]) + Math.abs(q[i + 1] - corner[1]) + Math.abs(q[i + 2] - corner[2]); q[i + 3] = dist < 36 ? 0 : Math.min(255, Math.round((dist - 36) * 255 / 110)); } x.putImageData(id, 0, 0); }
+  // The highest point of the artwork: the middle of whatever is in the top tenth. The season's hat will sit there.
+  let hx0 = w, hx1 = -1; const band = y0 + Math.max(2, Math.round(ch * 0.1));
+  for (let yy = y0; yy < band; yy++) for (let xx = x0; xx <= x1; xx++) { if (!empty((yy * w + xx) * 4)) { if (xx < hx0) hx0 = xx; if (xx > hx1) hx1 = xx; } }
+  const hatX = hx1 < 0 ? 0.5 : Math.round(((hx0 + hx1) / 2 - x0) / cw * 100) / 100;
   const o = document.createElement('canvas'); o.width = ow; o.height = oh; const ox = o.getContext('2d'); ox.imageSmoothingQuality = 'high'; ox.drawImage(c, x0, y0, cw, ch, 0, 0, ow, oh);
-  const bgLum = 0.2126 * corner[0] + 0.7152 * corner[1] + 0.0722 * corner[2];
-  // Light plate when the artwork itself is dark (it would vanish on navy), or when the file has a solid light background.
-  const onLight = opaqueBg ? bgLum > 150 : lum / n < 105;
-  const blob = await new Promise((res) => o.toBlob(res, 'image/png'));
-  if (!blob || blob.size > 1400 * 1024) return say('That logo is too detailed. Try a simpler file.', 'err');
+  // Is the artwork dark (it would vanish on the navy screen), and is it a single color?
+  const od = ox.getImageData(0, 0, ow, oh).data; let n2 = 0, sum = [0, 0, 0], sq = [0, 0, 0], l2 = 0;
+  for (let i = 0; i < od.length; i += 4) { if (od[i + 3] < 128) continue; n2++; for (let k = 0; k < 3; k++) { sum[k] += od[i + k]; sq[k] += od[i + k] * od[i + k]; } l2 += 0.2126 * od[i] + 0.7152 * od[i + 1] + 0.0722 * od[i + 2]; }
+  if (!n2) return say('That image looks empty.', 'err');
+  const spread = Math.max(...[0, 1, 2].map((k) => Math.sqrt(Math.max(0, sq[k] / n2 - (sum[k] / n2) ** 2)))), dark = l2 / n2 < 105, mono = spread < 34;
   if (newLogo && newLogo.url) URL.revokeObjectURL(newLogo.url);
-  newLogo = { blob, url: URL.createObjectURL(blob), onLight, info: 'Fitted automatically: ' + bmp.width + ' x ' + bmp.height + ' px trimmed and sized to ' + ow + ' x ' + oh + '.' + (onLight ? ' It is dark or has a light background, so it gets a white plate to stay visible on the dark screen.' : '') };
+  // A dark, single-color logo is shown in white with no plate behind it (the usual "reversed" version of a logo).
+  // A dark logo with several colors keeps its colors and gets a white plate. The administrator can switch between the two.
+  newLogo = { canvas: o, dark, mono, white: dark && mono, hatX, size: bmp.width + ' x ' + bmp.height + ' px trimmed and sized to ' + ow + ' x ' + oh + '.', removedBg: opaqueBg };
+  if (!(await renderLogo())) { newLogo = null; return say('That logo is too detailed. Try a simpler file.', 'err'); }
   say(''); drawSettings(); $('sFile').value = '';
+}
+async function renderLogo() {
+  const L = newLogo, c = document.createElement('canvas'); c.width = L.canvas.width; c.height = L.canvas.height; const x = c.getContext('2d'); x.drawImage(L.canvas, 0, 0);
+  if (L.white) { const id = x.getImageData(0, 0, c.width, c.height), q = id.data; for (let i = 0; i < q.length; i += 4) { q[i] = 244; q[i + 1] = 247; q[i + 2] = 251; } x.putImageData(id, 0, 0); }
+  const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+  if (!blob || blob.size > 1400 * 1024) return false;
+  if (L.url) URL.revokeObjectURL(L.url);
+  L.blob = blob; L.url = URL.createObjectURL(blob); L.onLight = L.dark && !L.white;
+  L.info = 'Fitted automatically: ' + L.size + (L.removedBg ? ' The plain background was removed.' : '') + (L.white ? ' The logo is dark, so it is shown in white on the dark screen.' : L.onLight ? ' The logo is dark, so it gets a white plate to stay visible.' : '');
+  return true;
 }
 async function saveSettingsForm() {
   if (!$('sName').value.trim()) return say('The building name is required.', 'err');
@@ -907,7 +934,7 @@ async function saveSettingsForm() {
     if (newLogo === false) body.removeLogo = true;
     else if (newLogo) {
       if (HOSTED) { const r = await fetch('/api/manage/images?screen=' + SCREEN, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: newLogo.blob }); const d = await r.json().catch(() => ({})); if (!r.ok || !d.id) throw new Error(d.error || 'The logo could not be uploaded.'); body.logoId = d.id; }
-      body.logoOnLight = newLogo.onLight;
+      body.logoOnLight = newLogo.onLight; body.logoHatX = newLogo.hatX;
     }
     const out = await api('POST', 'settings', body);
     state.settings = out.settings; state.screenName = out.settings.name; newLogo = null;
@@ -922,6 +949,7 @@ function openRoles() {
 }
 $('fSp').addEventListener('change', () => { const on = $('fSp').checked; $('spNote').hidden = !on; $('featBox').style.opacity = $('mailBox').style.opacity = on ? 0.4 : 1; $('fFeat').disabled = $('fMail').disabled = on; });
 for (const y of document.querySelectorAll('#powered .yr')) y.textContent = new Date().getFullYear();
+$('sWhite').addEventListener('change', async () => { if (!newLogo) return; newLogo.white = $('sWhite').checked; await renderLogo(); drawSettings(); });
 $('sFile').addEventListener('change', () => pickLogo($('sFile').files[0]));
 
 /* ---------- residents ---------- */

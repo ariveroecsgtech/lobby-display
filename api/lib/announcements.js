@@ -159,7 +159,9 @@ const SETTINGS_ROW = '_settings';
 const EMAIL_RE = /^[^\s@<>(),;:"']+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
 function settingsFrom(rows, screen) {
   const b = assertScreen(screen), row = (rows || []).find((r) => r.id === SETTINGS_ROW) || {};
-  return { name: row.name || b.name, address: row.address || '', email: row.email || '', logo: row.imageId ? '/api/image/' + row.imageId : '', logoOnLight: row.logoOnLight === true };
+  return { name: row.name || b.name, address: row.address || '', email: row.email || '', logo: row.imageId ? '/api/image/' + row.imageId : '', logoOnLight: row.logoOnLight === true,
+    // where along the top of the logo its highest point is (0 = left, 1 = right): the season's hat sits there
+    logoHatX: row.imageId && typeof row.logoHatX === 'number' ? row.logoHatX : 0.5 };
 }
 async function getSettings(store, screen) { return settingsFrom(await store.list(screen), screen); }
 async function saveSettings(store, screen, input, user, now = Date.now()) {
@@ -168,13 +170,14 @@ async function saveSettings(store, screen, input, user, now = Date.now()) {
   if (!name) throw fail('The building name is required');
   if (email && !EMAIL_RE.test(email)) throw fail('That email address is not valid');
   const rows = await store.list(screen), old = rows.find((r) => r.id === SETTINGS_ROW) || {};
-  let imageId = old.imageId || '', logoOnLight = old.logoOnLight === true;
-  if (input.removeLogo === true) { imageId = ''; logoOnLight = false; }
+  let imageId = old.imageId || '', logoOnLight = old.logoOnLight === true, logoHatX = typeof old.logoHatX === 'number' ? old.logoHatX : 0.5;
+  if (input.removeLogo === true) { imageId = ''; logoOnLight = false; logoHatX = 0.5; }
   else if (input.logoId) {
     if (!IMAGE_ID.test(String(input.logoId)) || !(await store.imageExists(String(input.logoId)))) throw fail('The logo was not found. Upload it again.');
     imageId = String(input.logoId); logoOnLight = input.logoOnLight === true;
+    const hx = Number(input.logoHatX); logoHatX = Number.isFinite(hx) ? Math.round(Math.min(1, Math.max(0, hx)) * 100) / 100 : 0.5;
   }
-  await store.put({ screen, id: SETTINGS_ROW, kind: '_meta', name, address, email, imageId, logoOnLight, updatedBy: clean(user, 120), updatedAt: new Date(now).toISOString() });
+  await store.put({ screen, id: SETTINGS_ROW, kind: '_meta', name, address, email, imageId, logoOnLight, logoHatX, updatedBy: clean(user, 120), updatedAt: new Date(now).toISOString() });
   if (old.imageId && old.imageId !== imageId) await store.imageRemove(old.imageId).catch(() => {});
   return getSettings(store, screen);
 }

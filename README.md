@@ -135,3 +135,5 @@ Tapping a notification opens the app and shows the message at the top (`#msg=` h
 - **Correction**: "Write a correction" on any line (or a general one). Sent at once by notification and, when email is on, by email; recorded in the same list. A correction to an event skips residents who stopped event emails.
 - **Sponsored**: checkbox on a new card or poster, ECSG admin only. Labelled "Sponsored" on the screen, shown after the building's own items, never featured, emailed or pushed; 3 at a time.
 - **Signature**: "Powered by ECSG Display · © <year> Enterprise Cloud Solutions Group LLC. All rights reserved. Norwalk, CT. · ecsgtech.com" on the screen, the manager app and the install page.
+
+**Update:** the ECSG monogram is no longer shown in the apps. The building's own logo wears the season instead: `window.lobbyDress(date)` gives a hat (or a small badge on days without a hat) that sits on the logo's top corner. Without a logo, a small seasonal mark shows beside the name.
