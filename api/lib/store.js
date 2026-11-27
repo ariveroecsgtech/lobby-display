@@ -47,6 +47,17 @@ async function outbox() {
   return outClient;
 }
 
+// Push subscriptions: one row per device that allowed notifications. No name or email is kept with it.
+let pushClient = null, pushReady = null;
+async function pushes() {
+  const conn = process.env.STORAGE_CONNECTION;
+  if (!conn) { const e = new Error('STORAGE_CONNECTION is not set'); e.code = 'not_configured'; throw e; }
+  if (!pushClient) pushClient = TableClient.fromConnectionString(conn, 'push');
+  if (!pushReady) pushReady = pushClient.createTable().catch((e) => { if (e.statusCode !== 409) { pushReady = null; throw e; } });
+  await pushReady;
+  return pushClient;
+}
+
 // Uploaded poster images live in a private blob container and are only served through /api/image/{id}.
 const CONTAINER = 'posters';
 let container = null, containerReady = null;
@@ -60,6 +71,13 @@ async function blobs() {
 }
 
 module.exports = {
+  async pushList(screen) {
+    const t = await pushes(), out = [];
+    for await (const e of t.listEntities({ queryOptions: { filter: "PartitionKey eq '" + String(screen).replace(/'/g, "''") + "'" } })) out.push(fromEntity(e));
+    return out;
+  },
+  async pushPut(row) { const { screen, id, ...rest } = row; await (await pushes()).upsertEntity({ partitionKey: screen, rowKey: id, ...rest }, 'Replace'); },
+  async pushRemove(screen, id) { try { await (await pushes()).deleteEntity(screen, id); } catch (e) { if (e.statusCode !== 404) throw e; } },
   async outboxList(screen) {
     const t = await outbox(), out = [];
     for await (const e of t.listEntities({ queryOptions: { filter: "PartitionKey eq '" + String(screen).replace(/'/g, "''") + "'" } })) out.push({ ...fromEntity(e), etag: e.etag });

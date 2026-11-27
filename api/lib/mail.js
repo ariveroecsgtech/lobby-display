@@ -156,4 +156,4 @@ async function unsubscribe(store, screen, residentId, token) {
   return true;
 }
 
-module.exports = { digest, composeDigest, configured, compose, render, queue, drain, unsubscribe, sign, verify, PER_HOUR, PER_TURN };
+module.exports = { brand, digest, composeDigest, configured, compose, render, queue, drain, unsubscribe, sign, verify, PER_HOUR, PER_TURN };

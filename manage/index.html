@@ -41,6 +41,10 @@
   .rc-display .big b { color: var(--accent); font-weight: 700; }
   .rc-display .small { font-size: 14px; color: var(--soft); }
   .rc-display .greet { font-size: 13px; font-weight: 600; }
+  #pushRow { border-radius: 16px; padding: 12px 14px; background: #0B1527; border: 1px solid var(--accent); display: flex; align-items: center; gap: 12px; }
+  #pushRow.done { border-color: #24334F; } #pushRow .main { flex: 1 1 0; min-width: 0; } #pushRow .t { font-size: 15px; font-weight: 700; } #pushRow .s { font-size: 13px; color: var(--muted); }
+  #pushRow button { flex-shrink: 0; min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: var(--accent); color: #1F1503; font-size: 14px; font-weight: 700; }
+  #pushRow.done button { display: none; }
   .key { border: 0; color: var(--text); font-family: inherit; font-weight: 700; cursor: pointer; text-decoration: none; transition: transform 0.06s, box-shadow 0.06s;
     background: linear-gradient(180deg, #2C3B5C 0%, #1D2944 100%); box-shadow: 0 5px 0 #080D18, inset 0 1px 0 rgba(255, 255, 255, 0.14); }
   .key:active { transform: translateY(4px); box-shadow: 0 1px 0 #080D18, inset 0 1px 0 rgba(255, 255, 255, 0.10); }
@@ -175,6 +179,7 @@
       <div id="alarmUntil" style="font-size:14px;font-weight:600"></div>
       <button type="button" id="alarmClear">Clear alert now</button>
     </div>
+    <div id="pushRow" hidden><div class="main"><div class="t" id="pushT"></div><div class="s" id="pushS"></div></div><button type="button" id="pushBtn">Turn on</button></div>
     <button type="button" class="key key-main" id="goNew">New announcement</button>
     <div class="keys3">
       <button type="button" class="rkey" data-go="vNotice"><span class="cap amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4l3 .5 2 5h2.5l-1.5-4.8L19 18V6L7 9.5z"></path></svg></span>Notice</button>
@@ -416,6 +421,7 @@
 <script src="../templates.js"></script>
 <script src="files.js"></script>
 <script src="../season.js"></script>
+<script src="../push-client.js"></script>
 <script>
 const SCREEN = 'confluence';
 const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
@@ -949,6 +955,18 @@ $('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').va
 document.addEventListener('input', () => { if ($('vSet').classList.contains('on')) drawSettings(); if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
 window.addEventListener('resize', sizeFrames);
 if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
+/* Notifications on this device. They cannot be switched on without one tap on "Allow"; after that they stay on. */
+function drawPush(st) {
+  const txt = { ask: ['Notifications are off on this device', 'Turn them on to get every alert and announcement here.'], install: ['Notifications need the installed app', 'Tap Install below, add it to your home screen, then open it from its icon.'],
+    blocked: ['Notifications are blocked', 'Allow them for this app in your device settings.'], error: ['Could not turn notifications on', 'Check your connection and try again.'],
+    off: ['Notifications are not set up yet', 'ECSG still has to finish the setup.'], on: ['Notifications are on', 'This device gets every alert and announcement.'] }[st];
+  $('pushRow').hidden = !txt; $('pushRow').className = st === 'ask' || st === 'error' ? '' : 'done';
+  if (txt) { $('pushT').textContent = txt[0]; $('pushS').textContent = txt[1]; }
+}
+if (window.lobbyPush && (HOSTED || location.search.includes('pushdemo'))) {
+  if (HOSTED) window.lobbyPush.refresh(SCREEN, 'manager').then(drawPush); else drawPush('ask');
+  $('pushBtn').addEventListener('click', async () => { $('pushBtn').disabled = true; drawPush(await window.lobbyPush.enable(SCREEN, 'manager')); $('pushBtn').disabled = false; });
+}
 refresh(); setInterval(() => { if ($('vHome').classList.contains('on')) refresh(); }, 60000);
 if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').value = 'Coffee Social'; $('fText').value = 'Come to the party room for a cup of coffee and meet your neighbors.'; const t = new Date(Date.now() + 86400000); $('fDate').value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); $('fFrom').value = '09:00'; $('fTo').value = '11:00'; $('fPlace').value = location.search.includes('add') ? ADD_PLACE : 'Party Room'; kind = 'poster'; if (location.search.includes('up')) source = 'upload'; drawCompose();
   const fake = location.search.match(/fake=(\d+)x(\d+)/);

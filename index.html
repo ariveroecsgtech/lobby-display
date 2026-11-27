@@ -51,7 +51,12 @@
   #bLogo.onlight { background: #FFFFFF; border-radius: 12px; padding: 6px 14px; }
   #bSub { font-size: 21px; font-weight: 500; letter-spacing: 0.5px; text-transform: none; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 760px; }
   #bSub:empty { display: none; }
-  #installHint { display: none; }
+  #installHint, #pushBar { display: none; }
+  .mobile #pushBar.show { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; padding: 24px; border-radius: 22px; background: var(--card); border: 2px solid var(--accent); }
+  #pushBar .pt { font-size: 30px; font-weight: 700; } #pushBar .ps { font-size: 24px; color: var(--soft); line-height: 1.35; }
+  #pushBar button { min-height: 76px; border: 0; border-radius: 38px; background: var(--accent); color: #1F1503; font: inherit; font-size: 30px; font-weight: 700; cursor: pointer; }
+  #pushBar button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
+  #pushBar.done { border-color: var(--line); } #pushBar.done button { display: none; }
   .mobile #installHint.show { display: flex; align-items: center; justify-content: center; min-height: 64px; margin-top: 4px; border: 2px solid var(--line); border-radius: 18px; color: var(--soft); font-size: 28px; font-weight: 600; text-decoration: none; }
   .mobile #bLogo { height: 60px; max-width: 260px; }
   .mobile #bSub { white-space: normal; max-width: none; }
@@ -365,11 +370,16 @@
       <div id="hoursRows"></div>
     </div>
   </div>
+  <div id="pushBar" role="region" aria-label="Building alerts">
+    <div class="pt" id="pushT"></div><div class="ps" id="pushS"></div>
+    <button type="button" id="pushBtn">Turn on alerts</button>
+  </div>
   <a id="installHint" href="/install.html">Install this as an app</a>
 </div>
 
 <script src="templates.js"></script>
 <script src="season.js"></script>
+<script src="push-client.js"></script>
 <script>
 /* ============================================================
    CONFIG — one block per screen. Everything below reads from it.
@@ -1029,6 +1039,23 @@ function start() {
   if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
   const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   $('installHint').classList.toggle('show', !standalone && !PREVIEW);
+  // Alerts on the phone. A phone only allows them after the person taps "Allow" once, so the app asks clearly, right at the top.
+  const drawPush = (st) => {
+    const bar = $('pushBar'), txt = {
+      ask: ['Get alerts from your building', 'Emergencies, alarm tests, water or elevator notices and new events, straight to this device. Tap the button, then tap Allow.'],
+      install: ['Get alerts from your building', 'First install this as an app (link below). Then open the app from its icon and tap "Turn on alerts".'],
+      blocked: ['Alerts are blocked on this device', 'To get them, open your phone settings, find this app under Notifications, and allow them.'],
+      error: ['Alerts could not be turned on', 'Check your connection and try again.'],
+      on: ['Alerts are on', 'This device will get emergencies, notices and new events from your building.'] }[st];
+    bar.classList.toggle('show', !!txt && !PREVIEW && HOSTED); bar.classList.toggle('done', st !== 'ask' && st !== 'error');
+    if (txt) { $('pushT').textContent = txt[0]; $('pushS').textContent = txt[1]; }
+    if (st === 'on') setTimeout(() => bar.classList.remove('show'), 6000);
+  };
+  // The bar itself only exists in the phone layout (see CSS), so the lobby TV never shows it.
+  if (window.lobbyPush && HOSTED && !PREVIEW) {
+    window.lobbyPush.refresh(CONFIG.screenId, 'resident').then((st) => drawPush(st === 'on' ? '' : st));
+    $('pushBtn').addEventListener('click', async () => { $('pushBtn').disabled = true; drawPush(await window.lobbyPush.enable(CONFIG.screenId, 'resident')); $('pushBtn').disabled = false; });
+  }
   fit(); window.addEventListener('resize', fit);
   tickClock(); setInterval(tickClock, 1000);
   loadDrive(); setInterval(loadDrive, 5 * 60000);

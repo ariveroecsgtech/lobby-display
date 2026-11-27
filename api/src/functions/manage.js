@@ -3,6 +3,7 @@ const store = require('../../lib/store');
 const A = require('../../lib/announcements');
 const { _clearCache } = require('./community');
 const Mail = require('../../lib/mail');
+const Push = require('../../lib/push');
 
 // Manager endpoints. Azure Static Web Apps only lets signed-in people with the "manager" or "admin" role reach
 // /api/manage/* (see staticwebapp.config.json); the role is checked again here so a config mistake cannot open them.
@@ -28,7 +29,7 @@ app.http('manageList', {
     if (!p) return { status: 403, jsonBody: { error: 'Not allowed' } };
     const screen = screenOf(request);
     try {
-      let mail = null;
+      let mail = null, push = null;
       if (request.method === 'POST') {
         let input; try { input = await request.json(); } catch (e) { return { status: 400, jsonBody: { error: 'Invalid request' } }; }
         const item = await A.create(store, screen, input, p.user);
@@ -38,9 +39,11 @@ app.http('manageList', {
         if (A.ALERT_KINDS.includes(item.kind)) {
           try { mail = await Mail.queue(store, screen, item); } catch (e) { context.error('email queue failed', e); mail = { queued: false, recipients: 0, reason: 'error' }; }
         } else if (item.mailPending && Mail.configured()) mail = { queued: false, daily: true, recipients: 0 };
+        // Every announcement and alert also goes once, right away, to the phones and computers that allowed notifications.
+        try { push = await Push.send(store, screen, item); } catch (e) { context.error('push failed', e); push = { sent: 0, devices: 0, reason: 'error' }; }
         context.log('announcement created', screen, item.kind, item.id, 'by', p.user);
       }
-      return { status: 200, jsonBody: { screen, screenName: (await A.getSettings(store, screen)).name, settings: await A.getSettings(store, screen), role: p.admin ? 'admin' : 'manager', user: p.user, limits: { total: A.totalFor(screen), emergency: A.LIMITS.emergency, notice: A.LIMITS.notice, drill: A.LIMITS.drill }, noticeTypes: A.NOTICES, emergencyTypes: A.EMERGENCIES, safety: A.assertScreen(screen).safety || {}, mailOn: Mail.configured(), mailHour: (A.assertScreen(screen).mail || {}).digestHour, mail, max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
+      return { status: 200, jsonBody: { screen, screenName: (await A.getSettings(store, screen)).name, settings: await A.getSettings(store, screen), role: p.admin ? 'admin' : 'manager', user: p.user, limits: { total: A.totalFor(screen), emergency: A.LIMITS.emergency, notice: A.LIMITS.notice, drill: A.LIMITS.drill }, noticeTypes: A.NOTICES, emergencyTypes: A.EMERGENCIES, safety: A.assertScreen(screen).safety || {}, mailOn: Mail.configured(), mailHour: (A.assertScreen(screen).mail || {}).digestHour, mail, push, pushOn: Push.configured(), max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
     } catch (err) { return problem(err, context); }
   }
 });

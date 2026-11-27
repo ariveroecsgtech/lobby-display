@@ -111,3 +111,11 @@ The screen is a support for the building's emergency plan, not a life-safety sys
 - **Install as an app.** `manifest.webmanifest` (residents: the screen only, no options), `manage.webmanifest` (manager app), `sw.js` (no caching), `/install.html` with steps for iPhone, Android and computer.
 - **Seasons.** `season.js` → `window.lobbySeason(date)`: the mark beside the building name follows the US calendar (New Year, MLK Day, Valentine's, Presidents' Day, St. Patrick's, Memorial Day, Juneteenth, July 4, Labor Day, Halloween, Veterans Day, Thanksgiving, Holidays).
 - **Manager app look.** Drawn as a remote control for the screen: status display, one main key, three round alert keys, and a row of small keys.
+
+## Push notifications
+
+- `push-client.js` (`window.lobbyPush`), `sw.js` (shows the notification), `api/lib/push.js`, `api/src/functions/push.js` (`GET /api/push/key`, `POST /api/push/subscribe`, `POST /api/push/unsubscribe`), table `push`.
+- Every announcement and alert is pushed once, when it is published, to every device of the building that allowed notifications (resident app and manager app). Wording comes from the email composer.
+- A device row holds only the push address and keys: no name, no email. Only Google, Apple, Mozilla and Microsoft push hosts are accepted.
+- Needs app settings `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (generate with `npx web-push generate-vapid-keys`). Without them push is off and everything else works.
+- No browser allows notifications without one tap on "Allow". iPhone: only from the installed app (iOS 16.4+).
