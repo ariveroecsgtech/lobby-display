@@ -311,6 +311,7 @@ function renderHome() {
   $('hWho').textContent = state.user ? 'Signed in as ' + state.user : '';
   const alarm = state.items.find((x) => x.kind === 'emergency');
   $('alarmOn').hidden = !alarm;
+  if (alarm && $('alarmClear').dataset.id !== alarm.id) { clearTimeout($('alarmClear')._timer); $('alarmClear').disabled = false; $('alarmClear').dataset.sure = ''; $('alarmClear').textContent = 'Clear alert now'; }
   if (alarm) { $('alarmTitle').textContent = alarm.title; $('alarmUntil').textContent = 'Ends by itself ' + fmtEnd(alarm.endsAt); $('alarmClear').dataset.id = alarm.id; }
   // notices and scheduled tests
   const alerts = state.items.filter((x) => x.kind === 'notice' || x.kind === 'drill');
@@ -544,12 +545,21 @@ function emergBody() {
   if (!$('eTitle').value.trim()) return say('Say what is happening in a few words.', 'err');
   return { kind: 'emergency', type: eType, title: $('eTitle').value.trim(), text: $('eText').value.trim(), endsAt: new Date(Date.now() + Number($('eFor').value) * 60000).toISOString() };
 }
+/* Two taps to end something: the first asks to confirm. The button is always put back the way it was afterwards,
+   because the "Clear alert now" button stays on the page and is used again for the next alert. */
 async function endItem(id, btn) {
-  if (btn.dataset.sure !== '1') { btn.dataset.sure = '1'; const old = btn.textContent; btn.textContent = 'Tap to confirm'; setTimeout(() => { btn.dataset.sure = ''; btn.textContent = old; }, 5000); return; }
-  btn.disabled = true;
+  if (!id) return say('Reload the page and try again.', 'err');
+  if (btn.dataset.sure !== '1') {
+    btn.dataset.sure = '1'; btn.dataset.label = btn.textContent; btn.textContent = 'Tap again to confirm';
+    clearTimeout(btn._timer); btn._timer = setTimeout(() => resetEndButton(btn), 6000);
+    return;
+  }
+  clearTimeout(btn._timer); btn.disabled = true; btn.textContent = 'Removing…';
   try { state = { ...state, ...(await api('DELETE', 'announcements/' + encodeURIComponent(id))) }; renderHome(); say('Removed from the lobby screen.', 'ok'); }
-  catch (e) { say(e.message, 'err'); btn.disabled = false; }
+  catch (e) { say(e.message, 'err'); }
+  resetEndButton(btn);
 }
+function resetEndButton(btn) { btn.disabled = false; btn.dataset.sure = ''; if (btn.dataset.label) btn.textContent = btn.dataset.label; }
 
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button, a'); if (!t) return;
