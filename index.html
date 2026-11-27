@@ -129,6 +129,7 @@
   #cEyebrow.tagged { display: inline-block; letter-spacing: 2.5px; color: var(--c-bg); background: var(--c-text); border-radius: 8px; padding: 5px 12px; }
   #cTitle { font-weight: 700; line-height: 0.98; letter-spacing: -2px; }
   #cIcon { width: 150px; height: 150px; flex-shrink: 0; }
+  #cCard.poster #cIcon { width: 200px; height: 200px; margin: -6px -10px 0 0; }
   #cBig { font-size: 76px; font-weight: 700; line-height: 1; letter-spacing: -3px; color: var(--c-accent); }
   #cText { font-size: 30px; line-height: 1.3; color: var(--c-soft); }
   #cTags { display: flex; flex-wrap: wrap; gap: 12px; white-space: nowrap; }
@@ -316,6 +317,7 @@
   </div>
 </div>
 
+<script src="templates.js"></script>
 <script>
 /* ============================================================
    CONFIG — one block per screen. Everything below reads from it.
@@ -358,12 +360,12 @@ const CONFIG = {
     sample: true,
     rotateSec: 10,
     items: [
-      { kind: 'poster', theme: 'coffee', icon: 'cup', eyebrow: 'You are invited', title: 'Coffee Social',
+      { kind: 'poster', design: 'coffee', eyebrow: 'You are invited', title: 'Coffee Social',
         text: 'Come to the party room for a cup of coffee and meet your neighbors.',
         tags: ['Saturday, Nov 28', '9 to 11 AM', 'Party Room'], when: 'Sat 9:00 AM' },
       { kind: 'sponsor', theme: 'cream', icon: 'bread', eyebrow: 'Sponsored', title: 'Maple & Rye Bakery', big: '10% off',
         text: 'for Confluence residents, weekdays before 9 AM.', tags: ['3 min walk', 'Say "Confluence"'] },
-      { kind: 'poster', theme: 'teal', icon: 'burst', eyebrow: 'Ring in the new year', title: "New Year's Eve Toast", big: '2027',
+      { kind: 'poster', design: 'celebration', eyebrow: 'Ring in the new year', title: "New Year's Eve Toast", big: '2027',
         text: 'Sparkling cider, music and a countdown.', tags: ['Thursday, Dec 31', '8 to 10 PM', 'Party Room'], when: 'Thu Dec 31' }
     ]
   }
@@ -761,13 +763,21 @@ function showCommunity() {
   cIdx = (cIdx + 1) % items.length;
   const it = items[cIdx], sponsor = it.kind === 'sponsor';
   cShownId = it.id || it.title;
-  $('cCard').className = 'theme-' + (it.theme || 'navy') + (it.featured ? ' featured' : '');
+  // A poster uses its template's palette and illustration; anything else uses a built-in theme and a small icon.
+  const tpl = it.design && window.LOBBY_TEMPLATES ? window.LOBBY_TEMPLATES[it.design] : null;
+  const card = $('cCard'), icon = $('cIcon');
+  card.className = (tpl ? 'poster' : 'theme-' + (it.theme || 'navy')) + (it.featured ? ' featured' : '');
+  for (const [v, k] of [['--c-bg', 'bg'], ['--c-text', 'text'], ['--c-soft', 'soft'], ['--c-accent', 'accent'], ['--c-on', 'on'], ['--c-line', 'line'], ['--c-fill', 'fill']]) {
+    if (tpl) card.style.setProperty(v, tpl[k]); else card.style.removeProperty(v);
+  }
+  icon.setAttribute('viewBox', tpl ? '0 0 120 120' : '0 0 24 24');
+  icon.style.stroke = tpl ? 'none' : '';
   $('cEyebrow').textContent = sponsor ? 'Sponsored' : (it.eyebrow || 'From the management office');   // a paid slot is always labeled
   $('cEyebrow').className = sponsor ? 'tagged' : '';
   const len = it.title.length;
   $('cTitle').style.fontSize = (len <= 14 ? 84 : len <= 20 ? 60 : len <= 30 ? 50 : 42) + 'px';
   $('cTitle').textContent = it.title;
-  $('cIcon').innerHTML = C_ICONS[it.icon] || C_ICONS.note;
+  icon.innerHTML = tpl ? window.lobbyArt(tpl) : (C_ICONS[it.icon] || C_ICONS.note);
   $('cBig').textContent = it.big || '';
   $('cBig').style.display = it.big ? '' : 'none';
   $('cText').textContent = it.text || '';

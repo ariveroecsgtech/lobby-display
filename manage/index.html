@@ -49,9 +49,14 @@
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   textarea { resize: none; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-  .tile { min-height: 72px; border-radius: 12px; border: 2px solid var(--line); font-size: 13px; font-weight: 600; padding: 6px; }
-  .tile[aria-pressed="true"] { border-color: var(--accent); font-weight: 700; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .chips button { flex-shrink: 0; min-height: 40px; padding: 0 14px; border-radius: 20px; border: 2px solid var(--line); background: none; color: var(--soft); font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .chips button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 700; }
+  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile { position: relative; height: 112px; border-radius: 14px; border: 3px solid transparent; padding: 10px 12px; font-size: 15px; font-weight: 700; line-height: 1.15; text-align: left; display: flex; align-items: flex-end; overflow: hidden; }
+  .tile svg { position: absolute; right: -6px; top: -4px; width: 92px; height: 92px; }
+  .tile span { position: relative; max-width: 62%; }
+  .tile[aria-pressed="true"] { border-color: #FFFFFF; box-shadow: 0 0 0 3px var(--accent); }
   .check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; }
   .check input { width: 22px; height: 22px; accent-color: var(--accent); }
   .note { font-size: 13px; color: var(--muted); }
@@ -126,7 +131,8 @@
       </div>
     </div>
     <div id="designBox" class="field" hidden>
-      <div class="lbl">Design</div>
+      <div class="row"><div class="lbl">Design</div><span class="count" id="tplName"></span></div>
+      <div class="chips" id="cats" role="group" aria-label="Design category"></div>
       <div class="tiles" id="tiles"></div>
     </div>
     <label class="check" id="featBox"><input type="checkbox" id="fFeat"> Featured: shown first, with a gold frame</label>
@@ -176,12 +182,13 @@
   </section>
 
 </div>
+<script src="../templates.js"></script>
 <script>
 const SCREEN = 'confluence';
 const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const THEMES = { coffee: ['#2B1D17', '#F7EBDD', '#F5B544'], teal: ['#0F2A33', '#EAF7F4', '#F5B544'], plum: ['#1E1B3A', '#ECEAFB', '#B9B1F5'], green: ['#12301F', '#E9F7EE', '#7ADC9E'], navy: ['#1B2740', '#F4F7FB', '#F5B544'] };
+const THEMES_UNUSED = { coffee: ['#2B1D17', '#F7EBDD', '#F5B544'], teal: ['#0F2A33', '#EAF7F4', '#F5B544'], plum: ['#1E1B3A', '#ECEAFB', '#B9B1F5'], green: ['#12301F', '#E9F7EE', '#7ADC9E'], navy: ['#1B2740', '#F4F7FB', '#F5B544'] };
 const PRESETS = [
   ['Fire alarm test', 'Testing in progress. No action is needed.'],
   ['Water shut-off', 'Water is off for repairs. We will update this screen when it is back.'],
@@ -225,7 +232,7 @@ async function api(method, path, body) {
     if (method === 'POST') mock.items.push({ ...body, id: 'n' + Date.now(), live: true });
     if (method === 'DELETE') mock.items = mock.items.filter((x) => x.id !== path.split('/').pop().split('?')[0]);
     return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { card: 5, poster: 3, emergency: 1 }, max: state.max, places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'],
-      designs: { coffee: { theme: 'coffee', icon: 'cup', label: 'Coffee social' }, celebration: { theme: 'teal', icon: 'burst', label: 'Celebration' }, movie: { theme: 'plum', icon: 'film', label: 'Movie night' }, wellness: { theme: 'green', icon: 'leaf', label: 'Wellness' }, notice: { theme: 'navy', icon: 'note', label: 'Notice' } }, items: mock.items };
+      designs: Object.fromEntries(Object.entries(window.LOBBY_TEMPLATES).map(([k, t]) => [k, { label: t.label, cat: t.cat }])), items: mock.items };
   }
   const r = await fetch('/api/manage/' + path + (path.includes('?') ? '&' : '?') + 'screen=' + SCREEN, {
     method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
@@ -260,11 +267,18 @@ async function refresh() {
 }
 
 /* compose */
+/* Design gallery: every template drawn with its own palette and illustration, filtered by category. */
+const TPL = window.LOBBY_TEMPLATES || {};
+let cat = 'All';
 function renderTiles() {
-  const keys = Object.keys(state.designs);
-  if (keys.length && !state.designs[design]) design = keys[0];
-  $('tiles').innerHTML = keys.map((k) => { const t = THEMES[state.designs[k].theme] || THEMES.navy;
-    return '<button type="button" class="tile" data-design="' + esc(k) + '" aria-pressed="' + (k === design) + '" style="background:' + t[0] + ';color:' + t[1] + '">' + esc(state.designs[k].label) + '</button>'; }).join('');
+  const keys = Object.keys(state.designs).filter((k) => TPL[k]);
+  if (keys.length && !keys.includes(design)) design = keys[0];
+  const cats = ['All', ...new Set(keys.map((k) => state.designs[k].cat))];
+  $('cats').innerHTML = cats.map((c) => '<button type="button" data-cat="' + esc(c) + '" aria-pressed="' + (c === cat) + '">' + esc(c) + '</button>').join('');
+  $('tiles').innerHTML = keys.filter((k) => cat === 'All' || state.designs[k].cat === cat).map((k) => { const t = TPL[k];
+    return '<button type="button" class="tile" data-design="' + esc(k) + '" aria-pressed="' + (k === design) + '" style="background:' + t.bg + ';color:' + t.text + '">' +
+      '<svg viewBox="0 0 120 120" aria-hidden="true">' + window.lobbyArt(t) + '</svg><span>' + esc(state.designs[k].label) + '</span></button>'; }).join('');
+  $('tplName').textContent = state.designs[design] ? state.designs[design].label : '';
 }
 function drawCompose() {
   $('kCard').setAttribute('aria-pressed', kind === 'card'); $('kPoster').setAttribute('aria-pressed', kind === 'poster');
@@ -274,6 +288,7 @@ function drawCompose() {
   $('newPlaceBox').hidden = $('fPlace').value !== ADD_PLACE;
   $('cTitle').textContent = $('fTitle').value.length + ' / ' + M.title; $('cText').textContent = $('fText').value.length + ' / ' + M.text;
   for (const b of document.querySelectorAll('.tile')) b.setAttribute('aria-pressed', b.dataset.design === design);
+  $('tplName').textContent = state.designs[design] ? state.designs[design].label : '';
 }
 function openCompose() {
   for (const id of ['fTitle', 'fText', 'fDate', 'fFrom', 'fTo', 'fWhereNew']) $(id).value = '';
@@ -309,10 +324,9 @@ function sizeFrames() {
 function openPreview(body, from) {
   draft = { body, from };
   const emergency = body.kind === 'emergency';
-  const d = state.designs[body.design] || { theme: 'navy', icon: 'note' };
   const payload = emergency ? { emergency: { title: body.title, text: body.text } } : { item: {
-    kind: body.kind, featured: body.featured, theme: body.kind === 'poster' ? d.theme : 'navy', icon: body.kind === 'poster' ? d.icon : 'note',
-    eyebrow: body.kind === 'poster' ? 'You are invited' : 'From the management office',
+    kind: body.kind, featured: body.featured, design: body.kind === 'poster' ? body.design : '', theme: 'navy', icon: 'note',
+    eyebrow: body.kind === 'poster' && (state.designs[body.design] || {}).cat !== 'Building' ? 'You are invited' : 'From the management office',
     title: body.title, text: body.text, tags: [body.whenText, body.timeText, body.whereText].filter(Boolean), when: body.whenText } };
   const url = (HOSTED ? '/' : '../index.html') + '?sample#preview=' + encodeURIComponent(JSON.stringify(payload));
   $('pPanelBox').hidden = emergency;
@@ -360,6 +374,7 @@ document.addEventListener('click', (ev) => {
   else if (t.id === 'goNew') openCompose();
   else if (t.id === 'goAlarm') { $('aTitle').value = ''; $('aText').value = ''; say(''); drawAlarm(); show('vAlarm'); }
   else if (t.id === 'kCard' || t.id === 'kPoster') { kind = t.id === 'kCard' ? 'card' : 'poster'; drawCompose(); }
+  else if (t.dataset.cat) { cat = t.dataset.cat; renderTiles(); }
   else if (t.dataset.design) { design = t.dataset.design; drawCompose(); }
   else if (t.id === 'toPreview') { const b = composeBody(); if (b) openPreview(b, 'vNew'); }
   else if (t.id === 'pBack' || t.id === 'pBack2') { say(''); show(draft ? draft.from : 'vHome'); }

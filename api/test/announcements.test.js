@@ -45,7 +45,17 @@ const memStore = () => { const rows = new Map(); return {
   assert.deepStrictEqual(view.items[0].tags, ['Sat, Nov 28', '10 AM', 'Rooftop']);
   assert.strictEqual(view.items[0].when, 'Sat, Nov 28');
   const poster = view.items.find((i) => i.kind === 'poster');
-  assert.deepStrictEqual([poster.theme, poster.icon, poster.eyebrow], ['coffee', 'cup', 'You are invited']);
+  assert.deepStrictEqual([poster.design, poster.eyebrow], ['coffee', 'You are invited']);
+  assert.strictEqual(view.items.find((i) => i.kind === 'card').design, '');
+  assert.strictEqual(A.publicView([{ id: 'x', kind: 'poster', design: 'maintenance', title: 'Water shut-off', startsAt: at(-H), endsAt: at(H) }], now).items[0].eyebrow, 'From the management office');
+  // Every template the API accepts has artwork in /templates.js, and the other way round.
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'templates.js'), 'utf8');
+  const win = {}; new Function('window', src)(win);
+  assert.deepStrictEqual(Object.keys(win.LOBBY_TEMPLATES).sort(), Object.keys(A.DESIGNS).sort());
+  for (const [k, t] of Object.entries(win.LOBBY_TEMPLATES)) {
+    assert.strictEqual(t.label, A.DESIGNS[k].label, k);
+    assert.ok(!/[{}]/.test(win.lobbyArt(t)), k + ' art has every color filled in');
+  }
   // After the emergency and posters end, they leave the screen by themselves.
   const later = A.publicView(await store.list('confluence'), now + D + H);
   assert.strictEqual(later.emergency, null);

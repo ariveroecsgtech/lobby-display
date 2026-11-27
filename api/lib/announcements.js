@@ -7,12 +7,17 @@ const SCREENS = { confluence: { name: 'Confluence', timeZone: 'America/New_York'
   places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'] } };
 const PLACES_ROW = '_places', MAX_SAVED_PLACES = 20;
 const LIMITS = { card: 5, poster: 3, emergency: 1 };
-const DESIGNS = {              // poster designs the manager can pick
-  coffee: { theme: 'coffee', icon: 'cup', label: 'Coffee social' },
-  celebration: { theme: 'teal', icon: 'burst', label: 'Celebration' },
-  movie: { theme: 'plum', icon: 'film', label: 'Movie night' },
-  wellness: { theme: 'green', icon: 'leaf', label: 'Wellness' },
-  notice: { theme: 'navy', icon: 'note', label: 'Notice' }
+// Poster templates the manager can pick. The artwork and colors live in /templates.js; the keys must match.
+const DESIGNS = {
+  coffee: { label: 'Coffee social', cat: 'Social' }, pizza: { label: 'Pizza night', cat: 'Social' },
+  happyhour: { label: 'Happy hour', cat: 'Social' }, movie: { label: 'Movie night', cat: 'Social' },
+  gamenight: { label: 'Game night', cat: 'Social' }, music: { label: 'Live music', cat: 'Social' },
+  celebration: { label: 'Celebration', cat: 'Seasonal' }, holiday: { label: 'Winter holiday', cat: 'Seasonal' },
+  summer: { label: 'Summer party', cat: 'Seasonal' },
+  wellness: { label: 'Yoga & wellness', cat: 'Wellness' }, fitness: { label: 'Fitness class', cat: 'Wellness' },
+  kids: { label: 'Kids & family', cat: 'Family & pets' }, pets: { label: 'Pet meetup', cat: 'Family & pets' },
+  market: { label: 'Market day', cat: 'Family & pets' },
+  notice: { label: 'Notice', cat: 'Building' }, maintenance: { label: 'Maintenance', cat: 'Building' }
 };
 const MAX = { title: 40, text: 140, when: 24, time: 24, where: 32 };
 const MAX_DAYS = 60;
@@ -111,11 +116,10 @@ function publicView(list, now = Date.now()) {
   const items = live.filter((a) => a.kind !== 'emergency')
     .sort((a, b) => (b.featured === true) - (a.featured === true) || a.endsAt.localeCompare(b.endsAt))
     .map((a) => {
-      const d = DESIGNS[a.design] || DESIGNS.notice;
       return {
         id: a.id, kind: a.kind, featured: a.featured === true,
-        theme: a.kind === 'poster' ? d.theme : 'navy', icon: a.kind === 'poster' ? d.icon : 'note',
-        eyebrow: a.kind === 'poster' ? 'You are invited' : 'From the management office',
+        design: a.kind === 'poster' ? (DESIGNS[a.design] ? a.design : 'notice') : '', theme: 'navy', icon: 'note',
+        eyebrow: a.kind === 'poster' && (DESIGNS[a.design] || {}).cat !== 'Building' ? 'You are invited' : 'From the management office',
         title: a.title, text: a.text, tags: [a.whenText, a.timeText, a.whereText].filter(Boolean), when: a.whenText || a.timeText || ''
       };
     });

@@ -33,6 +33,7 @@ Anything not live is labeled "Sample" on screen. Opened as a local file, or with
 - `api/lib/drive.js` — drive-time destinations per screen and the Azure Maps call (cached 15 minutes, paused from 11 PM to 5 AM local time).
 - `api/lib/alerts.js` — Metro-North service notices for the given route ids (cached 2 minutes).
 - `api/lib/mnr.js` — downloads the Metro-North station list (cached 24 h) and the realtime feed (cached 30 s).
+- `templates.js` — the 16 poster templates (palette and original vector illustration each), used by both the screen and the manager page. Keys must match `DESIGNS` in `api/lib/announcements.js`; a test checks it.
 - `staticwebapp.config.json` — Azure Static Web Apps settings.
 
 ## Deploy to Azure Static Web Apps (Free plan)
