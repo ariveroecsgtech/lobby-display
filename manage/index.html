@@ -154,7 +154,7 @@
           <div class="note" id="upInfo"></div>
           <button type="button" class="link" id="upRemove">Remove image</button>
         </div>
-        <div class="note">With your own image, the lobby screen shows only the image, uncropped. Put the date, time and place in the image itself. The title, when and where you enter here are still used in your list and under "Also coming up".</div>
+        <div class="note">With your own image, the lobby screen shows only the image, whole and never cropped. Put the date, time and place in the image itself. The title, when and where you enter here are still used in your list and under "Also coming up".</div>
       </div>
     </div>
     <label class="check" id="featBox"><input type="checkbox" id="fFeat"> Featured: shown first, with a gold frame</label>
@@ -294,16 +294,16 @@ const TPL = window.LOBBY_TEMPLATES || {};
 /* Own image: checked against the rules, then shrunk in the browser so the lobby screen never loads a heavy file.
    Re-drawing it on a canvas also drops location and camera data that phones store inside photos. */
 let source = 'gallery', picked = null;   // picked = { blob, url, w, h, kb, id }
-const RULES = () => state.image || { formats: 'JPG, PNG or WebP', maxOriginalMB: 8, minWidth: 600, minHeight: 600, recommended: '1200 x 1200 px, square' };
+const RULES = () => ({ formats: 'JPG, PNG or WebP', maxOriginalMB: 8, minWidth: 200, minHeight: 200, softBelow: 600, recommended: '1200 x 1200 px or larger', ...(state.image || {}) });
 function drawUpload() {
   const r = RULES();
   $('srcGallery').setAttribute('aria-pressed', source === 'gallery'); $('srcUpload').setAttribute('aria-pressed', source === 'upload');
   $('galleryBox').hidden = source !== 'gallery'; $('uploadBox').hidden = source !== 'upload';
-  $('reqList').innerHTML = ['Format: ' + r.formats, 'File size: up to ' + r.maxOriginalMB + ' MB', 'Smallest size: ' + r.minWidth + ' x ' + r.minHeight + ' px',
-    'Best size: ' + r.recommended, 'Large images are resized automatically'].map((t) => '<li>' + esc(t) + '</li>').join('');
+  $('reqList').innerHTML = ['Format: ' + r.formats, 'File size: up to ' + r.maxOriginalMB + ' MB', 'Any shape and size from ' + r.minWidth + ' x ' + r.minHeight + ' px: it is fitted to the screen automatically',
+    'Sharpest at ' + r.recommended].map((t) => '<li>' + esc(t) + '</li>').join('');
   $('upEmpty').hidden = !!picked; $('upDone').hidden = !picked;
   $('tplName').textContent = source === 'upload' ? '' : (state.designs[design] ? state.designs[design].label : '');
-  if (picked) { $('upThumb').src = picked.url; $('upInfo').textContent = picked.w + ' x ' + picked.h + ' px · ' + picked.kb + ' KB after resizing'; }
+  if (picked) { $('upThumb').src = picked.url; $('upInfo').textContent = picked.note; $('upInfo').style.color = picked.soft ? 'var(--accent)' : ''; }
 }
 function clearPicked() { if (picked) URL.revokeObjectURL(picked.url); picked = null; $('fFile').value = ''; }
 async function pickImage(file) {
@@ -313,16 +313,31 @@ async function pickImage(file) {
   if (file.size > r.maxOriginalMB * 1024 * 1024) return say('That image is ' + (file.size / 1048576).toFixed(1) + ' MB. The limit is ' + r.maxOriginalMB + ' MB.', 'err');
   let bmp;
   try { bmp = await createImageBitmap(file); } catch (e) { return say('That file could not be read as an image.', 'err'); }
-  if (bmp.width < r.minWidth || bmp.height < r.minHeight) return say('That image is ' + bmp.width + ' x ' + bmp.height + ' px. It needs to be at least ' + r.minWidth + ' x ' + r.minHeight + ' px to look sharp on the lobby screen.', 'err');
-  const scale = Math.min(1, 1200 / Math.max(bmp.width, bmp.height));
-  const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const ctx = cv.getContext('2d'); ctx.fillStyle = '#0B1220'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h);
+  if (bmp.width < r.minWidth || bmp.height < r.minHeight) return say('That image is ' + bmp.width + ' x ' + bmp.height + ' px, which is too small to enlarge well. Use one of at least ' + r.minWidth + ' x ' + r.minHeight + ' px.', 'err');
+  // Automatic fit: every image becomes a 1200 by 1200 poster. The whole image is kept (never cropped), enlarged or reduced
+  // to fit, and the space left over is filled with a soft, darkened copy of the image itself instead of empty bars.
+  const SIZE = 1200, w = SIZE, h = SIZE;
+  const cv = document.createElement('canvas'); cv.width = SIZE; cv.height = SIZE;
+  const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.fillStyle = '#0B1220'; ctx.fillRect(0, 0, SIZE, SIZE);
+  const fit = Math.min(SIZE / bmp.width, SIZE / bmp.height), dw = Math.round(bmp.width * fit), dh = Math.round(bmp.height * fit);
+  if (dw < SIZE - 2 || dh < SIZE - 2) {
+    const T = 6, tiny = document.createElement('canvas'); tiny.width = T; tiny.height = T;   // shrinking to a few pixels and stretching back leaves only the image's colors: a blur that works in every browser
+    const cover = Math.max(T / bmp.width, T / bmp.height);
+    tiny.getContext('2d').drawImage(bmp, (T - bmp.width * cover) / 2, (T - bmp.height * cover) / 2, bmp.width * cover, bmp.height * cover);
+    ctx.drawImage(tiny, 0, 0, SIZE, SIZE);
+    ctx.fillStyle = 'rgba(11, 18, 32, 0.55)'; ctx.fillRect(0, 0, SIZE, SIZE);
+  }
+  ctx.drawImage(bmp, Math.round((SIZE - dw) / 2), Math.round((SIZE - dh) / 2), dw, dh);
+  const soft = Math.max(bmp.width, bmp.height) < r.softBelow;
+  const note = soft
+    ? 'Your image is ' + bmp.width + ' x ' + bmp.height + ' px. It was enlarged to fit and may look soft on the lobby screen. One of ' + r.recommended + ' will look sharp.'
+    : 'Fitted automatically from ' + bmp.width + ' x ' + bmp.height + ' px.';
   let blob = null;
   for (const q of [0.9, 0.8, 0.7]) { blob = await new Promise((res) => cv.toBlob(res, 'image/jpeg', q)); if (blob && blob.size <= 1200 * 1024) break; }
   if (!blob || blob.size > 1400 * 1024) return say('That image is too detailed to shrink enough. Try a simpler or smaller one.', 'err');
   clearPicked();
-  picked = { blob, url: URL.createObjectURL(blob), w, h, kb: Math.round(blob.size / 1024), id: null };
+  picked = { blob, url: URL.createObjectURL(blob), w, h, kb: Math.round(blob.size / 1024), id: null, soft, note };
   say(''); drawUpload();
 }
 async function uploadPicked() {
@@ -353,7 +368,7 @@ function drawCompose() {
   $('newPlaceBox').hidden = $('fPlace').value !== ADD_PLACE;
   $('cTitle').textContent = $('fTitle').value.length + ' / ' + M.title; $('cText').textContent = $('fText').value.length + ' / ' + M.text;
   for (const b of document.querySelectorAll('.tile')) b.setAttribute('aria-pressed', b.dataset.design === design);
-  $('tplName').textContent = state.designs[design] ? state.designs[design].label : '';
+  $('tplName').textContent = source === 'upload' ? '' : (state.designs[design] ? state.designs[design].label : '');
 }
 function openCompose() {
   for (const id of ['fTitle', 'fText', 'fDate', 'fFrom', 'fTo', 'fWhereNew']) $(id).value = '';
@@ -466,7 +481,12 @@ $('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').va
 document.addEventListener('input', () => { if ($('vNew').classList.contains('on')) drawCompose(); if ($('vAlarm').classList.contains('on')) drawAlarm(); });
 window.addEventListener('resize', sizeFrames);
 refresh(); setInterval(() => { if ($('vHome').classList.contains('on')) refresh(); }, 60000);
-if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').value = 'Coffee Social'; $('fText').value = 'Come to the party room for a cup of coffee and meet your neighbors.'; const t = new Date(Date.now() + 86400000); $('fDate').value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); $('fFrom').value = '09:00'; $('fTo').value = '11:00'; $('fPlace').value = location.search.includes('add') ? ADD_PLACE : 'Party Room'; kind = 'poster'; if (location.search.includes('up')) source = 'upload'; drawCompose(); if (location.search.includes('pv')) $('toPreview').click(); }, 300);
+if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').value = 'Coffee Social'; $('fText').value = 'Come to the party room for a cup of coffee and meet your neighbors.'; const t = new Date(Date.now() + 86400000); $('fDate').value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); $('fFrom').value = '09:00'; $('fTo').value = '11:00'; $('fPlace').value = location.search.includes('add') ? ADD_PLACE : 'Party Room'; kind = 'poster'; if (location.search.includes('up')) source = 'upload'; drawCompose();
+  const fake = location.search.match(/fake=(\d+)x(\d+)/);
+  if (fake && !HOSTED) { const c = document.createElement('canvas'); c.width = +fake[1]; c.height = +fake[2]; const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, c.width, c.height); g.addColorStop(0, '#E8554E'); g.addColorStop(1, '#F5B544'); x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = '#FFFFFF'; x.font = 'bold ' + Math.round(c.height / 7) + 'px sans-serif'; x.textAlign = 'center'; x.fillText('Holiday Party', c.width / 2, c.height / 2); x.font = Math.round(c.height / 12) + 'px sans-serif'; x.fillText('Dec 18 · 7 PM · Lobby', c.width / 2, c.height * 0.66);
+    c.toBlob((b) => pickImage(new File([b], 'test.png', { type: 'image/png' })), 'image/png'); } if (location.search.includes('pv')) $('toPreview').click(); }, 300);
 if (location.hash === '#alarm') setTimeout(() => { $('goAlarm').click(); document.querySelector('[data-preset="0"]').click(); if (location.search.includes('pv')) $('sendAlarm').click(); }, 300);
 </script>
 </body>

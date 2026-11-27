@@ -24,7 +24,8 @@ const MAX_DAYS = 60;
 // Uploaded poster images. The manager page shrinks them before sending, so what arrives here is already small.
 const IMAGE = { maxBytes: 1.5 * 1024 * 1024, types: ['image/jpeg', 'image/png', 'image/webp'],
   // what the manager is told: checked in the browser before the image is resized
-  rules: { formats: 'JPG, PNG or WebP', maxOriginalMB: 8, minWidth: 600, minHeight: 600, recommended: '1200 x 1200 px, square' } };
+  // below softBelow the image is still accepted and enlarged, with a note that it may look soft
+  rules: { formats: 'JPG, PNG or WebP', maxOriginalMB: 8, minWidth: 200, minHeight: 200, softBelow: 600, recommended: '1200 x 1200 px or larger' } };
 const IMAGE_ID = /^[a-z0-9]{12,40}$/;
 const EMERGENCY_MAX_MS = 24 * 3600 * 1000;
 
