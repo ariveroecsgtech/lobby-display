@@ -34,9 +34,9 @@
   .kind.poster { background: var(--accent); } .kind.sched { background: none; color: var(--muted); border: 1.5px solid #6B7C99; }
   .end { flex-shrink: 0; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 2px solid var(--line); background: none; color: var(--soft); font-size: 14px; font-weight: 600; }
   .empty { background: var(--card); border-radius: 14px; padding: 18px 16px; color: var(--muted); font-size: 15px; }
-  #alarmOn { background: var(--bad); color: #2A0F08; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  #alarmOn { background: #B42318; color: #FFFFFF; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
   #alarmOn .t { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
-  #alarmOn button { min-height: 48px; border: 0; border-radius: 12px; background: #2A0F08; color: #FFFFFF; font-size: 16px; font-weight: 700; }
+  #alarmOn button { min-height: 48px; border: 0; border-radius: 12px; background: #FFFFFF; color: #7A271A; font-size: 16px; font-weight: 700; }
   .seg { display: flex; background: var(--card); border-radius: 12px; padding: 4px; gap: 4px; }
   .seg button { flex: 1 1 0; min-height: 44px; border: 0; border-radius: 9px; background: none; color: var(--soft); font-size: 15px; font-weight: 600; }
   .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); font-weight: 700; }
@@ -66,6 +66,14 @@
   #msg { display: none; border-radius: 12px; padding: 12px 14px; font-size: 15px; font-weight: 600; }
   #msg.err { display: block; background: #3A1A14; color: var(--bad); }
   #msg.ok { display: block; background: #12301F; color: var(--good); }
+  .opt { text-align: left; border-radius: 14px; border: 2px solid var(--line); background: var(--card); color: var(--text); padding: 16px; display: flex; flex-direction: column; gap: 6px; min-height: 44px; }
+  .opt b { font-size: 18px; } .opt span { font-size: 14px; line-height: 1.4; color: var(--soft); }
+  .opt.red { border-color: #F97066; background: #3A1512; } .opt.red b { color: #FDA29B; }
+  .ebig { border-radius: 12px; background: #B42318; color: #FFFFFF; padding: 14px 16px; font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; }
+  .presets button[aria-pressed="true"] { border-color: var(--accent); background: #2A2313; }
+  #eTypes button[aria-pressed="true"] { border-color: #F97066; background: #3A1512; }
+  input[type=datetime-local] { color-scheme: dark; min-height: 50px; width: 100%; background: var(--card); color: var(--text); border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 16px; }
+  .btn.alarm { background: #D92D20; color: #FFFFFF; }
   .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .presets button { min-height: 52px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--text); font-size: 14px; font-weight: 600; padding: 6px 8px; }
   .frame { position: relative; overflow: hidden; border-radius: 12px; background: #0B1220; border: 2px solid var(--line); }
@@ -87,7 +95,7 @@
       <a class="link" href="/logout">Sign out</a>
     </div>
     <div id="alarmOn" hidden>
-      <div class="lbl" style="color:#2A0F08">Emergency alert is on the screen</div>
+      <div class="lbl" style="color:#FFFFFF">Emergency alert is on the screen</div>
       <div class="t" id="alarmTitle"></div>
       <div id="alarmUntil" style="font-size:14px;font-weight:600"></div>
       <button type="button" id="alarmClear">Clear alert now</button>
@@ -98,7 +106,11 @@
     </div>
     <div id="hList" style="display:flex;flex-direction:column;gap:10px"><div class="empty">Loading…</div></div>
     <button type="button" class="btn" id="goNew">New announcement</button>
-    <button type="button" class="btn danger" id="goAlarm">Emergency alert</button>
+    <button type="button" class="btn danger" id="goAlarm">Alerts and notices</button>
+    <div id="alertsBox" hidden>
+      <div class="lbl" style="margin-bottom:10px">Notices and scheduled tests</div>
+      <div id="aList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
     <a class="link" href="/" target="_blank" rel="noopener">Open the lobby screen</a>
   </section>
 
@@ -182,25 +194,55 @@
     <button type="button" class="btn ghost" id="pBack2">Back to edit</button>
   </section>
 
-  <!-- EMERGENCY -->
-  <section id="vAlarm" class="view">
-    <div class="top"><h1>Emergency alert</h1><button type="button" class="link" data-home>Cancel</button></div>
-    <div class="note">Covers the whole lobby screen until it ends or you clear it. Use it only for things residents must know right now.</div>
-    <div class="field"><div class="lbl">Quick start</div><div class="presets" id="presets"></div></div>
+  <!-- ALERTS: three levels -->
+  <section id="vAlerts" class="view">
+    <div class="top"><h1>Alerts and notices</h1><button type="button" class="link" data-home>Cancel</button></div>
+    <button type="button" class="opt" data-go="vNotice"><b>Service notice</b><span>Water, elevator, power, parking. Shows in a strip under the clock. The rest of the screen stays visible.</span></button>
+    <button type="button" class="opt" data-go="vDrill"><b>Scheduled test</b><span>Fire alarm test and similar. Covers the screen only for the time you set. Can be scheduled days ahead and cancelled.</span></button>
+    <button type="button" class="opt red" data-go="vEmerg"><b>Real emergency</b><span>Fire, security threat, earthquake, severe storm. Red alarm screen, right now, until you clear it.</span></button>
+    <div class="note">The lobby screen supports your emergency plan; it does not replace the building's fire alarm system or a call to 911.</div>
+  </section>
+
+  <section id="vNotice" class="view">
+    <div class="top"><h1>Service notice</h1><button type="button" class="link" data-go="vAlerts">Back</button></div>
+    <div class="field"><div class="lbl">What is it about</div><div class="presets" id="nTypes"></div></div>
+    <div class="field"><div class="row"><label class="lbl" for="nTitle">Notice</label><span class="count" id="cNTitle"></span></div><input type="text" id="nTitle" autocomplete="off"></div>
+    <div class="field"><div class="row"><label class="lbl" for="nText">Details</label><span class="count" id="cNText"></span></div><textarea id="nText" rows="2"></textarea></div>
+    <div class="field"><label class="lbl" for="nUntil">Show it until</label><input type="datetime-local" id="nUntil"></div>
+    <button type="button" class="btn" id="toNotice">Preview</button>
+    <div class="note">It does not cover the screen. Nothing is published until you confirm on the next step.</div>
+  </section>
+
+  <section id="vDrill" class="view">
+    <div class="top"><h1>Scheduled test</h1><button type="button" class="link" data-go="vAlerts">Back</button></div>
+    <div class="field"><div class="row"><label class="lbl" for="dTitle">Name of the test</label><span class="count" id="cDTitle"></span></div><input type="text" id="dTitle" autocomplete="off"></div>
+    <div class="field"><div class="row"><label class="lbl" for="dText">What residents should know</label><span class="count" id="cDText"></span></div><textarea id="dText" rows="2"></textarea></div>
     <div class="field">
-      <div class="row"><label class="lbl" for="aTitle">Headline</label><span class="count" id="cATitle"></span></div>
-      <input type="text" id="aTitle" autocomplete="off">
+      <label class="lbl" for="dDate">Day of the test</label>
+      <input type="date" id="dDate">
+      <div class="two">
+        <div class="field"><label class="sub" for="dStart">Starts at</label><input type="time" id="dStart" step="300"></div>
+        <div class="field"><label class="sub" for="dFor">Lasts</label><select id="dFor"><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="45">45 minutes</option><option value="60">1 hour</option><option value="90">1 hour 30 minutes</option><option value="120">2 hours</option><option value="180">3 hours</option><option value="240">4 hours</option></select></div>
+      </div>
+      <div class="note">Leave "Starts at" empty to start the test right now.</div>
     </div>
-    <div class="field">
-      <div class="row"><label class="lbl" for="aText">What residents should do</label><span class="count" id="cAText"></span></div>
-      <textarea id="aText" rows="3"></textarea>
-    </div>
-    <div class="field">
-      <label class="lbl" for="aFor">Keep it on the screen for</label>
-      <select id="aFor"><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option><option value="720">12 hours</option></select>
-    </div>
-    <button type="button" class="btn alarm" id="sendAlarm">Preview</button>
-    <div class="note">Nothing goes on the screen until you confirm on the next step.</div>
+    <label class="check"><input type="checkbox" id="dAnnounce" checked> Also announce it in the Community panel from today until the test starts</label>
+    <button type="button" class="btn" id="toDrill">Preview</button>
+    <div class="note">The screen is covered only during the test and comes back by itself. You can cancel it any time before or during.</div>
+  </section>
+
+  <section id="vEmerg" class="view">
+    <div class="top"><h1>Real emergency</h1><button type="button" class="link" data-go="vAlerts">Back</button></div>
+    <div class="note">Call 911 first. This puts a red alarm screen on the lobby display right away.</div>
+    <div class="field"><div class="lbl">What is happening</div><div class="presets" id="eTypes"></div></div>
+    <div id="eBig" class="ebig" hidden></div>
+    <div class="field"><div class="row"><label class="lbl" for="eTitle">What is happening, in a few words</label><span class="count" id="cETitle"></span></div><input type="text" id="eTitle" autocomplete="off"></div>
+    <div class="field"><div class="row"><label class="lbl" for="eText">What residents should do</label><span class="count" id="cEText"></span></div><textarea id="eText" rows="3"></textarea></div>
+    <div class="note" id="eSafety"></div>
+    <div class="field"><label class="lbl" for="eFor">Keep it on the screen for</label>
+      <select id="eFor"><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option><option value="720">12 hours</option></select></div>
+    <button type="button" class="btn alarm" id="toEmerg">Preview</button>
+    <div class="note">Nothing goes on the screen until you confirm on the next step. You can clear it at any moment.</div>
   </section>
 
 </div>
@@ -211,12 +253,6 @@ const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const THEMES_UNUSED = { coffee: ['#2B1D17', '#F7EBDD', '#F5B544'], teal: ['#0F2A33', '#EAF7F4', '#F5B544'], plum: ['#1E1B3A', '#ECEAFB', '#B9B1F5'], green: ['#12301F', '#E9F7EE', '#7ADC9E'], navy: ['#1B2740', '#F4F7FB', '#F5B544'] };
-const PRESETS = [
-  ['Fire alarm test', 'Testing in progress. No action is needed.'],
-  ['Water shut-off', 'Water is off for repairs. We will update this screen when it is back.'],
-  ['Elevator out of service', 'Please use the other elevator or the stairs.'],
-  ['Severe weather', 'Stay indoors and away from windows until further notice.']
-];
 let state = { items: [], limits: { total: 10 }, max: { title: 40, text: 140, when: 24, time: 24, where: 32 }, designs: {}, places: [] };
 const ADD_PLACE = '__add__';
 /* When: a date from the calendar and optional start and end times, turned into the short labels the screen shows. */
@@ -251,9 +287,12 @@ const mock = { items: [
 ] };
 async function api(method, path, body) {
   if (!HOSTED) {
-    if (method === 'POST') mock.items.push({ ...body, id: 'n' + Date.now(), live: true });
+    if (method === 'POST') mock.items.push({ ...body, id: 'n' + Date.now(), startsAt: body.startsAt || new Date().toISOString(), live: !body.startsAt || new Date(body.startsAt) <= new Date() });
     if (method === 'DELETE') mock.items = mock.items.filter((x) => x.id !== path.split('/').pop().split('?')[0]);
-    return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { total: 10, emergency: 1 }, max: state.max, places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'],
+    return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { total: 10, emergency: 1, notice: 3, drill: 5 }, max: state.max, safety: { route: '', assembly: '' },
+      noticeTypes: { water: { label: 'Water shut-off', title: 'Water shut-off', text: 'Water is off for repairs. We will update this screen when it is back.' }, elevator: { label: 'Elevator out of service', title: 'Elevator out of service', text: 'Please use the other elevator or the stairs.' }, weather: { label: 'Severe weather', title: 'Severe weather', text: 'Take care outside and allow extra travel time.' }, other: { label: 'Other notice', title: '', text: '' } },
+      emergencyTypes: { fire: { label: 'Fire', action: 'evacuate', headline: 'EVACUATE NOW', title: 'Fire in the building', text: 'Leave now by the nearest stairs. Do not use the elevators.' }, threat: { label: 'Building under threat', action: 'shelter', headline: 'TAKE SHELTER', title: 'Danger in the building', text: 'Stay inside your apartment. Lock the door. Stay away from doors and windows.' }, earthquake: { label: 'Earthquake', action: 'shelter', headline: 'DROP, COVER, HOLD ON', title: 'Earthquake', text: 'Get under sturdy furniture and hold on.' } },
+      places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'],
       designs: Object.fromEntries(Object.entries(window.LOBBY_TEMPLATES).map(([k, t]) => [k, { label: t.label, cat: t.cat }])), items: mock.items };
   }
   const r = await fetch('/api/manage/' + path + (path.includes('?') ? '&' : '?') + 'screen=' + SCREEN, {
@@ -264,7 +303,7 @@ async function api(method, path, body) {
   return d;
 }
 function say(text, cls) { const m = $('msg'); m.textContent = text || ''; m.className = text ? cls : ''; if (text) window.scrollTo(0, 0); }
-function show(view) { for (const v of ['vHome', 'vNew', 'vAlarm', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
+function show(view) { for (const v of ['vHome', 'vNew', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
 const fmtEnd = (iso) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 
 function renderHome() {
@@ -273,14 +312,20 @@ function renderHome() {
   const alarm = state.items.find((x) => x.kind === 'emergency');
   $('alarmOn').hidden = !alarm;
   if (alarm) { $('alarmTitle').textContent = alarm.title; $('alarmUntil').textContent = 'Ends by itself ' + fmtEnd(alarm.endsAt); $('alarmClear').dataset.id = alarm.id; }
-  $('goAlarm').hidden = !!alarm;
-  const rest = state.items.filter((x) => x.kind !== 'emergency');
+  // notices and scheduled tests
+  const alerts = state.items.filter((x) => x.kind === 'notice' || x.kind === 'drill');
+  $('alertsBox').hidden = !alerts.length;
+  $('aList').innerHTML = alerts.map((x) => { const test = x.kind === 'drill';
+    return '<div class="item"><div class="main"><div class="t">' + esc(x.title) + '</div><div class="s"><span class="kind ' + (test ? 'poster' : '') + '">' + (test ? 'Test' : 'Notice') + '</span>' +
+      (test ? (x.live ? 'covering the screen now, until ' + esc(fmtEnd(x.endsAt)) : 'covers the screen ' + esc(fmtEnd(x.startsAt)) + ' to ' + esc(new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(x.endsAt)))) : 'until ' + esc(fmtEnd(x.endsAt))) +
+      '</div></div><button type="button" class="end" data-end="' + esc(x.id) + '" aria-label="' + (test ? 'Cancel ' : 'End ') + esc(x.title) + '">' + (test ? 'Cancel' : 'End now') + '</button></div>'; }).join('');
+  const rest = state.items.filter((x) => x.kind === 'card' || x.kind === 'poster');
   const n = (k) => rest.filter((x) => x.kind === k).length;
   $('hCount').textContent = rest.length + ' of ' + state.limits.total + ' · ' + n('card') + (n('card') === 1 ? ' card, ' : ' cards, ') + n('poster') + (n('poster') === 1 ? ' poster' : ' posters');
   $('goNew').disabled = rest.length >= state.limits.total; $('goNew').textContent = rest.length >= state.limits.total ? 'Limit reached: end one to add another' : 'New announcement';
   $('hList').innerHTML = rest.length ? rest.map((x) =>
     '<div class="item"><div class="main"><div class="t">' + esc(x.title) + '</div><div class="s"><span class="kind ' + esc(x.kind) + '">' + esc(x.kind) + '</span>' +
-    (x.live ? '' : '<span class="kind sched">Scheduled</span>') + (x.featured ? '<span class="kind sched">Featured</span>' : '') +
+    (x.live ? '' : '<span class="kind sched">Scheduled</span>') + (x.group ? '<span class="kind sched">Announces a test</span>' : '') + (x.featured ? '<span class="kind sched">Featured</span>' : '') +
     'until ' + esc(fmtEnd(x.endsAt)) + '</div></div><button type="button" class="end" data-end="' + esc(x.id) + '" aria-label="End ' + esc(x.title) + ' now">End now</button></div>').join('')
     : '<div class="empty">Nothing is published. The screen shows a welcome card until you add an announcement.</div>';
 }
@@ -405,42 +450,99 @@ function sizeFrames() {
 }
 function openPreview(body, from) {
   draft = { body, from };
-  const emergency = body.kind === 'emergency';
-  const payload = emergency ? { emergency: { title: body.title, text: body.text } } : { item: {
+  const emergency = body.kind === 'emergency', alertKind = ['emergency', 'drill', 'notice'].includes(body.kind);
+  const et = (state.emergencyTypes || {})[body.type] || {}, sf = state.safety || {};
+  const payload = emergency ? { emergency: { action: et.action, headline: et.headline, title: body.title, text: body.text, route: et.action === 'evacuate' ? sf.route || '' : '', assembly: et.action === 'evacuate' ? sf.assembly || '' : '' } }
+    : body.kind === 'drill' ? { drill: { title: body.title, text: body.text, until: body.endsAt } }
+    : body.kind === 'notice' ? { notice: { title: body.title, text: body.text } }
+    : { item: {
     kind: body.kind, featured: body.featured, design: body.kind === 'poster' ? body.design : '', image: body.imageId && HOSTED ? '/api/image/' + body.imageId : '', theme: 'navy', icon: 'note',
     eyebrow: body.kind === 'poster' && (state.designs[body.design] || {}).cat !== 'Building' ? 'You are invited' : 'From the management office',
     title: body.title, text: body.text, tags: [body.whenText, body.timeText, body.whereText].filter(Boolean), when: body.whenText } };
   const url = (HOSTED ? '/' : '../index.html') + '?sample#preview=' + encodeURIComponent(JSON.stringify(payload));
-  $('pPanelBox').hidden = emergency;
-  $('pTitle').textContent = emergency ? 'Preview the alert' : 'Preview';
-  $('pNote').textContent = emergency
-    ? 'The alert covers the lobby screen until ' + fmtEnd(body.endsAt) + ' or until you clear it. The rest of the screen in this preview uses sample data.'
-    : 'It will show until ' + fmtEnd(body.endsAt) + ' and come down by itself. The rest of the screen in this preview uses sample data.';
-  const pub = $('publish'); pub.textContent = emergency ? 'Show on the lobby screen now' : 'Publish to lobby screen'; pub.className = emergency ? 'btn alarm' : 'btn';
+  $('pPanelBox').hidden = alertKind;
+  $('pTitle').textContent = emergency ? 'Preview the emergency screen' : body.kind === 'drill' ? 'Preview the test screen' : body.kind === 'notice' ? 'Preview the notice' : 'Preview';
+  const starts = body.startsAt ? new Date(body.startsAt) : null;
+  $('pNote').textContent = (emergency ? 'The red alarm screen covers the lobby display until ' + fmtEnd(body.endsAt) + ' or until you clear it. It pulses slowly and, where the screen has sound, beeps.'
+    : body.kind === 'drill' ? (starts ? 'This covers the lobby screen on ' + fmtEnd(body.startsAt) + ' and comes down by itself at ' + new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(body.endsAt)) + '.' + (body.announce ? ' Until then, a card in the Community panel tells residents about it.' : '')
+      : 'This covers the lobby screen now and comes down by itself at ' + fmtEnd(body.endsAt) + '.')
+    : body.kind === 'notice' ? 'The notice shows in the strip under the clock until ' + fmtEnd(body.endsAt) + '. The rest of the screen stays visible.'
+    : 'It will show until ' + fmtEnd(body.endsAt) + ' and come down by itself.') + ' The rest of the screen in this preview uses sample data.';
+  const pub = $('publish');
+  pub.textContent = emergency ? 'Show on the lobby screen now' : body.kind === 'drill' ? (starts ? 'Schedule the test' : 'Start the test now') : body.kind === 'notice' ? 'Publish the notice' : 'Publish to lobby screen';
+  pub.className = emergency ? 'btn alarm' : 'btn';
   say(''); show('vPreview'); sizeFrames();
   // about:blank first, so the same page reloads even when only the part after # changed
-  for (const id of emergency ? ['pFullFrame'] : ['pPanelFrame', 'pFullFrame']) { const f = $(id); f.src = 'about:blank'; setTimeout(() => { f.src = url; }, 30); }
+  for (const id of alertKind ? ['pFullFrame'] : ['pPanelFrame', 'pFullFrame']) { const f = $(id); f.src = 'about:blank'; setTimeout(() => { f.src = url; }, 30); }
 }
 async function publish() {
   if (!draft) return;
-  const emergency = draft.body.kind === 'emergency';
+  const k = draft.body.kind;
   $('publish').disabled = true;
   try {
+    const scheduled = k === 'drill' && draft.body.startsAt;
     state = { ...state, ...(await api('POST', 'announcements', draft.body)) }; draft = null;
     renderHome(); renderPlaces(); show('vHome');
-    say(emergency ? 'The alert is going up on the lobby screen now.' : 'Published. It will be on the lobby screen in a few seconds.', 'ok');
+    say(k === 'emergency' ? 'The emergency screen is going up on the lobby display now.' : k === 'drill' ? (scheduled ? 'The test is scheduled. You can cancel it from this page.' : 'The test screen is going up now.')
+      : k === 'notice' ? 'The notice is published.' : 'Published. It will be on the lobby screen in a few seconds.', 'ok');
   } catch (e) { say(e.message, 'err'); }
   $('publish').disabled = false;
 }
 
-/* emergency: the preview step is the confirmation, so it cannot go out by accident */
-function drawAlarm() {
-  $('aTitle').maxLength = state.max.title; $('aText').maxLength = state.max.text;
-  $('cATitle').textContent = $('aTitle').value.length + ' / ' + state.max.title; $('cAText').textContent = $('aText').value.length + ' / ' + state.max.text;
+/* Alerts in three levels. In every case the preview step is the confirmation, so nothing goes out by accident. */
+let nType = 'other', eType = '';
+const pad = (n) => String(n).padStart(2, '0');
+const localStamp = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+const clock = (d) => { const h = d.getHours() % 12 || 12, m = d.getMinutes(); return { txt: h + (m ? ':' + pad(m) : ''), pm: d.getHours() >= 12 }; };
+const rangeLabel = (a, b) => { const x = clock(a), y = clock(b); return x.pm === y.pm ? x.txt + ' to ' + y.txt + (y.pm ? ' PM' : ' AM') : x.txt + (x.pm ? ' PM' : ' AM') + ' to ' + y.txt + (y.pm ? ' PM' : ' AM'); };
+function drawAlerts() {
+  const M = state.max, nt = state.noticeTypes || {}, et = state.emergencyTypes || {};
+  for (const id of ['nTitle', 'dTitle', 'eTitle']) $(id).maxLength = M.title;
+  for (const id of ['nText', 'dText', 'eText']) $(id).maxLength = M.text;
+  for (const [c, f, max] of [['cNTitle', 'nTitle', M.title], ['cNText', 'nText', M.text], ['cDTitle', 'dTitle', M.title], ['cDText', 'dText', M.text], ['cETitle', 'eTitle', M.title], ['cEText', 'eText', M.text]]) $(c).textContent = $(f).value.length + ' / ' + max;
+  $('nTypes').innerHTML = Object.keys(nt).map((k) => '<button type="button" data-ntype="' + esc(k) + '" aria-pressed="' + (k === nType) + '">' + esc(nt[k].label) + '</button>').join('');
+  $('eTypes').innerHTML = Object.keys(et).map((k) => '<button type="button" data-etype="' + esc(k) + '" aria-pressed="' + (k === eType) + '">' + esc(et[k].label) + '</button>').join('');
+  const t = et[eType];
+  $('eBig').hidden = !t; if (t) $('eBig').textContent = 'The screen will say: ' + t.headline;
+  const sf = state.safety || {};
+  $('eSafety').textContent = !t ? '' : t.action !== 'evacuate' ? 'This is a shelter screen: it tells residents to stay inside, so it shows no way out.'
+    : sf.route || sf.assembly ? 'The screen will also show the way out and meeting point on file for this building: ' + [sf.route, sf.assembly].filter(Boolean).join(' · ')
+    : 'No way out or meeting point is on file for this building, so the screen will not show them. Ask ECSG to add them from the building emergency plan.';
 }
-function sendAlarm() {
-  if (!$('aTitle').value.trim()) return say('Add a headline first.', 'err');
-  openPreview({ kind: 'emergency', title: $('aTitle').value.trim(), text: $('aText').value.trim(), endsAt: new Date(Date.now() + Number($('aFor').value) * 60000).toISOString() }, 'vAlarm');
+function openAlertForm(view) {
+  say('');
+  if (view === 'vNotice') { nType = 'other'; $('nTitle').value = ''; $('nText').value = ''; $('nUntil').value = localStamp(new Date(Date.now() + 4 * 3600000)); $('nUntil').min = localStamp(new Date()); }
+  if (view === 'vDrill') { $('dTitle').value = 'Fire alarm test'; $('dText').value = 'The alarm will sound. This is only a test. No action is needed.'; const d = new Date(); $('dDate').value = localStamp(d).slice(0, 10); $('dDate').min = $('dDate').value; $('dStart').value = ''; $('dFor').value = '30'; $('dAnnounce').checked = true; }
+  if (view === 'vEmerg') { eType = ''; $('eTitle').value = ''; $('eText').value = ''; $('eFor').value = '60'; }
+  drawAlerts(); show(view);
+}
+function noticeBody() {
+  if (!$('nTitle').value.trim()) return say('Write the notice first.', 'err');
+  const until = new Date($('nUntil').value);
+  if (!$('nUntil').value || !(until.getTime() > Date.now())) return say('Choose a date and time in the future for "Show it until".', 'err');
+  return { kind: 'notice', type: nType, title: $('nTitle').value.trim(), text: $('nText').value.trim(), endsAt: until.toISOString() };
+}
+function drillBody() {
+  if (!$('dTitle').value.trim()) return say('Give the test a name first.', 'err');
+  const mins = Number($('dFor').value), body = { kind: 'drill', title: $('dTitle').value.trim(), text: $('dText').value.trim(), announce: false };
+  if ($('dStart').value) {
+    if (!$('dDate').value) return say('Choose the day of the test.', 'err');
+    const [y, m, d] = $('dDate').value.split('-').map(Number), [hh, mm] = $('dStart').value.split(':').map(Number);
+    const start = new Date(y, m - 1, d, hh, mm);
+    if (start.getTime() < Date.now() - 60000) return say('That start time has already passed. Pick a later time, or leave it empty to start now.', 'err');
+    const end = new Date(start.getTime() + mins * 60000);
+    Object.assign(body, { startsAt: start.toISOString(), endsAt: end.toISOString(), announce: $('dAnnounce').checked,
+      whenText: new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(start), timeText: rangeLabel(start, end) });
+  } else {
+    if ($('dDate').value && $('dDate').value !== localStamp(new Date()).slice(0, 10)) return say('For a test on another day, set the time it starts.', 'err');
+    body.endsAt = new Date(Date.now() + mins * 60000).toISOString();
+  }
+  return body;
+}
+function emergBody() {
+  if (!eType) return say('Choose what is happening first.', 'err');
+  if (!$('eTitle').value.trim()) return say('Say what is happening in a few words.', 'err');
+  return { kind: 'emergency', type: eType, title: $('eTitle').value.trim(), text: $('eText').value.trim(), endsAt: new Date(Date.now() + Number($('eFor').value) * 60000).toISOString() };
 }
 async function endItem(id, btn) {
   if (btn.dataset.sure !== '1') { btn.dataset.sure = '1'; const old = btn.textContent; btn.textContent = 'Tap to confirm'; setTimeout(() => { btn.dataset.sure = ''; btn.textContent = old; }, 5000); return; }
@@ -449,12 +551,17 @@ async function endItem(id, btn) {
   catch (e) { say(e.message, 'err'); btn.disabled = false; }
 }
 
-$('presets').innerHTML = PRESETS.map((p, i) => '<button type="button" data-preset="' + i + '">' + esc(p[0]) + '</button>').join('');
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button, a'); if (!t) return;
   if (t.hasAttribute('data-home')) { say(''); show('vHome'); }
   else if (t.id === 'goNew') openCompose();
-  else if (t.id === 'goAlarm') { $('aTitle').value = ''; $('aText').value = ''; say(''); drawAlarm(); show('vAlarm'); }
+  else if (t.id === 'goAlarm') { say(''); show('vAlerts'); }
+  else if (t.dataset.go) { if (t.dataset.go === 'vAlerts') { say(''); show('vAlerts'); } else openAlertForm(t.dataset.go); }
+  else if (t.dataset.ntype) { nType = t.dataset.ntype; const x = state.noticeTypes[nType]; $('nTitle').value = x.title; $('nText').value = x.text; drawAlerts(); }
+  else if (t.dataset.etype) { eType = t.dataset.etype; const x = state.emergencyTypes[eType]; $('eTitle').value = x.title; $('eText').value = x.text; drawAlerts(); }
+  else if (t.id === 'toNotice') { const b = noticeBody(); if (b) openPreview(b, 'vNotice'); }
+  else if (t.id === 'toDrill') { const b = drillBody(); if (b) openPreview(b, 'vDrill'); }
+  else if (t.id === 'toEmerg') { const b = emergBody(); if (b) openPreview(b, 'vEmerg'); }
   else if (t.id === 'kCard' || t.id === 'kPoster') { kind = t.id === 'kCard' ? 'card' : 'poster'; drawCompose(); }
   else if (t.dataset.cat) { cat = t.dataset.cat; renderTiles(); }
   else if (t.dataset.design) { design = t.dataset.design; drawCompose(); }
@@ -470,8 +577,6 @@ document.addEventListener('click', (ev) => {
   else if (t.id === 'upRemove') { clearPicked(); drawUpload(); }
   else if (t.id === 'pBack' || t.id === 'pBack2') { say(''); show(draft ? draft.from : 'vHome'); }
   else if (t.id === 'publish') publish();
-  else if (t.dataset.preset) { const p = PRESETS[Number(t.dataset.preset)]; $('aTitle').value = p[0]; $('aText').value = p[1]; drawAlarm(); }
-  else if (t.id === 'sendAlarm') sendAlarm();
   else if (t.dataset.end) endItem(t.dataset.end, t);
   else if (t.id === 'alarmClear') endItem(t.dataset.id, t);
 });
@@ -479,7 +584,7 @@ document.addEventListener('click', (ev) => {
 $('fFile').addEventListener('change', () => pickImage($('fFile').files[0]));
 $('fDate').addEventListener('change', () => { if ($('fDate').value) $('fUntil').value = $('fDate').value; drawCompose(); });
 $('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').value === ADD_PLACE) $('fWhereNew').focus(); });
-document.addEventListener('input', () => { if ($('vNew').classList.contains('on')) drawCompose(); if ($('vAlarm').classList.contains('on')) drawAlarm(); });
+document.addEventListener('input', () => { if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
 window.addEventListener('resize', sizeFrames);
 refresh(); setInterval(() => { if ($('vHome').classList.contains('on')) refresh(); }, 60000);
 if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').value = 'Coffee Social'; $('fText').value = 'Come to the party room for a cup of coffee and meet your neighbors.'; const t = new Date(Date.now() + 86400000); $('fDate').value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); $('fFrom').value = '09:00'; $('fTo').value = '11:00'; $('fPlace').value = location.search.includes('add') ? ADD_PLACE : 'Party Room'; kind = 'poster'; if (location.search.includes('up')) source = 'upload'; drawCompose();
@@ -488,7 +593,10 @@ if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').valu
     const g = x.createLinearGradient(0, 0, c.width, c.height); g.addColorStop(0, '#E8554E'); g.addColorStop(1, '#F5B544'); x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
     x.fillStyle = '#FFFFFF'; x.font = 'bold ' + Math.round(c.height / 7) + 'px sans-serif'; x.textAlign = 'center'; x.fillText('Holiday Party', c.width / 2, c.height / 2); x.font = Math.round(c.height / 12) + 'px sans-serif'; x.fillText('Dec 18 · 7 PM · Lobby', c.width / 2, c.height * 0.66);
     c.toBlob((b) => pickImage(new File([b], 'test.png', { type: 'image/png' })), 'image/png'); } if (location.search.includes('pv')) $('toPreview').click(); }, 300);
-if (location.hash === '#alarm') setTimeout(() => { $('goAlarm').click(); document.querySelector('[data-preset="0"]').click(); if (location.search.includes('pv')) $('sendAlarm').click(); }, 300);
+const demo = { '#alerts': () => show('vAlerts'), '#notice': () => { openAlertForm('vNotice'); document.querySelector('[data-ntype="water"]').click(); },
+  '#drill': () => { openAlertForm('vDrill'); const t = new Date(Date.now() + 15 * 86400000); $('dDate').value = localStamp(t).slice(0, 10); $('dStart').value = '10:00'; $('dFor').value = '60'; },
+  '#emerg': () => { openAlertForm('vEmerg'); document.querySelector('[data-etype="fire"]').click(); } }[location.hash];
+if (demo && !HOSTED) setTimeout(() => { demo(); const b = { '#notice': 'toNotice', '#drill': 'toDrill', '#emerg': 'toEmerg' }[location.hash]; if (b && location.search.includes('pv')) $(b).click(); }, 400);
 </script>
 </body>
 </html>

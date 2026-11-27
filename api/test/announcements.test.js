@@ -22,7 +22,7 @@ const memStore = () => { const rows = new Map(), images = new Map(); return {
   await assert.rejects(() => A.create(store, 'confluence', card({ title: '   ' }), 'm', now), /title/);
   await assert.rejects(() => A.create(store, 'confluence', card({ endsAt: at(-H) }), 'm', now), /passed/);
   await assert.rejects(() => A.create(store, 'confluence', card({ endsAt: at(90 * D) }), 'm', now), /60 days/);
-  await assert.rejects(() => A.create(store, 'confluence', card({ kind: 'banner' }), 'm', now), /Choose/);
+  await assert.rejects(() => A.create(store, 'confluence', card({ kind: 'banner' }), 'm', now), /Unknown kind/);
   await assert.rejects(() => A.create(store, 'confluence', { kind: 'poster', title: 'x', endsAt: at(D), design: 'nope' }, 'm', now), /design/);
   await assert.rejects(() => A.create(store, 'confluence', { kind: 'emergency', title: 'x', endsAt: at(2 * D) }, 'm', now), /24 hours/);
   assert.strictEqual(store.rows.size, 0, 'nothing invalid is stored');
@@ -37,8 +37,8 @@ const memStore = () => { const rows = new Map(), images = new Map(); return {
   for (let i = 0; i < 3; i++) await A.create(store, 'confluence', card({ title: 'Card ' + i, endsAt: at((3 + i) * D) }), 'm', now + i);
   await A.create(store, 'confluence', card({ title: 'Later', startsAt: at(D), endsAt: at(9 * D) }), 'm', now + 9);
   for (let i = 0; i < 3; i++) await A.create(store, 'confluence', { kind: 'poster', design: 'coffee', title: 'Coffee ' + i, endsAt: at(D) }, 'm', now + 20 + i);
-  await A.create(store, 'confluence', { kind: 'emergency', title: 'Fire alarm test', text: 'No action needed', endsAt: at(H) }, 'm', now + 40);
-  await assert.rejects(() => A.create(store, 'confluence', { kind: 'emergency', title: 'Another', endsAt: at(H) }, 'm', now + 41), /already on screen/);
+  await A.create(store, 'confluence', { kind: 'emergency', type: 'shelter', title: 'Fire alarm test', text: 'No action needed', endsAt: at(H) }, 'm', now + 40);
+  await assert.rejects(() => A.create(store, 'confluence', { kind: 'emergency', type: 'fire', title: 'Another', endsAt: at(H) }, 'm', now + 41), /already on screen/);
 
   // Screen view: only live items, featured first, no author, emergency separate.
   const view = A.publicView(await store.list('confluence'), now + 100);
@@ -68,7 +68,7 @@ const memStore = () => { const rows = new Map(), images = new Map(); return {
 
   // Manager list and ending one.
   const open = await A.listOpen(store, 'confluence', now + 100);
-  assert.strictEqual(open.length, 9);
+  assert.strictEqual(open.length, 9);   // 5 cards, 3 posters, 1 emergency
   assert.strictEqual(open.find((a) => a.title === 'Later').live, false);
   await A.end(store, 'confluence', a1.id);
   assert.strictEqual((await A.listOpen(store, 'confluence', now + 100)).length, 8);
@@ -99,10 +99,56 @@ const memStore = () => { const rows = new Map(), images = new Map(); return {
   for (let i = 0; i < 4; i++) await A.create(s3, 'confluence', { kind: 'poster', design: 'pizza', title: 'Poster ' + i, endsAt: at(H), featured: i === 0 }, 'm', now + 10 + i);
   await assert.rejects(() => A.create(s3, 'confluence', card({ title: 'Eleventh' }), 'm', now + 20), /limit is 10 announcements/);
   await assert.rejects(() => A.create(s3, 'confluence', { kind: 'poster', design: 'pizza', title: 'Eleventh', endsAt: at(D) }, 'm', now + 20), (e) => e.code === 'limit');
-  await A.create(s3, 'confluence', { kind: 'emergency', title: 'Still allowed', endsAt: at(H) }, 'm', now + 21);
+  await A.create(s3, 'confluence', { kind: 'emergency', type: 'fire', title: 'Still allowed', endsAt: at(H) }, 'm', now + 21);
   assert.strictEqual(A.publicView(await s3.list('confluence'), now + 30).items[0].title, 'Poster 0', 'a featured poster goes first');
   await A.create(s3, 'confluence', card({ title: 'After posters ended' }), 'm', now + 2 * H);
   assert.strictEqual(A.totalFor('confluence'), 10);
+
+  // Alerts in three levels.
+  const s4 = memStore();
+  // 1. Service notices never block the screen and do not use Community slots. Three at most.
+  await A.create(s4, 'confluence', { kind: 'notice', type: 'water', title: 'Water shut-off', text: 'Back by 2 PM', endsAt: at(4 * H) }, 'm', now);
+  await A.create(s4, 'confluence', { kind: 'notice', type: 'elevator', title: 'Elevator out of service', endsAt: at(2 * H) }, 'm', now + 1);
+  await A.create(s4, 'confluence', { kind: 'notice', title: 'Lobby doors', endsAt: at(8 * H) }, 'm', now + 2);
+  await assert.rejects(() => A.create(s4, 'confluence', { kind: 'notice', type: 'power', title: 'x', endsAt: at(H) }, 'm', now + 3), /3 service notices/);
+  await assert.rejects(() => A.create(s4, 'confluence', { kind: 'notice', type: 'nope', title: 'x', endsAt: at(H) }, 'm', now + 3), /type of notice/);
+  let v = A.publicView(await s4.list('confluence'), now + 10, 'confluence');
+  assert.deepStrictEqual(v.notices.map((n) => [n.type, n.title]), [['elevator', 'Elevator out of service'], ['water', 'Water shut-off'], ['other', 'Lobby doors']]);
+  assert.deepStrictEqual([v.emergency, v.drill, v.items.length], [null, null, 0]);
+  // 2. A scheduled test covers the screen only between its start and end, and brings its own announcement card.
+  const drill = await A.create(s4, 'confluence', { kind: 'drill', title: 'Fire alarm test', text: 'This is only a test.', startsAt: at(15 * D), endsAt: at(15 * D + H),
+    announce: true, whenText: 'Sat, Dec 12', timeText: '12 to 1 PM' }, 'm', now + 20);
+  v = A.publicView(await s4.list('confluence'), now + 30, 'confluence');
+  assert.strictEqual(v.drill, null, 'not on screen before its time');
+  assert.deepStrictEqual(v.items.map((i) => [i.kind, i.title, i.tags.join('|')]), [['card', 'Fire alarm test', 'Sat, Dec 12|12 to 1 PM']]);
+  v = A.publicView(await s4.list('confluence'), now + 15 * D + 60000, 'confluence');
+  assert.deepStrictEqual([v.drill.title, v.drill.until, v.items.length], ['Fire alarm test', at(15 * D + H), 0], 'during the test: takeover on, card gone');
+  assert.strictEqual(A.publicView(await s4.list('confluence'), now + 15 * D + H + 1000, 'confluence').drill, null, 'it ends by itself');
+  await assert.rejects(() => A.create(s4, 'confluence', { kind: 'drill', title: 'x', startsAt: at(15 * D + 1800000), endsAt: at(15 * D + 2 * H) }, 'm', now + 40), /already scheduled at that time/);
+  await assert.rejects(() => A.create(s4, 'confluence', { kind: 'drill', title: 'x', startsAt: at(D), endsAt: at(D + 5 * H) }, 'm', now + 40), /4 hours/);
+  // Cancelling the test also removes its card, whichever of the two is cancelled.
+  assert.strictEqual((await A.listOpen(s4, 'confluence', now + 50)).filter((a) => a.group === drill.id).length, 2);
+  await A.end(s4, 'confluence', drill.id + 'c');
+  assert.ok((await A.listOpen(s4, 'confluence', now + 50)).every((a) => a.kind === 'notice'));
+  // A test that starts right away has no announcement card.
+  const nowDrill = await A.create(s4, 'confluence', { kind: 'drill', title: 'Alarm test', endsAt: at(1800000), announce: true }, 'm', now + 60);
+  assert.strictEqual(nowDrill.group, undefined);
+  // 3. A real emergency: typed, immediate, with the building's own route details only when they are on file.
+  await assert.rejects(() => A.create(s4, 'confluence', { kind: 'emergency', title: 'x', endsAt: at(H) }, 'm', now + 70), /type of emergency/, 'no type, no emergency');
+  await assert.rejects(() => A.create(s4, 'confluence', { kind: 'emergency', type: 'meteor', title: 'x', endsAt: at(H) }, 'm', now + 70), /type of emergency/);
+  await assert.rejects(() => A.create(s4, 'confluence', { kind: 'emergency', type: 'fire', title: 'x', startsAt: at(H), endsAt: at(2 * H) }, 'm', now + 70), /cannot be scheduled/);
+  await A.create(s4, 'confluence', { kind: 'emergency', type: 'fire', title: 'Fire in the building', text: 'Leave now.', endsAt: at(H) }, 'm', now + 70);
+  v = A.publicView(await s4.list('confluence'), now + 80, 'confluence');
+  assert.deepStrictEqual([v.emergency.action, v.emergency.headline, v.emergency.route, v.emergency.assembly], ['evacuate', 'EVACUATE NOW', '', '']);
+  assert.ok(v.drill && v.notices.length === 3, 'the screen decides what to show on top; nothing is lost');
+  A.SCREENS.confluence.safety = { route: 'Stairs A and B', assembly: 'Parking lot' };
+  assert.deepStrictEqual(Object.values(A.publicView(await s4.list('confluence'), now + 80, 'confluence').emergency).slice(-2), ['Stairs A and B', 'Parking lot']);
+  A.SCREENS.confluence.safety = { route: '', assembly: '' };
+  const s5 = memStore();
+  await A.create(s5, 'confluence', { kind: 'emergency', type: 'threat', title: 'Danger in the building', endsAt: at(H) }, 'm', now);
+  v = A.publicView(await s5.list('confluence'), now + 1, 'confluence').emergency;
+  assert.deepStrictEqual([v.action, v.headline, v.route], ['shelter', 'TAKE SHELTER', ''], 'no evacuation route on a shelter screen');
+  for (const t of Object.values(A.EMERGENCIES)) assert.ok(['evacuate', 'shelter'].includes(t.action) && t.headline && t.title && t.text);
 
   // Uploaded images: real JPG, PNG or WebP only, size capped, and removed with their announcement.
   const s2 = memStore(); clock.now = now;

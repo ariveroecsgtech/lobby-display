@@ -14,11 +14,11 @@ app.http('community', {
       assertScreen(screen);
       const hit = cache.get(screen), now = Date.now();
       let body = hit && now - hit.at < 8000 ? hit.body : null;
-      if (!body) { body = publicView(await store.list(screen), now); cache.set(screen, { at: now, body }); }
+      if (!body) { body = publicView(await store.list(screen), now, screen); cache.set(screen, { at: now, body }); }
       return { status: 200, jsonBody: body, headers: { 'Cache-Control': 'no-store' } };
     } catch (err) {
       if (err.code === 'unknown_screen') return { status: 404, jsonBody: { error: 'Unknown screen' } };
-      if (err.code === 'not_configured') return { status: 200, jsonBody: { emergency: null, items: [], notConfigured: true }, headers: { 'Cache-Control': 'no-store' } };
+      if (err.code === 'not_configured') return { status: 200, jsonBody: { emergency: null, drill: null, notices: [], items: [], notConfigured: true }, headers: { 'Cache-Control': 'no-store' } };
       context.error('community failed', err);
       return { status: 502, jsonBody: { error: 'Announcements unavailable' } };
     }

@@ -14,7 +14,9 @@ Informational screen for a building lobby. Pilot: Confluence, 26 Belden Ave, Nor
 | Drive times | Live when hosted and `AZURE_MAPS_KEY` is set | `/api/drive`: Stamford, New Haven and Danbury with live traffic from Azure Maps. Each destination lists the highways Azure Maps returned (I-95, Merritt, Route 7), fastest first; a highway only appears if Azure Maps offers a route on it |
 | Feels like, wind, sunrise/sunset, next two days | Live | Computed in the browser from the National Weather Service forecast; sun times from NOAA's equation |
 | Community panel | Live when hosted | Cards published from the manager page (`/manage`), read from `/api/community` every 15 seconds. With nothing published it shows a welcome card. The cards in `CONFIG.community` (including an invented sponsored bakery) only appear in sample mode, labeled "Sample" |
-| Emergency alert | Live when hosted | Published from `/manage`; covers the screen except the clock until it ends or is cleared |
+| Service notices | Live when hosted | Published from `/manage` (water, elevator, power...). Shown in the strip under the clock, taking turns with the weather alert. Never cover the screen |
+| Scheduled test | Live when hosted | Published from `/manage` (fire alarm test). Covers the screen in amber only between its start and end; can be scheduled ahead with an announcement card, and cancelled |
+| Real emergency | Live when hosted | Published from `/manage`. Red screen with a slow pulse (one every 1.6 s, well under the 3 per second seizure threshold) and a beep where the kiosk allows sound. Evacuate or shelter wording by type. Shows the building's way out and meeting point only if they are on file in `SCREENS[...].safety` |
 | Open today (building hours) | **Sample** | `CONFIG.buildingHours`, labeled "Sample hours" until the real hours are confirmed |
 | Markets strip | **Simulated** | Random demo numbers for showing the layout, labeled "Simulated · demo only" on screen. Not real quotes |
 | Sports results (demo) | **Simulated** | Invented NBA, NFL, NHL, MLB scores (city names only) and a made-up golf leaderboard, labeled "Simulated · demo only". Not real results |
@@ -66,6 +68,16 @@ The test builds a fake Metro-North feed, so it runs offline. The real MTA feed h
 - Track numbers appear only when Metro-North has posted one for that stop; the feed often has none until shortly before departure.
 - The NewsData.io and Azure Maps calls are tested with simulated responses only until their keys are configured.
 - MTA feeds are subject to MTA's developer terms and conditions.
+
+## Alerts
+
+Three levels, all from `/manage` → Alerts and notices, all confirmed on a preview step:
+
+1. **Service notice** (`kind: notice`): up to 3; strip under the clock; ends at the chosen date and time.
+2. **Scheduled test** (`kind: drill`): covers the screen for its duration (4 hours at most), now or at a future date and time. With "announce" it also creates a card in the Community panel until the test starts; the two share a `group`, so cancelling either removes both.
+3. **Real emergency** (`kind: emergency`): must carry a type from `EMERGENCIES` in `api/lib/announcements.js` (fire, gas, bomb, evacuate, threat, earthquake, tornado, hurricane, shelter); there is no default type. Starts immediately, 24 hours at most, one at a time, cleared from the manager page.
+
+The screen is a support for the building's emergency plan, not a life-safety system: it does not replace the fire alarm or a call to 911. Sound needs the kiosk browser started with autoplay allowed (Chrome: `--autoplay-policy=no-user-gesture-required`) and the TV volume on; `CONFIG.emergencySound` turns it off. The way out and meeting point must come from the building's emergency plan and are entered by ECSG in `SCREENS[...].safety`; while empty, the screen shows none.
 
 ## Manager page
 

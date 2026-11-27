@@ -146,15 +146,38 @@
   #cNext .nx b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
   #cNext .nx span { color: var(--soft); }
 
-  /* emergency takeover: published by the manager, covers everything except the clock */
-  #emergency { display: none; position: absolute; left: 40px; right: 40px; top: 160px; bottom: 40px; z-index: 5; border-radius: 24px; background: var(--bad); color: #2A0F08; padding: 72px 88px; flex-direction: column; justify-content: center; gap: 28px; }
+  /* strip under the clock: weather alerts (amber) and building service notices (white) take turns here; nothing else moves */
+  #alert.building { background: #F4F7FB; }
+  #alertTag { flex-shrink: 0; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; background: var(--bg); color: #F4F7FB; border-radius: 8px; padding: 6px 14px; white-space: nowrap; }
+  #alertTag:empty { display: none; }
+  #alertMore { flex-shrink: 0; margin-left: auto; font-size: 24px; font-weight: 600; opacity: 0.7; white-space: nowrap; }
+
+  /* full-screen takeovers, published by the manager. They cover everything except the clock.
+     drill = a scheduled test (calm, amber). real = a real emergency (red, slow pulse). */
+  #emergency { display: none; position: absolute; left: 40px; right: 40px; top: 160px; bottom: 40px; z-index: 5; border-radius: 24px; background: var(--bad); color: #2A0F08; padding: 64px 88px; flex-direction: column; justify-content: center; gap: 26px; }
   #emergency.active { display: flex; }
   #emLabel { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; }
+  #emHeadline { display: none; font-size: 170px; font-weight: 700; line-height: 0.95; letter-spacing: -5px; }
   #emTitle { font-size: 132px; font-weight: 700; line-height: 1; letter-spacing: -3px; }
   #emText { font-size: 54px; font-weight: 500; line-height: 1.25; }
-  #emFrom { font-size: 28px; font-weight: 600; opacity: 0.8; }
+  #emWhere { display: none; gap: 24px; }
+  #emWhere div { flex: 1 1 0; background: rgba(0, 0, 0, 0.28); border-radius: 18px; padding: 18px 26px; font-size: 40px; font-weight: 700; line-height: 1.2; }
+  #emWhere div:empty { display: none; }
+  #emWhere small { display: block; font-size: 22px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; opacity: 0.85; margin-bottom: 4px; }
+  #emFrom { font-size: 28px; font-weight: 600; opacity: 0.85; }
+  #emergency.drill { background: var(--accent); color: #1F1503; }
+  #emergency.real { background: #B42318; color: #FFFFFF; gap: 20px; padding: 48px 80px; animation: empulse 1.6s ease-in-out infinite; }
+  #emergency.real #emHeadline { display: block; }
+  #emergency.real #emTitle { font-size: 64px; letter-spacing: -1px; }
+  #emergency.real #emText { font-size: 46px; }
+  #emergency.real #emWhere { display: flex; }
+  /* one slow pulse every 1.6 seconds: enough to catch the eye, far below the 3 flashes a second that can trigger seizures */
+  @keyframes empulse { 0%, 100% { background: #B42318; box-shadow: 0 0 0 0 rgba(255, 90, 70, 0); } 50% { background: #D92D20; box-shadow: 0 0 0 22px rgba(255, 90, 70, 0.55); } }
+  @media (prefers-reduced-motion: reduce) { #emergency.real { animation: none; } }
   .mobile #emergency { position: static; padding: 36px; order: -1; }
   .mobile #emTitle { font-size: 76px; } .mobile #emText { font-size: 38px; }
+  .mobile #emHeadline { font-size: 88px; letter-spacing: -2px; } .mobile #emergency.real #emTitle { font-size: 44px; }
+  .mobile #emWhere { flex-direction: column; } .mobile #alertMore { display: none; }
 
   /* footer */
   #footer { height: 120px; flex-shrink: 0; display: flex; gap: 24px; align-items: stretch; }
@@ -242,7 +265,9 @@
 
   <div id="alert">
     <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17h-19L12 3z"></path><path d="M12 10v4.5M12 17.5h.01"></path></svg>
+    <span id="alertTag"></span>
     <span id="alertText"></span>
+    <span id="alertMore"></span>
   </div>
 
   <div id="main">
@@ -295,9 +320,11 @@
   </div>
 
   <div id="emergency" role="alert">
-    <div id="emLabel"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17h-19L12 3z"></path><path d="M12 10v4.5M12 17.5h.01"></path></svg>Building alert</div>
+    <div id="emLabel"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17h-19L12 3z"></path><path d="M12 10v4.5M12 17.5h.01"></path></svg><span id="emLabelText">Building alert</span></div>
+    <div id="emHeadline" class="num"></div>
     <div id="emTitle" class="num"></div>
     <div id="emText"></div>
+    <div id="emWhere"><div id="emRoute"></div><div id="emAssembly"></div></div>
     <div id="emFrom"></div>
   </div>
 
@@ -348,6 +375,7 @@ const CONFIG = {
   nightDim: [23, 5],      // dim the screen between these hours
   aqiNotable: 100,        // air quality only appears above this value
   uvNotable: 6,           // UV only appears at or above this value
+  emergencySound: true,   // beep during a real emergency (needs autoplay allowed on the kiosk browser and the TV volume on)
 
   // Building hours shown in the "Open today" panel. sample: true keeps a "Sample" label on screen
   // until the real hours are confirmed with the building. An empty list hides the panel.
@@ -590,10 +618,20 @@ async function loadAlerts() {
     showAlert('');
   }
 }
-function showAlert(text) {
-  $('alert').classList.toggle('active', !!text);
-  $('stage').classList.toggle('has-alert', !!text);
-  $('alertText').textContent = text;
+/* The strip shows one message at a time: the weather alert and any building service notices take turns every 8 seconds. */
+let wxAlert = '', notes = [], stripIdx = 0;
+function showAlert(text) { wxAlert = text || ''; drawStrip(false); }
+function drawStrip(advance) {
+  const list = (wxAlert ? [{ weather: true, text: wxAlert }] : []).concat(notes.map((n) => ({ tag: 'Building notice', text: n.title + (n.text ? ' · ' + n.text : '') })));
+  $('alert').classList.toggle('active', list.length > 0);
+  $('stage').classList.toggle('has-alert', list.length > 0);
+  if (!list.length) return;
+  if (advance) stripIdx++;
+  const m = list[stripIdx % list.length];
+  $('alert').classList.toggle('building', !m.weather);
+  $('alertTag').textContent = m.tag || '';
+  $('alertText').textContent = m.text;
+  $('alertMore').textContent = list.length > 1 ? (stripIdx % list.length + 1) + ' of ' + list.length : '';
 }
 
 /* ---------- air quality + UV: Open-Meteo (free for non-commercial use). Hidden unless notable. ---------- */
@@ -752,14 +790,18 @@ function buildSequence() {
 async function loadCommunity() {
   if (PREVIEW) {
     cItems = PREVIEW.item ? [PREVIEW.item] : []; cSample = false;
-    showEmergency(PREVIEW.emergency || null);
+    showEmergency(PREVIEW.emergency || null, PREVIEW.drill || null); notes = PREVIEW.notice ? [PREVIEW.notice] : []; drawStrip(false);
     $('cBadge').textContent = 'Preview';
-  } else if (SAMPLE_MODE) { cItems = CONFIG.community.items; cSample = CONFIG.community.sample; showEmergency(location.hash === '#emergency' ? { title: 'Fire alarm test', text: 'Testing until 2:00 PM. No action is needed.' } : null); }
+  } else if (SAMPLE_MODE) { cItems = CONFIG.community.items; cSample = CONFIG.community.sample; const demo = { '#emergency': [null, { title: 'Fire alarm test', text: 'The alarm will sound. This is only a test. No action is needed.', until: new Date(Date.now() + 3600000).toISOString() }],
+      '#fire': [{ action: 'evacuate', headline: 'EVACUATE NOW', title: 'Fire in the building', text: 'Leave now by the nearest stairs. Do not use the elevators.', route: location.search.includes('route') ? 'Stairs A and B, by the elevators' : '', assembly: location.search.includes('route') ? 'Sample meeting point' : '' }, null],
+      '#shelter': [{ action: 'shelter', headline: 'TAKE SHELTER', title: 'Danger in the building', text: 'Stay inside your apartment. Lock the door. Stay away from doors and windows.' }, null] }[location.hash] || [null, null];
+    showEmergency(demo[0], demo[1]);
+    notes = location.hash === '#notice' ? [{ title: 'Water shut-off', text: 'Water is off on floors 3 to 6 until 2 PM.' }, { title: 'Elevator out of service', text: 'Please use elevator B or the stairs.' }] : []; drawStrip(false); }
   else {
     try {
       const d = await getJSON('/api/community?screen=' + encodeURIComponent(CONFIG.screenId));
       cItems = d.items; cSample = false;
-      showEmergency(d.emergency);
+      showEmergency(d.emergency, d.drill || null); notes = d.notices || []; drawStrip(false);
     } catch (e) { console.error('Announcements failed', e); }     // keep what is on screen; the next check is 15 seconds away
   }
   // Redraw right away when the card on screen was removed, or when something new arrives while the welcome card is up.
@@ -768,12 +810,46 @@ async function loadCommunity() {
   if (cIdx < 0 || !ids.includes(cShownId)) { cPos = Math.max(-1, Math.min(cPos, cSeq.length) - 1); showCommunity(); }
   else { cIdx = ids.indexOf(cShownId); const here = cSeq.findIndex((x, i) => i >= cPos && (x.id || x.title) === cShownId); cPos = here >= 0 ? here : cSeq.findIndex((x) => (x.id || x.title) === cShownId); drawCommunityExtras(); }
 }
-function showEmergency(em) {
-  $('emergency').classList.toggle('active', !!em);
-  if (!em) return;
-  $('emTitle').textContent = em.title;
-  $('emText').textContent = em.text || '';
-  $('emFrom').textContent = CONFIG.buildingName + ' management office';
+/* Takeovers. A real emergency always wins over a scheduled test. */
+function showEmergency(em, drill) {
+  const box = $('emergency'), real = em && (em.action === 'evacuate' || em.action === 'shelter');
+  const shown = em || drill;
+  box.classList.toggle('active', !!shown);
+  box.classList.toggle('real', !!real);
+  box.classList.toggle('drill', !em && !!drill);
+  soundAlarm(!!real && !PREVIEW);
+  if (!shown) return;
+  if (real) {
+    $('emLabelText').textContent = 'Emergency';
+    $('emHeadline').textContent = em.headline || (em.action === 'evacuate' ? 'EVACUATE NOW' : 'TAKE SHELTER');
+    $('emRoute').innerHTML = em.route ? '<small>Way out</small>' + esc(em.route) : '';
+    $('emAssembly').innerHTML = em.assembly ? '<small>Meeting point</small>' + esc(em.assembly) : '';
+    $('emFrom').textContent = 'In immediate danger, call 911. Follow instructions from emergency responders.';
+  } else {
+    $('emLabelText').textContent = em ? 'Building alert' : 'Scheduled test';
+    $('emFrom').textContent = (shown.until ? 'Ends at ' + fmtTime(new Date(shown.until)) + ' · ' : '') + CONFIG.buildingName + ' management office';
+  }
+  $('emTitle').textContent = shown.title;
+  $('emText').textContent = shown.text || '';
+}
+/* Alarm tone for a real emergency: three short beeps every two seconds. Browsers only allow sound without a click when the
+   kiosk is started with autoplay allowed, and the TV volume must be on; if either is missing this stays silent and nothing breaks. */
+let alarmTimer = null, audioCtx = null;
+function soundAlarm(on) {
+  if (!on || !CONFIG.emergencySound) { if (alarmTimer) { clearInterval(alarmTimer); alarmTimer = null; } return; }
+  if (alarmTimer) return;
+  const beep = () => {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+      for (let i = 0; i < 3; i++) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime + i * 0.32;
+        o.type = 'square'; o.frequency.value = 880; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+        o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.26);
+      }
+    } catch (e) { /* no audio available */ }
+  };
+  beep(); alarmTimer = setInterval(beep, 2000);
 }
 function showCommunity() {
   const seq = cSeq.length ? cSeq : [WELCOME];
@@ -931,7 +1007,7 @@ function start() {
     if (CONFIG.footer === 'demo') { demoFooterStep(); setInterval(demoFooterStep, 8000); }
   }
   loadWeather(); setInterval(loadWeather, CONFIG.weatherRefreshMin * 60000);
-  loadAlerts(); setInterval(loadAlerts, CONFIG.weatherRefreshMin * 60000);
+  loadAlerts(); setInterval(loadAlerts, CONFIG.weatherRefreshMin * 60000); setInterval(() => drawStrip(true), 8000);
   loadAir(); setInterval(loadAir, CONFIG.airRefreshMin * 60000);
 }
 start();
