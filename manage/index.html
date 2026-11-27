@@ -319,7 +319,7 @@ function renderHome() {
   $('aList').innerHTML = alerts.map((x) => { const test = x.kind === 'drill';
     return '<div class="item"><div class="main"><div class="t">' + esc(x.title) + '</div><div class="s"><span class="kind ' + (test ? 'poster' : '') + '">' + (test ? 'Test' : 'Notice') + '</span>' +
       (test ? (x.live ? 'covering the screen now, until ' + esc(fmtEnd(x.endsAt)) : 'covers the screen ' + esc(fmtEnd(x.startsAt)) + ' to ' + esc(new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(x.endsAt)))) : 'until ' + esc(fmtEnd(x.endsAt))) +
-      '</div></div><button type="button" class="end" data-end="' + esc(x.id) + '" aria-label="' + (test ? 'Cancel ' : 'End ') + esc(x.title) + '">' + (test ? 'Cancel' : 'End now') + '</button></div>'; }).join('');
+      '</div></div><button type="button" class="end" data-end="' + esc(x.id) + '"' + (x.group ? ' data-group="1"' : '') + ' aria-label="' + (test ? 'Cancel ' : 'End ') + esc(x.title) + '">' + (test ? 'Cancel test' : 'End now') + '</button></div>'; }).join('');
   const rest = state.items.filter((x) => x.kind === 'card' || x.kind === 'poster');
   const n = (k) => rest.filter((x) => x.kind === k).length;
   $('hCount').textContent = rest.length + ' of ' + state.limits.total + ' · ' + n('card') + (n('card') === 1 ? ' card, ' : ' cards, ') + n('poster') + (n('poster') === 1 ? ' poster' : ' posters');
@@ -327,7 +327,7 @@ function renderHome() {
   $('hList').innerHTML = rest.length ? rest.map((x) =>
     '<div class="item"><div class="main"><div class="t">' + esc(x.title) + '</div><div class="s"><span class="kind ' + esc(x.kind) + '">' + esc(x.kind) + '</span>' +
     (x.live ? '' : '<span class="kind sched">Scheduled</span>') + (x.group ? '<span class="kind sched">Announces a test</span>' : '') + (x.featured ? '<span class="kind sched">Featured</span>' : '') +
-    'until ' + esc(fmtEnd(x.endsAt)) + '</div></div><button type="button" class="end" data-end="' + esc(x.id) + '" aria-label="End ' + esc(x.title) + ' now">End now</button></div>').join('')
+    'until ' + esc(fmtEnd(x.endsAt)) + '</div></div><button type="button" class="end" data-end="' + esc(x.id) + '"' + (x.group ? ' data-group="1"' : '') + ' aria-label="' + (x.group ? 'Cancel the test ' : 'End ') + esc(x.title) + '">' + (x.group ? 'Cancel test' : 'End now') + '</button></div>').join('')
     : '<div class="empty">Nothing is published. The screen shows a welcome card until you add an announcement.</div>';
 }
 async function refresh() {
@@ -551,11 +551,12 @@ async function endItem(id, btn) {
   if (!id) return say('Reload the page and try again.', 'err');
   if (btn.dataset.sure !== '1') {
     btn.dataset.sure = '1'; btn.dataset.label = btn.textContent; btn.textContent = 'Tap again to confirm';
+    if (btn.dataset.group) say('Cancelling removes both the test and its announcement card. The screen will not be covered.', 'ok');
     clearTimeout(btn._timer); btn._timer = setTimeout(() => resetEndButton(btn), 6000);
     return;
   }
   clearTimeout(btn._timer); btn.disabled = true; btn.textContent = 'Removing…';
-  try { state = { ...state, ...(await api('DELETE', 'announcements/' + encodeURIComponent(id))) }; renderHome(); say('Removed from the lobby screen.', 'ok'); }
+  try { state = { ...state, ...(await api('DELETE', 'announcements/' + encodeURIComponent(id))) }; const both = !!btn.dataset.group; renderHome(); say(both ? 'Test cancelled. Its announcement card was removed too, and the screen will not be covered.' : 'Removed from the lobby screen.', 'ok'); }
   catch (e) { say(e.message, 'err'); }
   resetEndButton(btn);
 }
