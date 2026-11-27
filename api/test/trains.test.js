@@ -44,6 +44,10 @@ const fakeFetch = async (url) => { calls++; return { ok: true, status: 200, arra
   assert.deepStrictEqual([by['New Haven'].next.inMin, by['New Haven'].next.tripMin, by['New Haven'].next.status], [22, 48, '6 min late']);
   assert.strictEqual(by['Atlantis'].known, false);
   assert.strictEqual(by['Atlantis'].next, null);
+  // The train after the next one, for people who will miss the first.
+  assert.strictEqual(by['Grand Central'].then.inMin, 36);
+  assert.strictEqual(by['Stamford'].then, null);
+  assert.strictEqual(by['Atlantis'].then, null);
   // Track numbers come from Metro-North's extension field 1005, which the standard decoder ignores.
   const { Writer } = require('protobufjs/minimal');
   const { extractTracks } = require('../lib/mnr');

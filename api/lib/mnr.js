@@ -112,7 +112,7 @@ async function getDepartures(stationName, opts = {}) {
 
   // Optional: the next train from this station that also stops at each requested destination.
   const idsFor = (name) => new Set([...stops].filter(([, n]) => norm(n) === norm(name)).map(([id]) => id));
-  const wanted = toNames.map((name) => ({ name, ids: idsFor(name), best: null }));
+  const wanted = toNames.map((name) => ({ name, ids: idsFor(name), trains: [] }));
 
   const departures = [];
   for (const entity of feed.entity) {
@@ -133,8 +133,7 @@ async function getDepartures(stationName, opts = {}) {
     for (const w of wanted) {
       const stop = updates.slice(hereIdx + 1).find((u) => w.ids.has(String(u.stopId)));
       const arr = stop && toNumber((stop.arrival || stop.departure || {}).time);
-      if (!arr || (w.best && w.best.timeMs <= timeMs)) continue;
-      w.best = { timeMs, arriveMs: arr * 1000, delayMin, track };
+      if (arr) w.trains.push({ timeMs, arriveMs: arr * 1000, delayMin, track });
     }
     departures.push({
       time: new Date(timeMs).toISOString(),
@@ -154,19 +153,20 @@ async function getDepartures(stationName, opts = {}) {
     feedTime: feedTime ? new Date(feedTime * 1000).toISOString() : null,
     generatedAt: new Date(now).toISOString(),
     departures: departures.slice(0, limit),
-    destinations: wanted.map((w) => ({
-      destination: w.name,
-      known: w.ids.size > 0,
-      next: w.best && {
-        time: new Date(w.best.timeMs).toISOString(),
-        inMin: Math.max(0, Math.round((w.best.timeMs - now) / 60000)),
-        arrive: new Date(w.best.arriveMs).toISOString(),
-        tripMin: Math.max(0, Math.round((w.best.arriveMs - w.best.timeMs) / 60000)),
-        delayMin: w.best.delayMin,
-        track: w.best.track,
-        status: w.best.delayMin >= 1 ? w.best.delayMin + ' min late' : 'On time'
-      }
-    }))
+    // "next" is the first train to board; "then" is the one after it, for people who will miss the first.
+    destinations: wanted.map((w) => {
+      const [first, second] = w.trains.sort((a, b) => a.timeMs - b.timeMs);
+      const shape = (t) => t && {
+        time: new Date(t.timeMs).toISOString(),
+        inMin: Math.max(0, Math.round((t.timeMs - now) / 60000)),
+        arrive: new Date(t.arriveMs).toISOString(),
+        tripMin: Math.max(0, Math.round((t.arriveMs - t.timeMs) / 60000)),
+        delayMin: t.delayMin,
+        track: t.track,
+        status: t.delayMin >= 1 ? t.delayMin + ' min late' : 'On time'
+      };
+      return { destination: w.name, known: w.ids.size > 0, next: shape(first) || null, then: shape(second) || null };
+    })
   };
   departuresCache.set(key, { at: now, body });
   return body;

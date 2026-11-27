@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
 <style>
   :root {
-    --bg: #0B1220; --card: #131C2E; --line: #25324A;
+    --bg: #0B1220; --card: #131C2E; --line: #25324A; --chip: #1B2740;
     --text: #F4F7FB; --soft: #C9D4E5; --muted: #9FB0C8;
     --accent: #F5B544; --good: #5EE0A0; --bad: #FFA48F;
   }
@@ -18,122 +18,189 @@
   .num { font-family: 'Space Grotesk', Inter, sans-serif; }
   #stage {
     position: absolute; left: 50%; top: 50%;
-    width: 1920px; height: 1080px; padding: 48px;
+    width: 1920px; height: 1080px; padding: 40px;
     transform-origin: center center; transition: opacity 2s;
     display: flex; flex-direction: column; gap: 24px;
   }
   #stage.night { opacity: 0.55; }
   .card { background: var(--card); border-radius: 24px; }
-  .label { font-size: 24px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
-  .badge { font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 6px; padding: 4px 10px; white-space: nowrap; }
+  .label { font-size: 22px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  .badge { font-size: 15px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 6px; padding: 4px 10px; white-space: nowrap; }
   .badge.sample { color: var(--muted); border: 1.5px solid #6B7C99; }
   .badge.live { color: var(--bg); background: var(--good); }
   .badge.stale { color: var(--bg); background: var(--bad); }
   .head { display: flex; align-items: center; gap: 14px; }
   .head .badge { margin-left: auto; }
-  .rows { display: flex; flex-direction: column; flex-grow: 1; justify-content: space-around; }
+  .rows { display: flex; flex-direction: column; flex-grow: 1; justify-content: space-around; min-height: 0; }
   .good { color: var(--good); } .bad { color: var(--bad); } .mid { color: var(--accent); }
 
   /* header */
-  #header { height: 104px; display: flex; justify-content: space-between; align-items: center; }
+  #header { height: 96px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
   #bname { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--soft); }
   #bname i { display: block; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); }
+  #hright { display: flex; align-items: center; gap: 36px; }
   #clock { display: flex; align-items: baseline; gap: 18px; }
-  #date { font-size: 34px; font-weight: 500; color: var(--soft); margin-right: 20px; }
-  #time { font-size: 104px; font-weight: 600; line-height: 1; letter-spacing: -2px; }
-  #ampm { font-size: 40px; font-weight: 500; color: var(--muted); }
+  #date { font-size: 34px; font-weight: 500; color: var(--soft); margin-right: 18px; }
+  #time { font-size: 96px; font-weight: 600; line-height: 1; letter-spacing: -2px; }
+  #ampm { font-size: 38px; font-weight: 500; color: var(--muted); }
+  #qr { display: flex; align-items: center; gap: 16px; padding-left: 36px; border-left: 3px solid var(--line); }
+  #qr .txt { font-size: 24px; font-weight: 600; line-height: 1.25; color: var(--soft); text-align: right; }
+  #qrBox { width: 92px; height: 92px; background: #FFFFFF; border-radius: 10px; padding: 4px; flex-shrink: 0; }
+  #qrBox img { display: block; width: 100%; height: 100%; }
 
-  /* alert takeover */
-  #alert { display: none; height: 84px; border-radius: 18px; background: var(--accent); color: var(--bg); padding: 0 32px; align-items: center; gap: 18px; font-size: 38px; font-weight: 700; }
+  /* weather alert banner */
+  #alert { display: none; height: 72px; flex-shrink: 0; border-radius: 18px; background: var(--accent); color: var(--bg); padding: 0 32px; align-items: center; gap: 18px; font-size: 34px; font-weight: 700; }
   #alert.active { display: flex; }
   #alertText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+  /* when the weather alert banner is showing, everything below gives up a little height */
+  .has-alert #weather { height: 196px; padding: 10px 36px; }
+  .has-alert #wxTemp { font-size: 112px; }
+  .has-alert #wxIcon { width: 96px; height: 96px; }
+  .has-alert #wxMore { display: none; }
+  .has-alert #trains, .has-alert #drive { padding: 14px 32px; gap: 2px; }
+  .has-alert .row2 .big { font-size: 46px; }
+  .has-alert #notice { padding: 8px 20px; }
+  .has-alert #noticeText { -webkit-line-clamp: 1; }
+  .has-alert #cCard { zoom: 0.86; }
+
   /* main */
   #main { flex-grow: 1; display: flex; gap: 24px; min-height: 0; }
-  #weather { flex: 1 1 0; padding: 28px 44px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-  #wxNow { display: flex; align-items: center; gap: 36px; }
-  #wxIcon { width: 170px; height: 170px; flex-shrink: 0; }
-  #wxTemp { font-size: 190px; font-weight: 600; line-height: 0.95; letter-spacing: -6px; }
-  #wxDesc { font-size: 38px; color: var(--soft); }
-  #wxHint { font-size: 46px; font-weight: 700; color: var(--accent); line-height: 1.1; min-height: 60px; }
-  #wxExtra { display: flex; gap: 14px; flex-wrap: wrap; }
-  #wxExtra span { font-size: 26px; font-weight: 600; color: var(--bg); background: var(--bad); border-radius: 10px; padding: 6px 16px; }
-  #hourly { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 22px; }
-  .hr { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 110px; }
-  .hr .t { font-size: 26px; color: var(--muted); }
-  .hr .v { font-size: 46px; font-weight: 600; }
-  .hr .d { font-size: 24px; color: var(--soft); }
-  #right { flex: 1 1 0; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
-  #trains, #drive { flex: 1 1 0; padding: 22px 36px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
-  .trow { display: grid; grid-template-columns: 190px 1fr 190px; align-items: center; column-gap: 18px; }
-  .trow .in { font-size: 50px; font-weight: 600; line-height: 1; }
-  .trow .in small { font-size: 28px; font-weight: 500; color: var(--muted); margin-left: 8px; }
-  .trow .dest { font-size: 33px; font-weight: 600; line-height: 1.15; }
-  .trow .sub { font-size: 22px; color: var(--muted); line-height: 1.2; white-space: nowrap; }
-  .trow .st { font-size: 30px; font-weight: 700; text-align: right; }
-  .trow .trk { font-size: 24px; font-weight: 600; color: var(--soft); line-height: 1.2; }
-  .tmsg { font-size: 34px; color: var(--muted); }
-  .drow { display: grid; grid-template-columns: 1fr 200px 180px; align-items: center; column-gap: 18px; }
-  .drow .to { font-size: 33px; font-weight: 600; line-height: 1.15; }
-  .drow .via { font-size: 22px; color: var(--muted); line-height: 1.2; }
-  .drow .min { font-size: 44px; font-weight: 600; text-align: right; }
-  .drow .st { font-size: 30px; font-weight: 700; text-align: right; }
+  #left { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+  #weather { height: 256px; flex-shrink: 0; padding: 18px 36px; display: flex; align-items: center; justify-content: space-between; gap: 24px; position: relative; }
+  #wxBadge { position: absolute; right: 18px; top: 14px; }
+  #wxNow { display: flex; align-items: center; gap: 22px; min-width: 0; }
+  #wxIcon { width: 116px; height: 116px; flex-shrink: 0; }
+  #wxTemp { font-size: 136px; font-weight: 600; line-height: 1; letter-spacing: -5px; white-space: nowrap; }
+  #wxText { display: flex; flex-direction: column; gap: 3px; min-width: 0; white-space: nowrap; }
+  #wxDesc { font-size: 36px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; max-width: 420px; }
+  #wxHiLo, #wxFeels { font-size: 26px; color: var(--soft); }
+  #wxHint { font-size: 28px; font-weight: 700; line-height: 1.2; color: var(--accent); white-space: normal; max-width: 420px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  #wxExtra { display: flex; gap: 10px; flex-wrap: wrap; }
+  #wxExtra span { font-size: 20px; font-weight: 600; color: var(--bg); background: var(--bad); border-radius: 8px; padding: 3px 12px; }
+  #wxSide { flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; white-space: nowrap; padding-top: 18px; }
+  #hourly { display: flex; gap: 12px; }
+  .hr { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 88px; }
+  .hr .t { font-size: 22px; font-weight: 600; color: var(--muted); }
+  .hr .v { font-size: 40px; font-weight: 600; line-height: 1; }
+  #wxMore { border-top: 3px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 3px; font-size: 24px; color: var(--soft); }
+  #wxMore div { display: flex; justify-content: space-between; gap: 18px; }
+  #wxMore b { font-weight: 600; color: var(--muted); }
+  #pair { flex-grow: 1; min-height: 0; display: flex; gap: 24px; }
+  #trains, #drive { flex: 1 1 0; min-width: 0; padding: 22px 32px; display: flex; flex-direction: column; gap: 6px; min-height: 0; white-space: nowrap; }
+  .row2 { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .row2 .dest { font-size: 36px; font-weight: 600; line-height: 1.15; }
+  .row2 .sub { font-size: 26px; font-weight: 600; color: var(--soft); line-height: 1.2; }
+  .row2 .big { font-size: 52px; font-weight: 600; line-height: 1.05; text-align: right; }
+  .row2 .then { font-size: 24px; font-weight: 600; color: var(--muted); text-align: right; }
+  .tmsg { font-size: 30px; color: var(--muted); white-space: normal; }
+  #notice { display: none; align-items: center; gap: 16px; background: var(--chip); border-radius: 16px; padding: 10px 20px; font-size: 24px; font-weight: 600; line-height: 1.25; white-space: normal; }
+  #notice.active { display: flex; }
+  #notice i { width: 16px; height: 16px; flex-shrink: 0; border-radius: 8px; background: var(--accent); }
+  #noticeText { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  #fastKey { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 600; color: var(--muted); }
+  .dot { width: 14px; height: 14px; flex-shrink: 0; border-radius: 7px; background: var(--good); }
+  .dot.off { background: none; }
+  .opts { display: flex; flex-direction: column; gap: 2px; }
+  .opt { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+  .opt .rd { width: 104px; font-size: 26px; font-weight: 600; }
+  .opt .tm { width: 156px; text-align: right; font-size: 44px; font-weight: 600; line-height: 1.1; }
+  .opt.slow .rd, .opt.slow .tm { color: var(--muted); }
+  .opt.slow .tm { font-size: 36px; }
+
+  /* community panel */
+  #community { width: 600px; flex-shrink: 0; border: 4px solid var(--accent); padding: 20px; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+  #community .head { padding: 0 8px; }
+  #community .label { color: var(--accent); }
+  #cDots { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  #cDots i { width: 10px; height: 10px; border-radius: 5px; background: #3A4A66; }
+  #cDots i.on { width: 32px; background: var(--accent); }
+  #cCard { flex-grow: 1; min-height: 0; border-radius: 18px; padding: 28px 32px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; overflow: hidden; background: var(--c-bg); color: var(--c-text); transition: opacity 0.5s; }
+  #cCard.fade { opacity: 0; }
+  .theme-coffee { --c-bg: #2B1D17; --c-text: #F7EBDD; --c-soft: #E3CDB5; --c-accent: #F5B544; --c-on: #2B1D17; --c-line: #6B4A3A; --c-fill: #3A2820; }
+  .theme-teal { --c-bg: #0F2A33; --c-text: #EAF7F4; --c-soft: #BFDCD6; --c-accent: #F5B544; --c-on: #0F2A33; --c-line: #3C6E78; --c-fill: #1B4652; }
+  .theme-cream { --c-bg: #F3E9DA; --c-text: #2A2018; --c-soft: #2A2018; --c-accent: #B4521E; --c-on: #F3E9DA; --c-line: #B4521E; --c-fill: #E7D3B8; }
+  .theme-navy { --c-bg: #1B2740; --c-text: #F4F7FB; --c-soft: #C9D4E5; --c-accent: #F5B544; --c-on: #0B1220; --c-line: #3A4A66; --c-fill: #25324A; }
+  #cTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  #cEyebrow { font-size: 20px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--c-accent); margin-bottom: 12px; }
+  #cEyebrow.tagged { display: inline-block; letter-spacing: 2.5px; color: var(--c-bg); background: var(--c-text); border-radius: 8px; padding: 5px 12px; }
+  #cTitle { font-weight: 700; line-height: 0.98; letter-spacing: -2px; }
+  #cIcon { width: 150px; height: 150px; flex-shrink: 0; }
+  #cBig { font-size: 76px; font-weight: 700; line-height: 1; letter-spacing: -3px; color: var(--c-accent); }
+  #cText { font-size: 30px; line-height: 1.3; color: var(--c-soft); }
+  #cTags { display: flex; flex-wrap: wrap; gap: 12px; white-space: nowrap; }
+  #cTags span { font-size: 27px; font-weight: 700; border: 3px solid var(--c-line); border-radius: 12px; padding: 6px 18px; }
+  #cTags span:first-child { color: var(--c-on); background: var(--c-accent); border-color: var(--c-accent); }
+  #cNext { display: flex; flex-direction: column; gap: 8px; padding: 0 8px 2px; white-space: nowrap; }
+  #cNext .label { font-size: 19px; color: var(--muted); }
+  #cNext .nx { display: flex; justify-content: space-between; gap: 16px; font-size: 26px; }
+  #cNext .nx b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  #cNext .nx span { color: var(--soft); }
 
   /* footer */
-  #footer { height: 140px; display: flex; gap: 24px; align-items: stretch; }
-  #news { flex-grow: 1; min-width: 0; padding: 0 32px; display: flex; align-items: center; gap: 20px; }
-  #news .tag { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--bg); background: var(--soft); padding: 6px 14px; border-radius: 8px; }
-  #headline { font-size: 34px; font-weight: 500; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex-grow: 1; min-width: 0; }
-  #mkt { flex-grow: 1; min-width: 0; padding: 14px 32px; display: none; flex-direction: column; justify-content: space-between; }
+  #footer { height: 120px; flex-shrink: 0; display: flex; gap: 24px; align-items: stretch; }
+  #news { flex-grow: 1; min-width: 0; padding: 0 28px; display: flex; align-items: center; gap: 20px; }
+  #news .tag, #sports .tag { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--bg); background: var(--soft); padding: 6px 14px; border-radius: 8px; white-space: nowrap; }
+  #headline { font-size: 32px; font-weight: 500; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex-grow: 1; min-width: 0; }
+  #mkt { flex-grow: 1; min-width: 0; padding: 12px 28px; display: none; flex-direction: column; justify-content: space-between; }
   #mkt .mhead { display: flex; align-items: center; justify-content: space-between; }
-  #mkt .label { font-size: 20px; }
-  #mktRows { display: flex; justify-content: space-between; gap: 28px; }
-  .mk { display: flex; align-items: center; gap: 18px; min-width: 0; }
-  .mk .nm { font-size: 22px; color: var(--muted); white-space: nowrap; }
-  .mk .val { font-size: 38px; font-weight: 600; line-height: 1.1; white-space: nowrap; }
-  .mk .chg { font-size: 22px; font-weight: 700; white-space: nowrap; margin-left: 8px; }
-  .mk svg { width: 110px; height: 44px; flex-shrink: 0; }
+  #mkt .label { font-size: 19px; }
+  #mktRows { display: flex; justify-content: space-between; gap: 24px; }
+  .mk { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .mk .nm { font-size: 21px; color: var(--muted); white-space: nowrap; }
+  .mk .val { font-size: 34px; font-weight: 600; line-height: 1.1; white-space: nowrap; }
+  .mk .chg { font-size: 21px; font-weight: 700; white-space: nowrap; margin-left: 6px; }
+  .mk svg { width: 96px; height: 40px; flex-shrink: 0; }
   .footer-markets #mkt { display: flex; }
   .footer-markets #news, .footer-none #news { display: none; }
-  #news .tag { white-space: nowrap; }
-  #sports { flex-grow: 1; min-width: 0; padding: 0 32px; display: none; align-items: center; gap: 24px; }
-  #sports .tag { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--bg); background: var(--soft); padding: 6px 14px; border-radius: 8px; white-space: nowrap; }
-  #sportsRows { flex-grow: 1; min-width: 0; display: flex; justify-content: space-around; gap: 20px; }
-  .gm { display: grid; grid-template-columns: auto auto; column-gap: 16px; row-gap: 2px; align-items: baseline; }
-  .gm div { font-size: 28px; color: var(--soft); white-space: nowrap; line-height: 1.25; }
+  #sports { flex-grow: 1; min-width: 0; padding: 0 28px; display: none; align-items: center; gap: 22px; }
+  #sportsRows { flex-grow: 1; min-width: 0; display: flex; justify-content: space-around; gap: 18px; }
+  .gm { display: grid; grid-template-columns: auto auto; column-gap: 14px; row-gap: 1px; align-items: baseline; }
+  .gm div { font-size: 26px; color: var(--soft); white-space: nowrap; line-height: 1.2; }
   .gm .sc { text-align: right; font-family: 'Space Grotesk', Inter, sans-serif; }
   .gm .win { color: var(--text); font-weight: 700; }
-  .gm .note { grid-column: 1 / -1; font-size: 18px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .gm .note { grid-column: 1 / -1; font-size: 16px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
   .footer-sports #sports { display: flex; }
   .footer-sports #news { display: none; }
-  .mobile #sports { padding: 22px 28px; flex-wrap: wrap; }
-  .mobile #sportsRows { flex-basis: 100%; order: 3; flex-direction: column; gap: 14px; }
-  .mobile #mkt { padding: 22px 28px; gap: 16px; }
-  .mobile #mktRows { flex-direction: column; gap: 14px; }
-  .mobile .mk { justify-content: space-between; }
-  #qr { width: 560px; flex-shrink: 0; padding: 0 8px 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-  #qr .txt { font-size: 28px; font-weight: 600; line-height: 1.25; }
-  #qr .txt small { display: block; font-size: 22px; font-weight: 400; color: var(--muted); }
-  #qrBox { width: 126px; height: 126px; background: #FFFFFF; border-radius: 10px; padding: 4px; flex-shrink: 0; }
-  #qrBox img { display: block; width: 100%; height: 100%; }
+  #hours { width: 600px; flex-shrink: 0; padding: 0 28px; display: none; align-items: center; gap: 24px; white-space: nowrap; }
+  #hours.active { display: flex; }
+  #hours .label { line-height: 1.3; white-space: normal; width: 110px; flex-shrink: 0; }
+  #hoursRows { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 24px; }
+  #hoursRows div { display: flex; justify-content: space-between; gap: 16px; }
+  #hoursRows b { font-weight: 600; }
+  #hoursRows span { color: var(--soft); }
+  #hoursRows .badge { font-size: 12px; padding: 1px 8px; color: var(--muted); }
 
   /* phone layout: same content stacked in one column, opened from the QR code */
   html.mobile, html.mobile body { height: auto; overflow: auto; }
   .mobile #stage { position: static; width: 760px; height: auto; padding: 28px; transform: none; }
   .mobile #header { height: auto; flex-direction: column; align-items: flex-start; gap: 14px; }
   .mobile #clock { flex-wrap: wrap; }
+  .mobile #qr { display: none; }
   .mobile #alert { height: auto; padding: 18px 24px; font-size: 30px; }
   .mobile #alertText, .mobile #headline { white-space: normal; }
-  .mobile #main { flex-direction: column; }
-  .mobile #weather, .mobile #right, .mobile #trains, .mobile #drive { flex: none; }
-  .mobile #weather { gap: 26px; }
-  .mobile #wxTemp { font-size: 170px; }
-  .mobile #wxIcon { width: 150px; height: 150px; }
-  .mobile #trains, .mobile #drive { gap: 20px; }
-  .mobile .rows { gap: 20px; }
+  .mobile #main, .mobile #pair, .mobile #footer { flex-direction: column; }
   .mobile #footer { height: auto; }
-  .mobile #news { padding: 22px 28px; }
-  .mobile #qr { display: none; }
+  .mobile #left, .mobile #trains, .mobile #drive { flex: none; }
+  .mobile #weather { height: auto; flex-direction: column; align-items: flex-start; padding: 28px 32px; }
+  .mobile #weather { padding-top: 52px; }
+  .mobile #wxText { white-space: normal; }
+  .mobile #wxDesc, .mobile #wxHint { max-width: none; }
+  .mobile #wxTemp { font-size: 120px; }
+  .mobile #wxSide { padding-top: 0; width: 100%; }
+  .mobile .has-alert #cCard, .mobile #cCard { zoom: 1; }
+  .mobile #hourly { justify-content: space-between; }
+  .mobile #trains, .mobile #drive { gap: 22px; padding: 28px 32px; }
+  .mobile .rows { gap: 22px; }
+  .mobile #community { width: auto; }
+  .mobile #cCard { min-height: 520px; }
+  .mobile #news { padding: 22px 28px; min-height: 120px; }
+  .mobile #sports { padding: 22px 28px; flex-wrap: wrap; }
+  .mobile #sportsRows { flex-basis: 100%; order: 3; flex-direction: column; gap: 14px; }
+  .mobile #mkt { padding: 22px 28px; gap: 16px; }
+  .mobile #mktRows { flex-direction: column; gap: 14px; }
+  .mobile .mk { justify-content: space-between; }
+  .mobile #hours { width: auto; padding: 22px 28px; }
 </style>
 </head>
 <body>
@@ -141,44 +208,69 @@
 
   <div id="header">
     <div id="bname"><i></i><span id="bnameText"></span></div>
-    <div id="clock">
-      <div id="date"></div>
-      <div id="time" class="num">--:--</div>
-      <div id="ampm" class="num"></div>
+    <div id="hright">
+      <div id="clock">
+        <div id="date"></div>
+        <div id="time" class="num">--:--</div>
+        <div id="ampm" class="num"></div>
+      </div>
+      <div id="qr">
+        <div class="txt">Take it<br>with you</div>
+        <div id="qrBox"><img src="qr.svg" alt="QR code for this screen on your phone"></div>
+      </div>
     </div>
   </div>
 
   <div id="alert">
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17h-19L12 3z"></path><path d="M12 10v4.5M12 17.5h.01"></path></svg>
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17h-19L12 3z"></path><path d="M12 10v4.5M12 17.5h.01"></path></svg>
     <span id="alertText"></span>
   </div>
 
   <div id="main">
-    <div id="weather" class="card">
-      <div class="head"><span class="label" id="wxLabel">Weather</span><span id="wxBadge" class="badge sample">Loading</span></div>
-      <div id="wxNow">
-        <svg id="wxIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
-        <div>
+    <div id="left">
+      <div id="weather" class="card">
+        <span id="wxBadge" class="badge sample">Loading</span>
+        <div id="wxNow">
+          <svg id="wxIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
           <div id="wxTemp" class="num">--°</div>
-          <div id="wxDesc">Loading weather…</div>
+          <div id="wxText">
+            <div id="wxDesc">Loading weather…</div>
+            <div id="wxHiLo"></div>
+            <div id="wxFeels"></div>
+            <div id="wxHint"></div>
+            <div id="wxExtra"></div>
+          </div>
+        </div>
+        <div id="wxSide">
+          <div id="hourly"></div>
+          <div id="wxMore"></div>
         </div>
       </div>
-      <div>
-        <div id="wxHint" class="num"></div>
-        <div id="wxExtra"></div>
+
+      <div id="pair">
+        <div id="trains" class="card">
+          <div class="head"><span class="label" id="trainLabel"></span><span id="trainBadge" class="badge sample">Sample data</span></div>
+          <div id="trainRows" class="rows"></div>
+          <div id="notice"><i></i><span id="noticeText"></span></div>
+        </div>
+        <div id="drive" class="card">
+          <div class="head"><span class="label">Drive times now</span><span id="fastKey"><span class="dot"></span>Fastest</span><span id="driveBadge" class="badge sample">Sample data</span></div>
+          <div id="driveRows" class="rows"></div>
+        </div>
       </div>
-      <div id="hourly"></div>
     </div>
 
-    <div id="right">
-      <div id="trains" class="card">
-        <div class="head"><span class="label" id="trainLabel"></span><span id="trainBadge" class="badge sample">Sample data</span></div>
-        <div id="trainRows" class="rows"></div>
+    <div id="community" class="card">
+      <div class="head"><span class="label">Community</span><span id="cBadge" class="badge sample">Sample</span><div id="cDots"></div></div>
+      <div id="cCard">
+        <div id="cTop">
+          <div><div id="cEyebrow"></div><div id="cTitle" class="num"></div></div>
+          <svg id="cIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+        </div>
+        <div><div id="cBig" class="num"></div><div id="cText"></div></div>
+        <div id="cTags"></div>
       </div>
-      <div id="drive" class="card">
-        <div class="head"><span class="label">Drive times now</span><span id="driveBadge" class="badge sample">Sample data</span></div>
-        <div id="driveRows" class="rows"></div>
-      </div>
+      <div id="cNext"></div>
     </div>
   </div>
 
@@ -197,9 +289,9 @@
       <div class="mhead"><span class="label">Markets</span><span class="badge sample">Simulated · demo only</span></div>
       <div id="mktRows"></div>
     </div>
-    <div id="qr" class="card">
-      <div class="txt">Take this screen with you<small>Scan for live updates on your phone</small></div>
-      <div id="qrBox"><img src="qr.svg" alt="QR code for this screen on your phone"></div>
+    <div id="hours" class="card">
+      <div class="label">Open today</div>
+      <div id="hoursRows"></div>
     </div>
   </div>
 </div>
@@ -218,6 +310,7 @@ const CONFIG = {
   screenId: 'confluence',  // drive-time destinations for this id are set in api/lib/drive.js
   trainStation: 'South Norwalk',
   trainDestinations: ['Grand Central', 'Stamford', 'New Haven'],
+  trainAlertRoutes: ['3', '5'],   // Metro-North route ids for service notices: 3 = New Haven Line, 5 = Danbury Branch
   weatherRefreshMin: 10,
   airRefreshMin: 30,
   newsRotateSec: 12,
@@ -226,7 +319,34 @@ const CONFIG = {
   eveningStartsHour: 15,  // from this hour the screen leads with tomorrow's forecast
   nightDim: [23, 5],      // dim the screen between these hours
   aqiNotable: 100,        // air quality only appears above this value
-  uvNotable: 6            // UV only appears at or above this value
+  uvNotable: 6,           // UV only appears at or above this value
+
+  // Building hours shown in the "Open today" panel. sample: true keeps a "Sample" label on screen
+  // until the real hours are confirmed with the building. An empty list hides the panel.
+  buildingHours: {
+    sample: true,
+    rows: [
+      { name: 'Leasing office', hours: '9 AM to 6 PM' },
+      { name: 'Fitness center', hours: '5 AM to 11 PM' }
+    ]
+  },
+
+  // Community panel. These cards are placeholders until the manager app exists and publishes real ones;
+  // sample: true keeps a "Sample" label on screen. kind 'sponsor' is a paid local-business slot and is
+  // always labeled "Sponsored". The bakery below is an invented business.
+  community: {
+    sample: true,
+    rotateSec: 10,
+    items: [
+      { kind: 'poster', theme: 'coffee', icon: 'cup', eyebrow: 'You are invited', title: 'Coffee Social',
+        text: 'Come to the party room for a cup of coffee and meet your neighbors.',
+        tags: ['Saturday, Nov 28', '9 to 11 AM', 'Party Room'], when: 'Sat 9:00 AM' },
+      { kind: 'sponsor', theme: 'cream', icon: 'bread', eyebrow: 'Sponsored', title: 'Maple & Rye Bakery', big: '10% off',
+        text: 'for Confluence residents, weekdays before 9 AM.', tags: ['3 min walk', 'Say "Confluence"'] },
+      { kind: 'poster', theme: 'teal', icon: 'burst', eyebrow: 'Ring in the new year', title: "New Year's Eve Toast", big: '2027',
+        text: 'Sparkling cider, music and a countdown.', tags: ['Thursday, Dec 31', '8 to 10 PM', 'Party Room'], when: 'Thu Dec 31' }
+    ]
+  }
 };
 
 /* ---------- SAMPLE DATA (replace with real feeds later) ---------- */
@@ -237,18 +357,27 @@ const SAMPLE = {
     'Sample headline: local events this weekend'
   ],
   drive: [
-    { to: 'Stamford', via: 'via I-95 South', min: '18 min', st: 'Light', cls: 'good' },
-    { to: 'New Haven', via: 'via I-95 North', min: '52 min', st: 'Heavy', cls: 'bad' },
-    { to: 'Danbury', via: 'via Route 7', min: '40 min', st: 'Moderate', cls: 'mid' }
+    { to: 'Stamford', traffic: 'Light', options: [{ label: 'I-95', text: '15 min', fastest: true }, { label: 'Merritt', text: '19 min' }] },
+    { to: 'New Haven', traffic: 'Moderate', options: [{ label: 'Merritt', text: '44 min', fastest: true }, { label: 'I-95', text: '52 min' }] },
+    { to: 'Danbury', traffic: 'Moderate', options: [{ label: 'Route 7', text: '38 min', fastest: true }] }
   ],
   trains: [
-    { inMin: 9, tripMin: 66, dest: 'Grand Central', st: 'On time', late: false, trk: '3' },
-    { inMin: 9, tripMin: 16, dest: 'Stamford', st: 'On time', late: false },
-    { inMin: 22, tripMin: 48, dest: 'New Haven', st: '6 min late', late: true }
-  ]
+    { inMin: 9, thenMin: 36, tripMin: 66, dest: 'Grand Central', st: 'On time', late: false, trk: '3' },
+    { inMin: 9, thenMin: 32, tripMin: 16, dest: 'Stamford', st: 'On time', late: false, trk: '3' },
+    { inMin: 22, thenMin: 59, tripMin: 48, dest: 'New Haven', st: '6 min late', late: true, trk: '1' }
+  ],
+  notices: ['Weekend track work: allow 10 extra minutes'],
+  weather: {
+    hourly: [['Partly Cloudy', 44, '8 mph'], ['Partly Cloudy', 46, '8 mph'], ['Mostly Sunny', 47, '7 mph'], ['Mostly Sunny', 49, '7 mph'], ['Mostly Sunny', 48, '6 mph'], ['Partly Cloudy', 45, '6 mph'], ['Partly Cloudy', 43, '5 mph'], ['Mostly Clear', 41, '5 mph'], ['Mostly Clear', 40, '5 mph'], ['Mostly Clear', 39, '5 mph']],
+    daily: [['Today', true, 49], ['Tonight', false, 36], ['Saturday', true, 47], ['Saturday Night', false, 35], ['Sunday', true, 51]]
+  }
 };
 
 /* ---------- helpers ---------- */
+// Live data needs the hosted site. Opened as a local file, or with ?sample in the address, every panel shows labeled sample data.
+const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
+const SAMPLE_MODE = !HOSTED || /[?&]sample\b/.test(location.search);
+const START_CARD = (location.search.match(/[?&]card=(\d+)/) || [])[1];   // ?card=2 opens on that Community card, for previews
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmtTime = (d) => new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: CONFIG.timeZone }).format(d);
@@ -324,11 +453,58 @@ function precipHint(periods) {
     return end ? kind + ' until about ' + fmtHour(new Date(end.startTime)) : kind + ' all day';
   }
   const next = periods.slice(1, 13).find((p) => WET.test(p.shortForecast));
-  if (!next) return 'No rain in the next 12 hours';
+  if (!next) return 'No rain next 12 hours';
   return (FROZEN.test(next.shortForecast) ? 'Snow' : 'Rain') + ' starts around ' + fmtHour(new Date(next.startTime));
+}
+/* Feels-like: wind chill when cold and windy, heat index when hot and humid, otherwise the temperature itself. */
+function feelsLike(p) {
+  const t = p.temperature, w = parseFloat(p.windSpeed) || 0, rh = p.relativeHumidity && p.relativeHumidity.value;
+  if (t <= 50 && w >= 3) return Math.round(35.74 + 0.6215 * t - 35.75 * Math.pow(w, 0.16) + 0.4275 * t * Math.pow(w, 0.16));
+  if (t >= 80 && rh != null) return Math.round(-42.379 + 2.04901523 * t + 10.14333127 * rh - 0.22475541 * t * rh - 0.00683783 * t * t - 0.05481717 * rh * rh + 0.00122874 * t * t * rh + 0.00085282 * t * rh * rh - 0.00000199 * t * t * rh * rh);
+  return t;
+}
+/* Sunrise or sunset for a calendar day at this building, computed locally (NOAA's sunrise equation), no service needed. */
+function sunEvent(y, m, d, rising) {
+  const rad = Math.PI / 180, lat = CONFIG.lat, lngHour = CONFIG.lon / 15;
+  const N = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 0)) / 86400000);
+  const t = N + ((rising ? 6 : 18) - lngHour) / 24;
+  const M = 0.9856 * t - 3.289;
+  const L = (M + 1.916 * Math.sin(M * rad) + 0.020 * Math.sin(2 * M * rad) + 282.634 + 360) % 360;
+  let RA = (Math.atan(0.91764 * Math.tan(L * rad)) / rad + 360) % 360;
+  RA = (RA + Math.floor(L / 90) * 90 - Math.floor(RA / 90) * 90) / 15;
+  const sinDec = 0.39782 * Math.sin(L * rad), cosDec = Math.cos(Math.asin(sinDec));
+  const cosH = (Math.cos(90.833 * rad) - sinDec * Math.sin(lat * rad)) / (cosDec * Math.cos(lat * rad));
+  if (cosH > 1 || cosH < -1) return null;
+  const H = (rising ? 360 - Math.acos(cosH) / rad : Math.acos(cosH) / rad) / 15;
+  const UT = ((H + RA - 0.06571 * t - 6.622 - lngHour) % 24 + 24) % 24;
+  let ms = Date.UTC(y, m - 1, d) + UT * 3600000;
+  // UT is only an hour of day: move it onto the right UTC date for this local day.
+  const localDay = (x) => new Intl.DateTimeFormat('en-CA', { timeZone: CONFIG.timeZone }).format(new Date(x));
+  const want = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  if (localDay(ms) < want) ms += 86400000; else if (localDay(ms) > want) ms -= 86400000;
+  return ms;
+}
+function nextSunEvent() {
+  const now = Date.now();
+  for (const add of [0, 1]) {
+    const [y, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: CONFIG.timeZone }).format(new Date(now + add * 86400000)).split('-').map(Number);
+    for (const rising of [true, false]) {
+      const ms = sunEvent(y, m, d, rising);
+      if (ms && ms > now) return { label: rising ? 'Sunrise' : 'Sunset', ms };
+    }
+  }
+  return null;
 }
 let nwsUrls = null, lastWeatherOk = 0;
 async function loadWeather() {
+  if (SAMPLE_MODE) {
+    const t0 = Date.now() - (Date.now() % 3600000);
+    renderWeather(
+      SAMPLE.weather.hourly.map(([shortForecast, temperature, windSpeed], i) => ({ shortForecast, temperature, windSpeed, isDaytime: true, startTime: new Date(t0 + i * 3600000).toISOString() })),
+      SAMPLE.weather.daily.map(([name, isDaytime, temperature], i) => ({ name, isDaytime, temperature, shortForecast: 'Mostly Sunny', startTime: new Date(t0 + i * 12 * 3600000).toISOString() })));
+    setBadge('wxBadge', 'sample', 'Sample data');
+    return;
+  }
   try {
     if (!nwsUrls) {
       const pt = await getJSON('https://api.weather.gov/points/' + CONFIG.lat + ',' + CONFIG.lon);
@@ -348,24 +524,24 @@ function renderWeather(hp, dp) {
   const now = hp[0];
   $('wxTemp').textContent = now.temperature + '°';
   $('wxIcon').innerHTML = ICONS[iconFor(now.shortForecast, now.isDaytime)];
+  $('wxDesc').textContent = now.shortForecast;
+  const hi = dp.find((p) => p.isDaytime), lo = dp.find((p) => !p.isDaytime);
+  $('wxHiLo').textContent = [hi && 'High ' + hi.temperature + '°', lo && 'Low ' + lo.temperature + '°'].filter(Boolean).join(' · ');
+  const wind = parseFloat(now.windSpeed);
+  $('wxFeels').textContent = 'Feels like ' + feelsLike(now) + '°' + (wind ? ' · Wind ' + Math.round(wind) + ' mph' : '');
   const evening = localHour() >= CONFIG.eveningStartsHour;
   const nextDay = dp.find((p) => p.isDaytime && new Date(p.startTime).getTime() > Date.now());
-  if (evening && nextDay) {
-    // Evening mode: people are planning tomorrow, not today.
-    $('wxLabel').textContent = 'Weather · tonight and tomorrow';
-    $('wxDesc').textContent = now.shortForecast + ' now';
-    $('wxHint').textContent = nextDay.name + ': ' + nextDay.temperature + '°, ' + nextDay.shortForecast;
-  } else {
-    $('wxLabel').textContent = 'Weather · today';
-    const hi = dp.find((p) => p.isDaytime), lo = dp.find((p) => !p.isDaytime);
-    $('wxDesc').textContent = now.shortForecast + (hi ? ' · High ' + hi.temperature + '°' : '') + (lo ? ' · Low ' + lo.temperature + '°' : '');
-    $('wxHint').textContent = precipHint(hp);
-  }
-  $('hourly').innerHTML = [1, 3, 5, 7, 9].filter((i) => hp[i]).map((i) => {
+  // Evening mode: people are planning tomorrow, not today.
+  $('wxHint').textContent = evening && nextDay ? nextDay.name + ': ' + nextDay.temperature + '°, ' + nextDay.shortForecast : precipHint(hp);
+  $('hourly').innerHTML = [1, 3, 6, 9].filter((i) => hp[i]).map((i) => {
     const p = hp[i];
-    return '<div class="hr"><div class="t">' + esc(fmtHour(new Date(p.startTime))) + '</div><div class="v num">' +
-      esc(p.temperature) + '°</div><div class="d">' + esc(shortWord(p.shortForecast)) + '</div></div>';
+    return '<div class="hr"><div class="t">' + esc(fmtHour(new Date(p.startTime))) + '</div><div class="v num">' + esc(p.temperature) + '°</div></div>';
   }).join('');
+  const sun = nextSunEvent();
+  const ahead = dp.filter((p) => p.isDaytime && new Date(p.startTime).getTime() > Date.now()).slice(0, 2)
+    .map((p) => esc(String(p.name).slice(0, 3)) + ' ' + esc(p.temperature) + '°').join(' · ');
+  $('wxMore').innerHTML = (sun ? '<div><b>' + sun.label + '</b><span>' + esc(fmtTime(new Date(sun.ms))) + '</span></div>' : '') +
+    (ahead ? '<div><b>Ahead</b><span>' + ahead + '</span></div>' : '');
 }
 function setBadge(id, cls, text) { const b = $(id); b.className = 'badge ' + cls; b.textContent = text; }
 
@@ -385,6 +561,7 @@ async function loadAlerts() {
 }
 function showAlert(text) {
   $('alert').classList.toggle('active', !!text);
+  $('stage').classList.toggle('has-alert', !!text);
   $('alertText').textContent = text;
 }
 
@@ -414,7 +591,7 @@ function renderNews() {
   newsIdx++;
 }
 async function loadNews() {
-  if (!HOSTED) return;
+  if (SAMPLE_MODE) return;
   try {
     const d = await getJSON('/api/news');
     newsList = d.headlines; newsLive = true; newsIdx = 0;
@@ -425,25 +602,31 @@ async function loadNews() {
   }
 }
 const TRAFFIC_CLS = { Light: 'good', Moderate: 'mid', Heavy: 'bad' };
+/* Each destination lists the highways that reach it, fastest first, as labeled by the backend from the real route. */
 function renderDrive(rows) {
+  $('fastKey').style.display = rows.some((d) => d.options.length > 1) ? '' : 'none';
   $('driveRows').innerHTML = rows.map((d) =>
-    '<div class="drow"><div><div class="to">' + esc(d.to) + '</div><div class="via">' + esc(d.via) + '</div></div>' +
-    '<div class="min num">' + esc(d.min) + '</div><div class="st ' + d.cls + '">' + esc(d.st) + '</div></div>').join('');
+    '<div class="row2"><div><div class="dest">' + esc(d.to) + '</div><div class="sub ' + (TRAFFIC_CLS[d.traffic] || 'mid') + '">' + esc(d.traffic) + ' traffic</div></div>' +
+    '<div class="opts">' + d.options.map((o) =>
+      '<div class="opt' + (o.fastest ? '' : ' slow') + '"><span class="dot' + (o.fastest && d.options.length > 1 ? '' : ' off') + '"></span><span class="rd">' + esc(o.label || 'Drive') + '</span><span class="tm num">' + esc(o.text) + '</span></div>').join('') +
+    '</div></div>').join('');
 }
-/* Drive times: live from /api/drive (Azure Maps) once its key is configured; sample data until then. */
+/* Drive times: live from /api/drive (Azure Maps); labeled sample data when opened as a local file or with ?sample. */
 let lastDriveOk = 0;
 async function loadDrive() {
-  if (HOSTED) {
+  if (!SAMPLE_MODE) {
     try {
       const d = await getJSON('/api/drive?screen=' + encodeURIComponent(CONFIG.screenId));
       if (d.paused) {
         // The backend makes no traffic requests overnight to save Azure Maps usage.
         const hr = d.resumesAtHour % 12 || 12;
+        $('fastKey').style.display = 'none';
         $('driveRows').innerHTML = '<div class="tmsg">Drive times are paused overnight and return at ' + hr + (d.resumesAtHour < 12 ? ' AM' : ' PM') + '</div>';
         setBadge('driveBadge', 'sample', 'Paused');
         return;
       }
-      renderDrive(d.routes.map((r) => ({ to: r.destination, via: r.via, min: r.text, st: r.traffic, cls: TRAFFIC_CLS[r.traffic] || 'mid' })));
+      renderDrive(d.routes.map((r) => ({ to: r.destination, traffic: r.traffic,
+        options: r.options && r.options.length ? r.options : [{ label: String(r.via || '').replace(/^via /, ''), text: r.text, fastest: true }] })));
       lastDriveOk = Date.now();
       setBadge('driveBadge', 'live', 'Live · ' + fmtTime(new Date()));
       return;
@@ -458,17 +641,16 @@ async function loadDrive() {
 }
 
 /* ---------- trains: next train to each destination. Live from /api/trains when hosted; sample as a local file. ---------- */
-const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
 let trainList = null, lastTrainsOk = 0;
 async function loadTrains() {
-  if (!HOSTED) {
+  if (SAMPLE_MODE) {
     const now = Date.now();
-    trainList = SAMPLE.trains.map((t) => ({ dest: t.dest, timeMs: now + t.inMin * 60000, arriveMs: now + (t.inMin + t.tripMin) * 60000, st: t.st, late: t.late, trk: t.trk }));
+    trainList = SAMPLE.trains.map((t) => ({ dest: t.dest, timeMs: now + t.inMin * 60000, thenMs: now + t.thenMin * 60000, st: t.st, late: t.late, trk: t.trk }));
   } else {
     try {
       const d = await getJSON('/api/trains?station=' + encodeURIComponent(CONFIG.trainStation) + '&to=' + encodeURIComponent(CONFIG.trainDestinations.join(',')));
       trainList = d.destinations.map((x) => x.next
-        ? { dest: x.destination, timeMs: new Date(x.next.time).getTime(), arriveMs: new Date(x.next.arrive).getTime(), st: x.next.status, late: x.next.delayMin >= 1, trk: x.next.track }
+        ? { dest: x.destination, timeMs: new Date(x.next.time).getTime(), thenMs: x.then ? new Date(x.then.time).getTime() : 0, st: x.next.status, late: x.next.delayMin >= 1, trk: x.next.track }
         : { dest: x.destination, none: true });
       lastTrainsOk = Date.now();
       setBadge('trainBadge', 'live', 'Live · ' + fmtTime(new Date()));
@@ -486,13 +668,73 @@ function renderTrains() {
   const now = Date.now();
   $('trainRows').innerHTML = trainList.map((t) => {
     if (t.none || t.timeMs < now - 30000) {
-      return '<div class="trow"><div class="in num">—</div><div><div class="dest">' + esc(t.dest) + '</div><div class="sub">No train listed right now</div></div><div class="st"></div></div>';
+      return '<div class="row2"><div><div class="dest">' + esc(t.dest) + '</div><div class="sub">No train listed right now</div></div><div class="big num">—</div></div>';
     }
     const inMin = Math.max(0, Math.round((t.timeMs - now) / 60000));
-    return '<div class="trow"><div class="in num">' + (inMin < 1 ? 'Now' : inMin + '<small>min</small>') + '</div>' +
-      '<div><div class="dest">' + esc(t.dest) + '</div><div class="sub">' + esc(fmtTime(new Date(t.timeMs))) + ' → arrives ' + esc(fmtTime(new Date(t.arriveMs))) + '</div></div>' +
-      '<div class="st ' + (t.late ? 'bad' : 'good') + '">' + esc(t.st) + (t.trk ? '<div class="trk">Track ' + esc(t.trk) + '</div>' : '') + '</div></div>';
+    return '<div class="row2"><div><div class="dest">' + esc(t.dest) + '</div><div class="sub">' + (t.trk ? 'Track ' + esc(t.trk) + ' · ' : '') +
+      '<span class="' + (t.late ? 'bad' : 'good') + '">' + esc(t.st) + '</span></div></div>' +
+      '<div><div class="big num">' + (inMin < 1 ? 'Now' : inMin + ' min') + '</div>' + (t.thenMs > now ? '<div class="then">then ' + esc(fmtTime(new Date(t.thenMs)).replace(/\s?[AP]M$/, '')) + '</div>' : '') + '</div></div>';
   }).join('');
+}
+
+/* ---------- Metro-North service notices: one line under the trains, only when there is something to say ---------- */
+let notices = [], noticeIdx = 0;
+async function loadNotices() {
+  if (SAMPLE_MODE) notices = SAMPLE.notices.slice();
+  else {
+    try {
+      const d = await getJSON('/api/alerts?routes=' + encodeURIComponent(CONFIG.trainAlertRoutes.join(',')));
+      notices = d.alerts.map((a) => a.text);
+    } catch (e) { console.error('Service notices failed', e); notices = []; }   // a missing notice line is better than a stale one
+  }
+  showNotice();
+}
+function showNotice() {
+  $('notice').classList.toggle('active', notices.length > 0);
+  if (notices.length) $('noticeText').textContent = notices[noticeIdx++ % notices.length];
+}
+
+/* ---------- community panel: announcement cards taking turns, with the next ones listed underneath ---------- */
+const C_ICONS = {
+  cup: '<path d="M3.5 10h13v4.5A5.5 5.5 0 0 1 11 20h-2a5.5 5.5 0 0 1-5.5-5.5V10z" fill="var(--c-fill)" stroke="var(--c-accent)"></path><path stroke="var(--c-accent)" d="M16.5 11h1.4a2.7 2.7 0 0 1 0 5.4h-1.4"></path><path stroke="var(--c-soft)" d="M7 2c-1 1.3 1 2.4 0 4M10.5 1.5c-1 1.3 1 2.4 0 4M14 2c-1 1.3 1 2.4 0 4"></path>',
+  bread: '<path d="M4 11.5a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4c0 1.2-.8 2-2 2.3V18a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18v-4.2c-1.2-.3-2-1.1-2-2.3z" fill="var(--c-fill)" stroke="var(--c-accent)"></path><path stroke="var(--c-accent)" d="M9 8.5l1.2 3M12.5 8l1.2 3M16 8.5l1 2.5"></path>',
+  burst: '<path stroke="var(--c-accent)" d="M12 12V4M12 12v8M12 12H4M12 12h8M12 12L6.3 6.3M12 12l5.7 5.7M12 12l-5.7 5.7M12 12l5.7-5.7"></path><circle cx="12" cy="2.6" r="0.6" fill="var(--c-soft)" stroke="none"></circle><circle cx="21.4" cy="12" r="0.6" fill="var(--c-soft)" stroke="none"></circle><circle cx="2.6" cy="12" r="0.6" fill="var(--c-soft)" stroke="none"></circle><circle cx="12" cy="21.4" r="0.6" fill="var(--c-soft)" stroke="none"></circle>',
+  note: '<rect x="4" y="5" width="16" height="15" rx="2.5" fill="var(--c-fill)" stroke="var(--c-accent)"></rect><path stroke="var(--c-accent)" d="M4 10h16M8.5 3v4M15.5 3v4"></path>'
+};
+let cIdx = -1;
+function showCommunity() {
+  const items = CONFIG.community.items;
+  if (!items.length) { $('community').style.display = 'none'; return; }
+  cIdx = (cIdx + 1) % items.length;
+  const it = items[cIdx], sponsor = it.kind === 'sponsor';
+  $('cCard').className = 'theme-' + (it.theme || 'navy');
+  $('cEyebrow').textContent = sponsor ? 'Sponsored' : (it.eyebrow || 'From the management office');   // a paid slot is always labeled
+  $('cEyebrow').className = sponsor ? 'tagged' : '';
+  const len = it.title.length;
+  $('cTitle').style.fontSize = (len <= 14 ? 84 : len <= 20 ? 60 : 50) + 'px';
+  $('cTitle').textContent = it.title;
+  $('cIcon').innerHTML = C_ICONS[it.icon] || C_ICONS.note;
+  $('cBig').textContent = it.big || '';
+  $('cBig').style.display = it.big ? '' : 'none';
+  $('cText').textContent = it.text || '';
+  $('cTags').innerHTML = (it.tags || []).map((t) => '<span>' + esc(t) + '</span>').join('');
+  $('cDots').innerHTML = items.length > 1 ? items.map((_, i) => '<i' + (i === cIdx ? ' class="on"' : '') + '></i>').join('') : '';
+  const upcoming = items.filter((x, i) => i !== cIdx && x.kind !== 'sponsor' && x.when).slice(0, 2);
+  $('cNext').innerHTML = upcoming.length ? '<div class="label">Also coming up</div>' +
+    upcoming.map((x) => '<div class="nx"><b>' + esc(x.title) + '</b><span>' + esc(x.when) + '</span></div>').join('') : '';
+  $('cBadge').style.display = CONFIG.community.sample ? '' : 'none';
+}
+function rotateCommunity() {
+  if (CONFIG.community.items.length < 2) return;
+  $('cCard').classList.add('fade');
+  setTimeout(showCommunity, 500);
+}
+function renderHours() {
+  const h = CONFIG.buildingHours;
+  $('hours').classList.toggle('active', !!(h && h.rows.length));
+  if (!h) return;
+  $('hoursRows').innerHTML = h.rows.map((r) => '<div><b>' + esc(r.name) + '</b><span>' + esc(r.hours) + '</span></div>').join('');
+  if (h.sample) $('hoursRows').innerHTML += '<div><span></span><span class="badge sample">Sample hours</span></div>';
 }
 
 /* ---------- markets demo: SIMULATED numbers for showing the layout. Not real quotes; labeled on screen. ---------- */
@@ -581,11 +823,15 @@ function demoFooterStep() {
 /* ---------- start ---------- */
 function start() {
   $('bnameText').textContent = CONFIG.buildingName + ' · ' + CONFIG.city;
-  $('trainLabel').textContent = 'Next train from ' + CONFIG.trainStation;
+  $('trainLabel').textContent = 'Trains from ' + CONFIG.trainStation;
   fit(); window.addEventListener('resize', fit);
   tickClock(); setInterval(tickClock, 1000);
   loadDrive(); setInterval(loadDrive, 5 * 60000);
   loadTrains(); setInterval(loadTrains, 30000); setInterval(renderTrains, 15000);
+  loadNotices(); setInterval(loadNotices, 3 * 60000); setInterval(showNotice, 12000);
+  if (START_CARD) cIdx = Number(START_CARD) - 2;
+  showCommunity(); setInterval(rotateCommunity, CONFIG.community.rotateSec * 1000);
+  renderHours();
   document.documentElement.classList.add('footer-' + CONFIG.footer);
   if (CONFIG.footer === 'news') {
     renderNews(); setInterval(renderNews, CONFIG.newsRotateSec * 1000);

@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { getDriveTimes, fmtMinutes, level, _reset } = require('../lib/drive');
+const { getDriveTimes, fmtMinutes, level, highwayOf, _reset } = require('../lib/drive');
 (async () => {
   assert.strictEqual(fmtMinutes(18 * 60), '18 min');
   assert.strictEqual(fmtMinutes(74 * 60), '1 h 14');
@@ -13,12 +13,26 @@ const { getDriveTimes, fmtMinutes, level, _reset } = require('../lib/drive');
     calls.push([url, init.headers['subscription-key']]);
     const dest = url.split(':').pop();
     const [t, n] = times[dest];
-    return { ok: true, json: async () => ({ routes: [{ summary: { travelTimeInSeconds: t, noTrafficTravelTimeInSeconds: n, trafficDelayInSeconds: t - n } }] }) };
+    const route = (tt, nn, road) => ({ summary: { travelTimeInSeconds: tt, noTrafficTravelTimeInSeconds: nn, trafficDelayInSeconds: tt - nn }, guidance: { instructions: [{ street: 'Belden Ave' }, { roadNumbers: [road], message: 'Take ' + road }] } });
+    // Stamford: I-95 is fastest, the Merritt (CT-15) is an alternative. New Haven: slow I-95, faster Merritt, plus a second slower I-95 variant.
+    const routes = dest.startsWith('41.0534') ? [route(t, n, 'I-95'), route(1320, 1200, 'CT-15')]
+      : dest.startsWith('41.3083') ? [route(t, n, 'I-95'), route(2640, 2500, 'CT-15'), route(3300, 2100, 'I-95')]
+      : [route(t, n, 'US-7')];
+    return { ok: true, json: async () => ({ routes }) };
   };
   _reset();
   const out = await getDriveTimes('confluence', { key: 'k', fetch: fakeFetch, now: 1000 });
   assert.deepStrictEqual(out.routes.map((r) => [r.destination, r.text, r.traffic, r.delayMin]),
-    [['Stamford', '18 min', 'Light', 1], ['New Haven', '52 min', 'Heavy', 17], ['Danbury', '40 min', 'Moderate', 8]]);
+    [['Stamford', '18 min', 'Light', 1], ['New Haven', '44 min', 'Light', 2], ['Danbury', '40 min', 'Moderate', 8]]);
+  // Each destination lists its highways, fastest first, labeled from the route's own guidance.
+  assert.deepStrictEqual(out.routes.map((r) => r.options.map((o) => [o.label, o.text, o.fastest])), [
+    [['I-95', '18 min', true], ['Merritt', '22 min', false]],
+    [['Merritt', '44 min', true], ['I-95', '52 min', false]],
+    [['Route 7', '40 min', true]]]);
+  assert.deepStrictEqual(out.routes.map((r) => r.via), ['via I-95', 'via Merritt', 'via Route 7']);
+  assert.ok(calls.every(([u]) => u.includes('maxAlternatives=3') && u.includes('instructionsType=text')));
+  assert.strictEqual(highwayOf({ guidance: { instructions: [{ message: 'Keep left onto Wilbur Cross Pkwy' }] } }), 'Merritt');
+  assert.strictEqual(highwayOf({}), null);
   assert.strictEqual(calls.length, 3);
   assert.ok(calls.every(([u, k]) => k === 'k' && !u.includes('subscription-key') && u.includes('query=41.119,-73.416:')));
   await getDriveTimes('confluence', { key: 'k', fetch: fakeFetch, now: 1000 + 60000 });
