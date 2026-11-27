@@ -123,6 +123,11 @@
   .theme-navy { --c-bg: #1B2740; --c-text: #F4F7FB; --c-soft: #C9D4E5; --c-accent: #F5B544; --c-on: #0B1220; --c-line: #3A4A66; --c-fill: #25324A; }
   .theme-plum { --c-bg: #1E1B3A; --c-text: #ECEAFB; --c-soft: #C9C4F0; --c-accent: #B9B1F5; --c-on: #1E1B3A; --c-line: #4A4480; --c-fill: #2B2752; }
   .theme-green { --c-bg: #12301F; --c-text: #E9F7EE; --c-soft: #BFE0CB; --c-accent: #7ADC9E; --c-on: #12301F; --c-line: #2F6B47; --c-fill: #1B4630; }
+  /* a poster made from the manager's own image: the image is the whole card */
+  #cPhoto { display: none; width: 100%; height: 100%; object-fit: contain; border-radius: 18px; }
+  #cCard.photo { padding: 0; background: #0B1220; }
+  #cCard.photo > div { display: none; }
+  #cCard.photo #cPhoto { display: block; }
   #cCard.featured { box-shadow: inset 0 0 0 4px var(--accent); }
   #cTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   #cEyebrow { font-size: 20px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--c-accent); margin-bottom: 12px; }
@@ -277,6 +282,7 @@
     <div id="community" class="card">
       <div class="head"><span class="label">Community</span><span id="cBadge" class="badge sample">Sample</span><div id="cDots"></div></div>
       <div id="cCard">
+        <img id="cPhoto" alt="">
         <div id="cTop">
           <div><div id="cEyebrow"></div><div id="cTitle" class="num"></div></div>
           <svg id="cIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
@@ -766,7 +772,10 @@ function showCommunity() {
   // A poster uses its template's palette and illustration; anything else uses a built-in theme and a small icon.
   const tpl = it.design && window.LOBBY_TEMPLATES ? window.LOBBY_TEMPLATES[it.design] : null;
   const card = $('cCard'), icon = $('cIcon');
-  card.className = (tpl ? 'poster' : 'theme-' + (it.theme || 'navy')) + (it.featured ? ' featured' : '');
+  // Uploaded images are only ever loaded from this site's own image endpoint.
+  const photo = typeof it.image === 'string' && /^\/api\/image\/[a-z0-9]{12,40}$/.test(it.image) ? it.image : '';
+  card.className = (photo ? 'photo' : tpl ? 'poster' : 'theme-' + (it.theme || 'navy')) + (it.featured ? ' featured' : '');
+  if (photo) { if ($('cPhoto').getAttribute('src') !== photo) $('cPhoto').src = photo; $('cPhoto').alt = it.title; } else $('cPhoto').removeAttribute('src');
   for (const [v, k] of [['--c-bg', 'bg'], ['--c-text', 'text'], ['--c-soft', 'soft'], ['--c-accent', 'accent'], ['--c-on', 'on'], ['--c-line', 'line'], ['--c-fill', 'fill']]) {
     if (tpl) card.style.setProperty(v, tpl[k]); else card.style.removeProperty(v);
   }

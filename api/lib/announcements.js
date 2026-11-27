@@ -21,6 +21,11 @@ const DESIGNS = {
 };
 const MAX = { title: 40, text: 140, when: 24, time: 24, where: 32 };
 const MAX_DAYS = 60;
+// Uploaded poster images. The manager page shrinks them before sending, so what arrives here is already small.
+const IMAGE = { maxBytes: 1.5 * 1024 * 1024, types: ['image/jpeg', 'image/png', 'image/webp'],
+  // what the manager is told: checked in the browser before the image is resized
+  rules: { formats: 'JPG, PNG or WebP', maxOriginalMB: 8, minWidth: 600, minHeight: 600, recommended: '1200 x 1200 px, square' } };
+const IMAGE_ID = /^[a-z0-9]{12,40}$/;
 const EMERGENCY_MAX_MS = 24 * 3600 * 1000;
 
 const fail = (message, code = 'invalid') => { const e = new Error(message); e.code = code; return e; };
@@ -45,8 +50,10 @@ function build(input, user, now) {
   if (endsAt <= startsAt) throw fail('The end must be after the start');
   if (kind === 'emergency' && endsAt - now > EMERGENCY_MAX_MS) throw fail('An emergency alert can stay up for 24 hours at most');
   if (endsAt - now > MAX_DAYS * 86400000) throw fail('Announcements can be scheduled up to ' + MAX_DAYS + ' days ahead');
-  const design = kind === 'poster' ? String(input.design || '') : '';
-  if (kind === 'poster' && !DESIGNS[design]) throw fail('Choose a poster design');
+  const imageId = kind === 'poster' && input.imageId ? String(input.imageId) : '';
+  if (imageId && !IMAGE_ID.test(imageId)) throw fail('The image is not valid. Upload it again.');
+  const design = kind === 'poster' && !imageId ? String(input.design || '') : '';
+  if (kind === 'poster' && !imageId && !DESIGNS[design]) throw fail('Choose a poster design or upload an image');
   return {
     id: now.toString(36) + crypto.randomBytes(4).toString('hex'),
     kind, title,
@@ -54,7 +61,7 @@ function build(input, user, now) {
     whenText: kind === 'emergency' ? '' : clean(input.whenText, MAX.when),
     timeText: kind === 'emergency' ? '' : clean(input.timeText, MAX.time),
     whereText: kind === 'emergency' ? '' : clean(input.whereText, MAX.where),
-    design,
+    design, imageId,
     featured: kind === 'card' && input.featured === true,
     startsAt: new Date(startsAt).toISOString(),
     endsAt: new Date(endsAt).toISOString(),
@@ -66,6 +73,7 @@ function build(input, user, now) {
 async function create(store, screen, input, user, now = Date.now()) {
   assertScreen(screen);
   const item = { ...build(input || {}, user, now), screen };
+  if (item.imageId && !(await store.imageExists(item.imageId))) throw fail('The image was not found. Upload it again.');
   const open = (await store.list(screen)).filter((a) => a.kind === item.kind && isOpen(a, now));
   if (open.length >= LIMITS[item.kind]) {
     throw fail(item.kind === 'emergency' ? 'An emergency alert is already on screen. Clear it first.'
@@ -99,6 +107,12 @@ async function listOpen(store, screen, now = Date.now()) {
   const all = await store.list(screen);
   const stale = all.filter((a) => new Date(a.endsAt).getTime() < now - 7 * 86400000);
   await Promise.all(stale.map((a) => store.remove(screen, a.id).catch(() => {})));
+  // Images nobody uses any more: their announcement expired, or they were uploaded a day ago and never published.
+  try {
+    const used = new Set(all.filter((a) => !stale.includes(a)).map((a) => a.imageId).filter(Boolean));
+    const unused = (await store.imageList()).filter((i) => !used.has(i.id) && i.createdAt < now - 86400000);
+    await Promise.all(unused.map((i) => store.imageRemove(i.id).catch(() => {})));
+  } catch (e) { /* cleanup is best effort */ }
   return all.filter((a) => isOpen(a, now)).sort((a, b) => a.endsAt.localeCompare(b.endsAt))
     .map((a) => ({ ...a, live: isLive(a, now) }));
 }
@@ -106,7 +120,9 @@ async function listOpen(store, screen, now = Date.now()) {
 async function end(store, screen, id) {
   assertScreen(screen);
   if (!/^[a-z0-9]{6,40}$/.test(String(id))) throw fail('Unknown announcement');
+  const row = (await store.list(screen)).find((a) => a.id === id);
   await store.remove(screen, id);
+  if (row && row.imageId) await store.imageRemove(row.imageId).catch(() => {});
 }
 
 // What the lobby screen receives: only what is live right now, with no author details.
@@ -118,12 +134,32 @@ function publicView(list, now = Date.now()) {
     .map((a) => {
       return {
         id: a.id, kind: a.kind, featured: a.featured === true,
-        design: a.kind === 'poster' ? (DESIGNS[a.design] ? a.design : 'notice') : '', theme: 'navy', icon: 'note',
+        design: a.kind === 'poster' && !a.imageId ? (DESIGNS[a.design] ? a.design : 'notice') : '', theme: 'navy', icon: 'note',
+        image: a.kind === 'poster' && a.imageId ? '/api/image/' + a.imageId : '',
         eyebrow: a.kind === 'poster' && (DESIGNS[a.design] || {}).cat !== 'Building' ? 'You are invited' : 'From the management office',
         title: a.title, text: a.text, tags: [a.whenText, a.timeText, a.whereText].filter(Boolean), when: a.whenText || a.timeText || ''
       };
     });
   return { emergency: emergency ? { title: emergency.title, text: emergency.text, until: emergency.endsAt } : null, items };
+}
+
+// An uploaded image is accepted only if its first bytes really are a JPEG, PNG or WebP, whatever the browser claimed.
+function sniffImage(bytes) {
+  const b = bytes || [];
+  if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return 'image/jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47 && b[4] === 0x0D && b[5] === 0x0A && b[6] === 0x1A && b[7] === 0x0A) return 'image/png';
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
+  return null;
+}
+async function saveImage(store, screen, bytes, now = Date.now()) {
+  assertScreen(screen);
+  if (!bytes || !bytes.length) throw fail('No image was received');
+  if (bytes.length > IMAGE.maxBytes) throw fail('The image is too large');
+  const type = sniffImage(bytes);
+  if (!type) throw fail('Only JPG, PNG or WebP images are accepted');
+  const id = now.toString(36) + crypto.randomBytes(8).toString('hex');
+  await store.imagePut(id, bytes, type, screen);
+  return { id, type, bytes: bytes.length };
 }
 
 // The signed-in person, as Azure Static Web Apps passes it to the API.
@@ -135,4 +171,4 @@ function principal(headerValue) {
   } catch (e) { return { user: '', roles: [], allowed: false }; }
 }
 
-module.exports = { SCREENS, LIMITS, DESIGNS, MAX, create, listOpen, end, publicView, principal, assertScreen, getPlaces };
+module.exports = { IMAGE, IMAGE_ID, sniffImage, saveImage, SCREENS, LIMITS, DESIGNS, MAX, create, listOpen, end, publicView, principal, assertScreen, getPlaces };

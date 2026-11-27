@@ -33,7 +33,7 @@ app.http('manageList', {
         _clearCache(screen);
         context.log('announcement created', screen, item.kind, item.id, 'by', p.user);
       }
-      return { status: 200, jsonBody: { screen, screenName: A.assertScreen(screen).name, user: p.user, limits: A.LIMITS, max: A.MAX, designs: A.DESIGNS, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
+      return { status: 200, jsonBody: { screen, screenName: A.assertScreen(screen).name, user: p.user, limits: A.LIMITS, max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
     } catch (err) { return problem(err, context); }
   }
 });
@@ -51,6 +51,24 @@ app.http('manageEnd', {
       _clearCache(screen);
       context.log('announcement ended', screen, request.params.id, 'by', p.user);
       return { status: 200, jsonBody: { items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
+    } catch (err) { return problem(err, context); }
+  }
+});
+
+// POST /api/manage/images?screen=confluence — body is the image itself (already resized by the manager page).
+app.http('manageImage', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'manage/images',
+  handler: async (request, context) => {
+    const p = guard(request);
+    if (!p) return { status: 403, jsonBody: { error: 'Not allowed' } };
+    try {
+      const declared = Number(request.headers.get('content-length') || 0);
+      if (declared > A.IMAGE.maxBytes) return { status: 400, jsonBody: { error: 'The image is too large' } };
+      const saved = await A.saveImage(store, screenOf(request), new Uint8Array(await request.arrayBuffer()));
+      context.log('image uploaded', saved.id, saved.bytes, 'by', p.user);
+      return { status: 200, jsonBody: { id: saved.id } };
     } catch (err) { return problem(err, context); }
   }
 });

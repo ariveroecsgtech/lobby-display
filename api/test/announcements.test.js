@@ -1,9 +1,15 @@
 const assert = require('assert');
 const A = require('../lib/announcements');
-const memStore = () => { const rows = new Map(); return {
+const clock = { now: 0 };
+const memStore = () => { const rows = new Map(), images = new Map(); return {
   rows,
   list: async (s) => [...rows.values()].filter((r) => r.screen === s).map((r) => ({ ...r })),
   put: async (i) => { rows.set(i.screen + '/' + i.id, { ...i }); },
+  images,
+  imagePut: async (id, bytes, type) => { images.set(id, { type, createdAt: clock.now }); },
+  imageExists: async (id) => images.has(id),
+  imageRemove: async (id) => { images.delete(id); },
+  imageList: async () => [...images].map(([id, v]) => ({ id, createdAt: v.createdAt })),
   remove: async (s, id) => { rows.delete(s + '/' + id); } }; };
 (async () => {
   const now = Date.UTC(2026, 10, 27, 17, 0, 0), H = 3600000, D = 24 * H;
@@ -88,6 +94,35 @@ const memStore = () => { const rows = new Map(); return {
   // Rows that ended more than a week ago are cleaned up; the saved places stay.
   await A.listOpen(store, 'confluence', now + 30 * D);
   assert.deepStrictEqual([...store.rows.keys()], ['confluence/_places']);
+
+  // Uploaded images: real JPG, PNG or WebP only, size capped, and removed with their announcement.
+  const s2 = memStore(); clock.now = now;
+  const jpg = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3]), png = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1]);
+  const webp = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]);
+  assert.deepStrictEqual([A.sniffImage(jpg), A.sniffImage(png), A.sniffImage(webp)], ['image/jpeg', 'image/png', 'image/webp']);
+  assert.strictEqual(A.sniffImage(new TextEncoder().encode('<svg onload=alert(1)>')), null);
+  await assert.rejects(() => A.saveImage(s2, 'confluence', new TextEncoder().encode('<svg></svg>'), now), /JPG, PNG or WebP/);
+  await assert.rejects(() => A.saveImage(s2, 'confluence', new Uint8Array(0), now), /No image/);
+  const big = new Uint8Array(A.IMAGE.maxBytes + 1); big.set(jpg);
+  await assert.rejects(() => A.saveImage(s2, 'confluence', big, now), /too large/);
+  const img = await A.saveImage(s2, 'confluence', jpg, now);
+  assert.ok(A.IMAGE_ID.test(img.id));
+  await assert.rejects(() => A.create(s2, 'confluence', { kind: 'poster', title: 'x', endsAt: at(D), imageId: 'nope' }, 'm', now), /not valid/);
+  await assert.rejects(() => A.create(s2, 'confluence', { kind: 'poster', title: 'x', endsAt: at(D), imageId: 'abcdefabcdef12345678' }, 'm', now), /not found/);
+  await assert.rejects(() => A.create(s2, 'confluence', { kind: 'poster', title: 'x', endsAt: at(D) }, 'm', now), /design or upload/);
+  const own = await A.create(s2, 'confluence', { kind: 'poster', title: 'Art show', endsAt: at(D), imageId: img.id, design: 'coffee' }, 'm', now);
+  assert.deepStrictEqual([own.imageId, own.design], [img.id, '']);
+  const shown = A.publicView(await s2.list('confluence'), now + 1).items[0];
+  assert.deepStrictEqual([shown.image, shown.design], ['/api/image/' + img.id, '']);
+  assert.strictEqual((await A.create(s2, 'confluence', { kind: 'card', title: 'c', endsAt: at(D), imageId: img.id }, 'm', now)).imageId, '', 'cards never carry images');
+  // An upload that was never published is removed after a day; one in use stays.
+  const orphan = await A.saveImage(s2, 'confluence', png, now);
+  await A.listOpen(s2, 'confluence', now + 2 * H);
+  assert.ok(s2.images.has(orphan.id), 'kept during the first day');
+  await A.listOpen(s2, 'confluence', now + 25 * H);
+  assert.ok(!s2.images.has(orphan.id) && s2.images.has(img.id));
+  await A.end(s2, 'confluence', own.id);
+  assert.ok(!s2.images.has(img.id), 'ending the announcement deletes its image');
 
   // Sign-in header from Azure Static Web Apps.
   const hdr = (o) => Buffer.from(JSON.stringify(o)).toString('base64');
