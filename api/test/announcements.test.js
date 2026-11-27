@@ -179,6 +179,27 @@ const memStore = () => { const rows = new Map(), images = new Map(); return {
   await A.end(s2, 'confluence', own.id);
   assert.ok(!s2.images.has(img.id), 'ending the announcement deletes its image');
 
+  // Building settings: defaults, validation, logo handling, and what the screen receives.
+  const s6 = memStore(); clock.now = now;
+  assert.deepStrictEqual(await A.getSettings(s6, 'confluence'), { name: 'Confluence', address: '', email: '', logo: '', logoOnLight: false });
+  await assert.rejects(() => A.saveSettings(s6, 'confluence', { name: ' ' }, 'a'), /name is required/);
+  await assert.rejects(() => A.saveSettings(s6, 'confluence', { name: 'X', email: 'nope' }, 'a'), /not valid/);
+  await assert.rejects(() => A.saveSettings(s6, 'confluence', { name: 'X', logoId: 'abcdefabcdef12345678' }, 'a'), /logo was not found/);
+  const logo1 = await A.saveImage(s6, 'confluence', png, now), logo2 = await A.saveImage(s6, 'confluence', jpg, now);
+  let st = await A.saveSettings(s6, 'confluence', { name: '  The  Confluence ', address: '26 Belden Ave, Norwalk, CT', email: 'Office@Example.com', logoId: logo1.id, logoOnLight: true }, 'admin@x.com', now);
+  assert.deepStrictEqual(st, { name: 'The Confluence', address: '26 Belden Ave, Norwalk, CT', email: 'office@example.com', logo: '/api/image/' + logo1.id, logoOnLight: true });
+  assert.deepStrictEqual(A.publicView(await s6.list('confluence'), now, 'confluence').building, st);
+  assert.ok(!JSON.stringify(A.publicView(await s6.list('confluence'), now, 'confluence')).includes('admin@x.com'), 'who saved it is not public');
+  st = await A.saveSettings(s6, 'confluence', { name: 'The Confluence', logoId: logo2.id }, 'a', now);
+  assert.ok(!s6.images.has(logo1.id) && s6.images.has(logo2.id), 'replacing the logo deletes the old file');
+  await A.listOpen(s6, 'confluence', now + 30 * D);
+  assert.ok(s6.images.has(logo2.id), 'the logo in use is never cleaned up as an unused upload');
+  assert.strictEqual((await A.listOpen(s6, 'confluence', now)).length, 0, 'settings are not an announcement');
+  st = await A.saveSettings(s6, 'confluence', { name: 'The Confluence', removeLogo: true }, 'a', now);
+  assert.ok(st.logo === '' && !s6.images.has(logo2.id));
+  assert.strictEqual(A.principal(Buffer.from(JSON.stringify({ userDetails: 'a', userRoles: ['admin'] })).toString('base64')).admin, true);
+  assert.strictEqual(A.principal(Buffer.from(JSON.stringify({ userDetails: 'm', userRoles: ['manager'] })).toString('base64')).admin, false);
+
   // Sign-in header from Azure Static Web Apps.
   const hdr = (o) => Buffer.from(JSON.stringify(o)).toString('base64');
   assert.deepStrictEqual(A.principal(hdr({ userDetails: 'm@x.com', userRoles: ['anonymous', 'authenticated', 'manager'] })).allowed, true);

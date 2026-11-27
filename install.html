@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install the app — Lobby Display</title>
+<link rel="icon" href="/icons/icon-192.png">
+<style>
+  :root { --bg: #0B1220; --card: #131C2E; --line: #25324A; --text: #F4F7FB; --soft: #C9D4E5; --muted: #9FB0C8; --accent: #F5B544; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; font-size: 17px; line-height: 1.5; }
+  main { max-width: 560px; margin: 0 auto; padding: 28px 20px 48px; }
+  h1 { font-size: 28px; line-height: 1.15; margin: 0 0 8px; }
+  p { color: var(--soft); margin: 0 0 18px; }
+  .tabs { display: flex; gap: 6px; background: var(--card); border-radius: 12px; padding: 4px; margin: 20px 0 16px; }
+  .tabs button { flex: 1 1 0; min-height: 46px; border: 0; border-radius: 9px; background: none; color: var(--soft); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--text); color: var(--bg); font-weight: 700; }
+  .tabs button:focus-visible, a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  section { display: none; } section.on { display: block; }
+  ol { margin: 0; padding: 0; list-style: none; counter-reset: n; display: flex; flex-direction: column; gap: 10px; }
+  ol li { counter-increment: n; background: var(--card); border-radius: 14px; padding: 14px 16px 14px 56px; position: relative; }
+  ol li::before { content: counter(n); position: absolute; left: 14px; top: 13px; width: 30px; height: 30px; border-radius: 15px; background: var(--accent); color: var(--bg); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  b { color: var(--text); }
+  .note { font-size: 15px; color: var(--muted); margin-top: 14px; }
+  a.back { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 600; text-decoration: none; margin-top: 22px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Install the app</h1>
+  <p id="lead">Put your building's screen on your phone or computer, like any other app. It takes less than a minute and there is nothing to download from a store.</p>
+  <div class="tabs" role="tablist" aria-label="Your device">
+    <button type="button" role="tab" id="t-iphone" aria-controls="p-iphone" aria-selected="true">iPhone</button>
+    <button type="button" role="tab" id="t-android" aria-controls="p-android" aria-selected="false">Android</button>
+    <button type="button" role="tab" id="t-pc" aria-controls="p-pc" aria-selected="false">Computer</button>
+  </div>
+  <section id="p-iphone" class="on" role="tabpanel" aria-labelledby="t-iphone">
+    <ol>
+      <li>Open this page in <b>Safari</b>. On an iPhone, apps can only be installed from Safari.</li>
+      <li>Tap the <b>Share</b> button: the square with an arrow pointing up, at the bottom of the screen.</li>
+      <li>Scroll down the list and tap <b>Add to Home Screen</b>.</li>
+      <li>Tap <b>Add</b> at the top right. The app icon appears on your home screen.</li>
+      <li>Open the app <b>from that icon</b> from now on.</li>
+    </ol>
+    <div class="note">Needs iOS 16.4 or later. Check in Settings, General, About.</div>
+  </section>
+  <section id="p-android" role="tabpanel" aria-labelledby="t-android">
+    <ol>
+      <li>Open this page in <b>Chrome</b>.</li>
+      <li>Tap the <b>three dots</b> at the top right.</li>
+      <li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>
+      <li>Tap <b>Install</b>. The app icon appears with your other apps.</li>
+    </ol>
+    <div class="note">On Samsung Internet: tap the menu, then "Add page to", then "Home screen".</div>
+  </section>
+  <section id="p-pc" role="tabpanel" aria-labelledby="t-pc">
+    <ol>
+      <li>Open this page in <b>Chrome</b> or <b>Edge</b>.</li>
+      <li>Look at the right end of the address bar for the <b>install icon</b>: a small screen with an arrow. Click it.</li>
+      <li>If you do not see it, open the browser menu (three dots) and choose <b>Install Lobby Display</b>, or <b>Apps</b>, then <b>Install this site as an app</b>.</li>
+      <li>Click <b>Install</b>. The app opens in its own window and is added to your Start menu or Dock.</li>
+    </ol>
+    <div class="note">On a Mac with Safari: File menu, then "Add to Dock".</div>
+  </section>
+  <a class="back" id="back" href="/">Back to the screen</a>
+</main>
+<script>
+// ?app=manager shows the same steps for the manager app and sends "Back" there.
+const manager = /[?&]app=manager\b/.test(location.search);
+if (manager) {
+  document.getElementById('lead').textContent = 'Put the manager app on your phone or computer, like any other app. Sign in first, then follow the steps on the manager page itself.';
+  document.getElementById('back').href = '/manage/'; document.getElementById('back').textContent = 'Back to the manager app';
+  document.title = 'Install the manager app — Lobby Display';
+}
+const tabs = [...document.querySelectorAll('[role=tab]')];
+function pick(id) { for (const t of tabs) { const on = t.id === id; t.setAttribute('aria-selected', on); document.getElementById(t.getAttribute('aria-controls')).classList.toggle('on', on); } }
+for (const t of tabs) t.addEventListener('click', () => pick(t.id));
+const ua = navigator.userAgent;
+pick(/Android/i.test(ua) ? 't-android' : /iPhone|iPad|iPod/i.test(ua) ? 't-iphone' : 't-pc');
+</script>
+</body>
+</html>

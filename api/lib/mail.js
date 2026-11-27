@@ -2,7 +2,14 @@
 // Sending is paced, because Azure Communication Services starts every account at 30 emails a minute and 100 an hour:
 // a message is queued in the outbox and goes out a few recipients at a time, each time a lobby screen checks in.
 const crypto = require('crypto');
-const { SCREENS, EMERGENCIES, assertScreen } = require('./announcements');
+const { SCREENS, EMERGENCIES, assertScreen, getSettings } = require('./announcements');
+// The building's name and office email come from its settings when the administrator has filled them in.
+async function brand(store, screen) {
+  const b = assertScreen(screen), cfg = b.mail || {}; let st = {};
+  try { st = store.list ? await getSettings(store, screen) : {}; } catch (e) { st = {}; }
+  const name = st.name || b.name;
+  return { name, from: { ...cfg, name: st.name ? st.name + ' Management Office' : cfg.name, replyTo: st.email || cfg.replyTo || '' } };
+}
 
 const PER_TURN = Number(process.env.MAIL_PER_TURN) || 6;        // recipients sent each time a screen checks in
 const TURN_GAP_MS = Number(process.env.MAIL_TURN_GAP_MS) || 14000;
@@ -18,8 +25,8 @@ const verify = (screen, residentId, token) => { const good = sign(screen, reside
 
 const fmt = (iso, timeZone, opts) => new Intl.DateTimeFormat('en-US', { timeZone, ...opts }).format(new Date(iso));
 // The words of the email for one announcement. Plain and short; the same for everyone except the unsubscribe link.
-function compose(item, screen) {
-  const b = assertScreen(screen), tz = b.timeZone || 'UTC', building = b.name;
+function compose(item, screen, br) {
+  const b = assertScreen(screen), tz = b.timeZone || 'UTC', building = (br && br.name) || b.name;
   const when = [item.whenText, item.timeText].filter(Boolean).join(', '), lines = [];
   let subject, heading = item.title, optional = false;
   if (item.kind === 'emergency') {
@@ -42,7 +49,7 @@ function compose(item, screen) {
     if (when) lines.push(when + (item.whereText ? ' · ' + item.whereText : '') + '.'); else if (item.whereText) lines.push(item.whereText + '.');
     if (item.text) lines.push(item.text);
   }
-  return { subject: subject.slice(0, 150), heading, lines, optional, building, from: b.mail || {} };
+  return { subject: subject.slice(0, 150), heading, lines, optional, building, from: (br && br.from) || b.mail || {} };
 }
 function render(msg, screen, resident) {
   const site = (msg.from.site || '').replace(/\/$/, '');
@@ -59,8 +66,8 @@ function render(msg, screen, resident) {
 }
 
 // The daily email: every card and poster published since the last one, in a single message.
-function composeDigest(items, screen) {
-  const b = assertScreen(screen), lines = [];
+function composeDigest(items, screen, br) {
+  const b0 = assertScreen(screen), b = { ...b0, name: (br && br.name) || b0.name, mail: (br && br.from) || b0.mail }, lines = [];
   for (const it of items) {
     const where = [[it.whenText, it.timeText].filter(Boolean).join(', '), it.whereText].filter(Boolean).join(' · ');
     lines.push({ title: it.title, body: [where, it.text].filter(Boolean).join('. ').replace(/\.\./g, '.') });
@@ -82,7 +89,7 @@ async function digest(store, screen, now = Date.now(), rows = null) {
     .sort((x, y) => String(x.createdAt).localeCompare(String(y.createdAt)));
   if (!waiting.length) return 0;                        // nothing to say today: no email, and a later announcement today can still go out
   if (!(await store.outboxClaim(screen, { screen, id: DIGEST_ROW, lastDay: at.day }, mark && mark.etag))) return 0;
-  const msg = composeDigest(waiting, screen);
+  const msg = composeDigest(waiting, screen, await brand(store, screen));
   const people = (await store.residentList(screen)).filter((r) => r.email && r.unsub !== true);
   if (people.length) await store.outboxPut({ screen, id: 'g' + at.day, itemId: 'digest-' + at.day, urgent: false, msg: JSON.stringify(msg), cursor: '', sent: 0, total: people.length, createdAt: new Date(now).toISOString() });
   for (const a of waiting) await store.put({ ...a, mailPending: false, mailedAt: new Date(now).toISOString() });
@@ -92,7 +99,7 @@ async function digest(store, screen, now = Date.now(), rows = null) {
 // Put a message in the outbox. Returns how many residents it will go to (0 when email is off or the list is empty).
 async function queue(store, screen, item, now = Date.now()) {
   if (!configured()) return { queued: false, recipients: 0, reason: 'not_configured' };
-  const msg = compose(item, screen);
+  const msg = compose(item, screen, await brand(store, screen));
   const people = (await store.residentList(screen)).filter((r) => r.email && !(msg.optional && r.unsub === true));
   if (!people.length) return { queued: false, recipients: 0, reason: 'no_residents' };
   await store.outboxPut({ screen, id: 'm' + item.id, itemId: item.id, urgent: item.kind === 'emergency', msg: JSON.stringify(msg), cursor: '', sent: 0, total: people.length, createdAt: new Date(now).toISOString() });

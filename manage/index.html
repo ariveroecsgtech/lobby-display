@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="manifest" href="/manage.webmanifest">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lobby Manager">
 <title>Lobby screen manager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
@@ -11,9 +18,55 @@
   :root { --bg: #0B1220; --card: #131C2E; --line: #25324A; --text: #F4F7FB; --soft: #C9D4E5; --muted: #9FB0C8; --accent: #F5B544; --good: #5EE0A0; --bad: #FFA48F; }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  html, body { margin: 0; background: var(--bg); }
+  html, body { margin: 0; background: #060A13; }
+  body { background: radial-gradient(ellipse at 50% 0%, #1B2A47 0%, #060A13 70%) fixed; min-height: 100vh; }
   body { font-family: Inter, system-ui, sans-serif; color: var(--text); font-size: 16px; line-height: 1.4; }
-  #app { max-width: 480px; margin: 0 auto; padding: 24px 20px 40px; display: flex; flex-direction: column; gap: 18px; min-height: 100vh; }
+  /* the whole app is drawn as a remote control for the lobby screen: one body, a small display, and keys you press */
+  #app { max-width: 440px; margin: 14px auto 28px; padding: 22px 18px 26px; display: flex; flex-direction: column; gap: 18px; border-radius: 40px;
+    background: linear-gradient(180deg, #1C2947 0%, #121C31 38%, #0C1424 100%); border: 1px solid #2D3D5E;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.10), inset 0 -2px 0 rgba(0, 0, 0, 0.5); }
+  @media (max-width: 470px) { #app { margin: 8px 8px 20px; border-radius: 32px; } }
+  .rc-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .rc-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  #hMark { display: flex; flex-shrink: 0; } #hMark svg { width: 34px; height: 34px; } #hMark i { display: block; width: 14px; height: 14px; border-radius: 4px; background: var(--accent); }
+  #hLogo { height: 40px; max-width: 120px; object-fit: contain; flex-shrink: 0; } #hLogo.onlight { background: #FFFFFF; border-radius: 8px; padding: 4px 8px; }
+  .rc-brand h1 { font-size: 21px; overflow-wrap: anywhere; }
+  .led { display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--good); }
+  .led i { width: 9px; height: 9px; border-radius: 5px; background: var(--good); box-shadow: 0 0 10px var(--good); animation: ledpulse 2.4s ease-in-out infinite; }
+  .led.red { color: #FDA29B; } .led.red i { background: #F97066; box-shadow: 0 0 10px #F97066; }
+  @keyframes ledpulse { 50% { opacity: 0.45; } }
+  @media (prefers-reduced-motion: reduce) { .led i { animation: none; } .key, .cap { transition: none !important; } }
+  .rc-display { border-radius: 20px; padding: 16px 18px; background: linear-gradient(180deg, #050912 0%, #0B1527 100%); border: 1px solid #24334F; box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; gap: 6px; }
+  .rc-display .big { font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 600; line-height: 1.1; }
+  .rc-display .big b { color: var(--accent); font-weight: 700; }
+  .rc-display .small { font-size: 14px; color: var(--soft); }
+  .rc-display .greet { font-size: 13px; font-weight: 600; }
+  .key { border: 0; color: var(--text); font-family: inherit; font-weight: 700; cursor: pointer; text-decoration: none; transition: transform 0.06s, box-shadow 0.06s;
+    background: linear-gradient(180deg, #2C3B5C 0%, #1D2944 100%); box-shadow: 0 5px 0 #080D18, inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 #080D18, inset 0 1px 0 rgba(255, 255, 255, 0.10); }
+  .key:disabled { opacity: 0.5; cursor: default; }
+  .key-main { min-height: 66px; border-radius: 33px; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #1F1503;
+    background: linear-gradient(180deg, #FFD27A 0%, #F5B544 55%, #E09A22 100%); box-shadow: 0 5px 0 #8A5A0A, inset 0 1px 0 rgba(255, 255, 255, 0.55); }
+  .key-main:active { box-shadow: 0 1px 0 #8A5A0A, inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+  .keys3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .rkey { background: none; border: 0; padding: 0; color: var(--soft); font-family: inherit; font-size: 13px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 9px; cursor: pointer; min-height: 44px; }
+  .cap { width: 82px; height: 82px; border-radius: 41px; display: flex; align-items: center; justify-content: center; transition: transform 0.06s, box-shadow 0.06s; }
+  .rkey:active .cap { transform: translateY(4px); }
+  .cap svg { width: 34px; height: 34px; }
+  .cap.amber { background: radial-gradient(circle at 35% 28%, #3A4666, #1D2944); box-shadow: 0 5px 0 #080D18, inset 0 0 0 2px #F5B544, inset 0 1px 0 rgba(255, 255, 255, 0.2); color: #F5B544; }
+  .cap.blue { background: radial-gradient(circle at 35% 28%, #3A4666, #1D2944); box-shadow: 0 5px 0 #080D18, inset 0 0 0 2px #8FB8FF, inset 0 1px 0 rgba(255, 255, 255, 0.2); color: #8FB8FF; }
+  .cap.red { background: radial-gradient(circle at 35% 28%, #F97066, #B42318); box-shadow: 0 5px 0 #55100A, inset 0 1px 0 rgba(255, 255, 255, 0.35); color: #FFFFFF; }
+  .rkey:active .cap.red { box-shadow: 0 1px 0 #55100A; } .rkey:active .cap.amber, .rkey:active .cap.blue { box-shadow: 0 1px 0 #080D18, inset 0 0 0 2px currentColor; }
+  .keys4 { display: flex; gap: 8px; } .keys4 > * { flex: 1 1 0; min-width: 0; }
+  .skey { min-height: 66px; border-radius: 16px; font-size: 11.5px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: var(--soft); padding: 6px 2px; }
+  .skey svg { width: 22px; height: 22px; }
+  .chip { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; border-radius: 6px; padding: 2px 7px; border: 1.5px solid #6B7C99; color: var(--muted); margin-left: 6px; vertical-align: middle; }
+  .chip.admin { border-color: var(--accent); color: var(--accent); }
+  .mock { border-radius: 14px; background: #0B1220; border: 2px solid var(--line); padding: 14px 16px; display: flex; align-items: center; gap: 12px; min-height: 76px; }
+  .mock img { height: 44px; max-width: 150px; object-fit: contain; } .mock img.onlight { background: #FFFFFF; border-radius: 8px; padding: 4px 8px; }
+  .mock .n { font-size: 17px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--soft); overflow-wrap: anywhere; } .mock .a { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  table.perm { width: 100%; border-collapse: collapse; font-size: 14px; } table.perm th, table.perm td { text-align: left; padding: 9px 6px; border-bottom: 1px solid var(--line); } table.perm th { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); } table.perm td:nth-child(n+2), table.perm th:nth-child(n+2) { text-align: center; width: 76px; }
+  pre.cmd { margin: 0; white-space: pre-wrap; word-break: break-all; background: #050912; border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 12px; color: var(--soft); }
   h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 600; line-height: 1.15; }
   .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .who { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
@@ -106,9 +159,15 @@
 
   <!-- HOME -->
   <section id="vHome" class="view on">
-    <div class="top">
-      <div><h1 id="hName">Lobby screen</h1><div class="who" id="hWho"></div></div>
-      <a class="link" href="/logout">Sign out</a>
+    <div class="rc-top">
+      <div class="rc-brand"><span id="hMark"><i></i></span><img id="hLogo" alt="" hidden><div><h1 id="hName">Lobby screen</h1><div class="who" id="hWho"></div></div></div>
+      <span class="led" id="hLed"><i></i><span id="hLedTxt">LIVE</span></span>
+    </div>
+    <div class="rc-display" aria-live="polite">
+      <div class="lbl">On the lobby screen</div>
+      <div class="big" id="hNow">…</div>
+      <div class="small" id="hCount"></div>
+      <div class="greet" id="hGreet" hidden></div>
     </div>
     <div id="alarmOn" hidden>
       <div class="lbl" style="color:#FFFFFF">Emergency alert is on the screen</div>
@@ -116,19 +175,26 @@
       <div id="alarmUntil" style="font-size:14px;font-weight:600"></div>
       <button type="button" id="alarmClear">Clear alert now</button>
     </div>
-    <div class="row" style="display:flex;justify-content:space-between;align-items:baseline">
-      <div class="lbl">On the screen and scheduled</div>
-      <div class="count" id="hCount"></div>
+    <button type="button" class="key key-main" id="goNew">New announcement</button>
+    <div class="keys3">
+      <button type="button" class="rkey" data-go="vNotice"><span class="cap amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4l3 .5 2 5h2.5l-1.5-4.8L19 18V6L7 9.5z"></path></svg></span>Notice</button>
+      <button type="button" class="rkey" data-go="vDrill"><span class="cap blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6"></path><path d="M4 17h16M10 20.5h4"></path></svg></span>Alarm test</button>
+      <button type="button" class="rkey" data-go="vEmerg"><span class="cap red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l9 16h-18z"></path><path d="M12 10v4.5M12 17.3h.01"></path></svg></span>Emergency</button>
     </div>
+    <div class="keys4">
+      <button type="button" class="key skey" id="goRes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 19c.5-3.3 2.8-5 6-5s5.5 1.7 6 5M16 5.2a3 3 0 0 1 0 5.600M18 14.3c1.7.7 2.7 2.3 3 4.7"></path></svg>Residents</button>
+      <button type="button" class="key skey" id="goSet" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.600 5.600l1.8 1.8M16.600 16.600l1.8 1.8M5.600 18.400l1.8-1.8M16.600 7.400l1.8-1.8"></path></svg>Settings</button>
+      <button type="button" class="key skey" id="goRoles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7.5 3v5.5c0 4.5-3 7.8-7.5 9.5-4.5-1.7-7.5-5-7.5-9.5V6z"></path><path d="M9 12l2.2 2.2L15.2 10"></path></svg>Roles</button>
+      <a class="key skey" href="/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="12" rx="2"></rect><path d="M9 20h6M12 16.5V20"></path></svg>Screen</a>
+      <a class="key skey" href="/install.html?app=manager" id="goInstall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M8 10.5l4 4 4-4M5 19.5h14"></path></svg>Install</a>
+    </div>
+    <div class="lbl">On the screen and scheduled</div>
     <div id="hList" style="display:flex;flex-direction:column;gap:10px"><div class="empty">Loading…</div></div>
-    <button type="button" class="btn" id="goNew">New announcement</button>
-    <button type="button" class="btn danger" id="goAlarm">Alerts and notices</button>
-    <button type="button" class="btn ghost" id="goRes">Residents</button>
     <div id="alertsBox" hidden>
       <div class="lbl" style="margin-bottom:10px">Notices and scheduled tests</div>
       <div id="aList" style="display:flex;flex-direction:column;gap:10px"></div>
     </div>
-    <a class="link" href="/" target="_blank" rel="noopener">Open the lobby screen</a>
+    <a class="link" href="/logout" style="align-self:center">Sign out</a>
   </section>
 
   <!-- COMPOSE -->
@@ -212,6 +278,49 @@
     <button type="button" class="btn ghost" id="pBack2">Back to edit</button>
   </section>
 
+  <!-- SETTINGS: administrators only. What is set here shows on the lobby screen and in emails. -->
+  <section id="vSet" class="view">
+    <div class="top"><div><h1>Building settings</h1><div class="who">Only an ECSG administrator can change these.</div></div><button type="button" class="link" data-home>Back</button></div>
+    <div class="field"><div class="row"><label class="lbl" for="sName">Building or property name</label><span class="count" id="cSName"></span></div><input type="text" id="sName" maxlength="40" autocomplete="off"></div>
+    <div class="field"><div class="row"><label class="lbl" for="sAddr">Address</label><span class="count">Optional</span></div><input type="text" id="sAddr" maxlength="90" autocomplete="off" placeholder="26 Belden Ave, Norwalk, CT 06850"></div>
+    <div class="field"><div class="row"><label class="lbl" for="sEmail">Office email</label><span class="count">Optional</span></div><input type="email" id="sEmail" maxlength="120" autocomplete="off" inputmode="email"><div class="note">Shown on the screen, and where residents' replies to emails go.</div></div>
+    <div class="field">
+      <div class="lbl">Logo</div>
+      <input type="file" id="sFile" accept="image/png,image/jpeg,image/webp" hidden>
+      <div class="two"><button type="button" class="btn ghost small" id="sPick">Choose a logo</button><button type="button" class="btn ghost small" id="sNoLogo">Remove logo</button></div>
+      <div class="note">PNG, JPG or WebP, up to 8 MB. Any shape: empty margins are trimmed and it is sized to fit automatically. A PNG with a transparent background looks best.</div>
+      <div class="note" id="sLogoInfo"></div>
+    </div>
+    <div class="field">
+      <div class="lbl">How it will look at the top of the screen</div>
+      <div class="mock"><img id="sMockLogo" alt="" hidden><div><div class="n" id="sMockName"></div><div class="a" id="sMockSub"></div></div></div>
+    </div>
+    <button type="button" class="btn" id="sSave">Save settings</button>
+  </section>
+
+  <!-- ROLES -->
+  <section id="vRoles" class="view">
+    <div class="top"><h1>Roles</h1><button type="button" class="link" data-home>Back</button></div>
+    <div class="empty" id="roMe"></div>
+    <table class="perm">
+      <thead><tr><th>What</th><th>Manager</th><th>ECSG admin</th></tr></thead>
+      <tbody>
+        <tr><td>Announcements, posters, images</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Notices, alarm tests, emergencies</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Resident list: add, remove, import</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Building name, address, email, logo</td><td>No</td><td>Yes</td></tr>
+        <tr><td>Add or remove managers</td><td>No</td><td>Yes</td></tr>
+      </tbody>
+    </table>
+    <div class="note">Access is given by ECSG. A person who is not invited cannot open this app, even with the link.</div>
+    <div id="roAdmin" class="field" hidden>
+      <div class="lbl">Add a manager (ECSG only)</div>
+      <div class="note">Managers are invited from Azure, not from this app, so nobody inside a building can give access to someone else. In the Azure portal open the Static Web App "lobby-display", then Role management, then Invite: provider Microsoft Entra ID, the person's email, role <b>manager</b>. Or run this in Cloud Shell and send them the link it prints:</div>
+      <pre class="cmd" id="roCmd">az staticwebapp users invite -n lobby-display -g rg-lobbydisplay-demo-cus --authentication-provider AAD --user-details PERSON@EXAMPLE.COM --roles manager --domain display.ecsgapps.com --invitation-expiration-in-hours 48 --query invitationUrl -o tsv</pre>
+      <div class="note">To remove someone: same Role management page, select the person, Delete. The app has no list of people because Azure keeps it.</div>
+    </div>
+  </section>
+
   <!-- RESIDENTS: the list announcements and alerts will be emailed to -->
   <section id="vRes" class="view">
     <div class="top"><div><h1>Residents</h1><div class="who" id="rCount"></div></div><button type="button" class="link" data-home>Back</button></div>
@@ -262,7 +371,7 @@
   </section>
 
   <section id="vNotice" class="view">
-    <div class="top"><h1>Service notice</h1><button type="button" class="link" data-go="vAlerts">Back</button></div>
+    <div class="top"><h1>Service notice</h1><button type="button" class="link" data-home>Back</button></div>
     <div class="field"><div class="lbl">What is it about</div><div class="presets" id="nTypes"></div></div>
     <div class="field"><div class="row"><label class="lbl" for="nTitle">Notice</label><span class="count" id="cNTitle"></span></div><input type="text" id="nTitle" autocomplete="off"></div>
     <div class="field"><div class="row"><label class="lbl" for="nText">Details</label><span class="count" id="cNText"></span></div><textarea id="nText" rows="2"></textarea></div>
@@ -272,7 +381,7 @@
   </section>
 
   <section id="vDrill" class="view">
-    <div class="top"><h1>Scheduled test</h1><button type="button" class="link" data-go="vAlerts">Back</button></div>
+    <div class="top"><h1>Scheduled test</h1><button type="button" class="link" data-home>Back</button></div>
     <div class="field"><div class="row"><label class="lbl" for="dTitle">Name of the test</label><span class="count" id="cDTitle"></span></div><input type="text" id="dTitle" autocomplete="off"></div>
     <div class="field"><div class="row"><label class="lbl" for="dText">What residents should know</label><span class="count" id="cDText"></span></div><textarea id="dText" rows="2"></textarea></div>
     <div class="field">
@@ -290,7 +399,7 @@
   </section>
 
   <section id="vEmerg" class="view">
-    <div class="top"><h1>Real emergency</h1><button type="button" class="link" data-go="vAlerts">Back</button></div>
+    <div class="top"><h1>Real emergency</h1><button type="button" class="link" data-home>Back</button></div>
     <div class="note">Call 911 first. This puts a red alarm screen on the lobby display right away.</div>
     <div class="field"><div class="lbl">What is happening</div><div class="presets" id="eTypes"></div></div>
     <div id="eBig" class="ebig" hidden></div>
@@ -306,6 +415,7 @@
 </div>
 <script src="../templates.js"></script>
 <script src="files.js"></script>
+<script src="../season.js"></script>
 <script>
 const SCREEN = 'confluence';
 const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
@@ -344,9 +454,11 @@ const mock = { items: [
   { id: 'a2', kind: 'card', title: 'Rooftop Yoga', text: 'Bring your own mat', whenText: 'Saturday 10 AM', whereText: 'Rooftop', live: true, featured: true, endsAt: new Date(Date.now() + 2 * 86400000).toISOString() },
   { id: 'a3', kind: 'card', title: 'Office closed for the holiday', text: '', whenText: 'Thursday Dec 24', whereText: '', live: false, endsAt: new Date(Date.now() + 27 * 86400000).toISOString() }
 ] };
+let mockSettings = { name: 'Confluence', address: '', email: '', logo: '', logoOnLight: false };
 const mockRes = [['Ana', 'Abreu'], ['Bruno', 'Baker'], ['Carla', 'Castillo'], ['David', 'Chen'], ['Elena', 'Diaz'], ['Farid', 'Haddad'], ['Grace', 'Kim'], ['Hugo', 'Lopez'], ['Ines', 'Lopez'], ['Jon', 'Miller'], ['Kate', "O'Brien"], ['Luis', 'Perez'], ['Maya', 'Singh'], ['Noah', 'Torres'], ['Olga', 'Vega'], ['Zoe', '']]
   .map(([f, l], i) => ({ id: String(i).padStart(32, '0'), firstName: f, lastName: l, email: (f + (l ? '.' + l : '')).toLowerCase().replace(/[^a-z.]/g, '') + '@example.com' }));
 async function api(method, path, body) {
+  if (!HOSTED && path === 'settings') { mockSettings = { ...mockSettings, name: body.name.trim(), address: body.address.trim(), email: body.email.trim(), logo: body.removeLogo ? '' : (newLogo ? newLogo.url : mockSettings.logo), logoOnLight: !!body.logoOnLight }; return { settings: mockSettings }; }
   if (!HOSTED && path.startsWith('residents')) {
     if (path === 'residents/import') { const ok = body.rows.filter((r) => /^\S+@\S+\.\S+$/.test(r.email) && (r.firstName || r.lastName));
       const summary = { mode: body.mode, rows: body.rows.length, added: ok.length, updated: 0, unchanged: 0, removed: body.mode === 'replace' ? mockRes.length : 0, skippedCount: body.rows.length - ok.length, skipped: body.rows.map((r, i) => [r, i]).filter(([r]) => !ok.includes(r)).map(([r, i]) => ({ row: i + 2, reason: 'email is not valid' })), total: (body.mode === 'replace' ? 0 : mockRes.length) + ok.length };
@@ -359,7 +471,7 @@ async function api(method, path, body) {
   if (!HOSTED) {
     if (method === 'POST') mock.items.push({ ...body, id: 'n' + Date.now(), startsAt: body.startsAt || new Date().toISOString(), live: !body.startsAt || new Date(body.startsAt) <= new Date() });
     if (method === 'DELETE') mock.items = mock.items.filter((x) => x.id !== path.split('/').pop().split('?')[0]);
-    return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { total: 10, emergency: 1, notice: 3, drill: 5 }, max: state.max, safety: { route: '', assembly: '' },
+    return { screenName: mockSettings.name, settings: mockSettings, role: location.search.includes('asmanager') ? 'manager' : 'admin', user: 'preview@example.com', limits: { total: 10, emergency: 1, notice: 3, drill: 5 }, max: state.max, safety: { route: '', assembly: '' },
       noticeTypes: { water: { label: 'Water shut-off', title: 'Water shut-off', text: 'Water is off for repairs. We will update this screen when it is back.' }, elevator: { label: 'Elevator out of service', title: 'Elevator out of service', text: 'Please use the other elevator or the stairs.' }, weather: { label: 'Severe weather', title: 'Severe weather', text: 'Take care outside and allow extra travel time.' }, other: { label: 'Other notice', title: '', text: '' } },
       emergencyTypes: { fire: { label: 'Fire', action: 'evacuate', headline: 'EVACUATE NOW', title: 'Fire in the building', text: 'Leave now by the nearest stairs. Do not use the elevators.' }, threat: { label: 'Building under threat', action: 'shelter', headline: 'TAKE SHELTER', title: 'Danger in the building', text: 'Stay inside your apartment. Lock the door. Stay away from doors and windows.' }, earthquake: { label: 'Earthquake', action: 'shelter', headline: 'DROP, COVER, HOLD ON', title: 'Earthquake', text: 'Get under sturdy furniture and hold on.' } },
       places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'],
@@ -373,12 +485,20 @@ async function api(method, path, body) {
   return d;
 }
 function say(text, cls) { const m = $('msg'); m.textContent = text || ''; m.className = text ? cls : ''; if (text) window.scrollTo(0, 0); }
-function show(view) { for (const v of ['vHome', 'vNew', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
+function show(view) { for (const v of ['vHome', 'vNew', 'vSet', 'vRoles', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
 const fmtEnd = (iso) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 
 function renderHome() {
-  $('hName').textContent = (state.screenName || 'Lobby') + ' lobby screen';
-  $('hWho').textContent = state.user ? 'Signed in as ' + state.user : '';
+  const admin = state.role === 'admin', st = state.settings || {};
+  $('hName').textContent = state.screenName || 'Lobby screen';
+  $('hWho').innerHTML = state.user ? esc(state.user) + '<span class="chip' + (admin ? ' admin' : '') + '">' + (admin ? 'ECSG admin' : 'Manager') + '</span>' : '';
+  $('goSet').hidden = !admin;
+  const logoOk = typeof st.logo === 'string' && (/^\/api\/image\/[a-z0-9]{12,40}$/.test(st.logo) || (!HOSTED && st.logo.startsWith('blob:')));
+  $('hLogo').hidden = !logoOk; if (logoOk) { $('hLogo').src = st.logo; $('hLogo').className = st.logoOnLight ? 'onlight' : ''; $('hLogo').alt = (state.screenName || '') + ' logo'; }
+  // the mark and a greeting follow the US calendar, the same as on the lobby screen
+  const season = window.lobbySeason ? window.lobbySeason(new Date()) : null;
+  $('hMark').innerHTML = season ? '<svg viewBox="0 0 24 24" role="img" aria-label="' + esc(season.label) + '">' + season.icon + '</svg>' : '<i></i>';
+  $('hGreet').hidden = !season; if (season) { $('hGreet').textContent = season.label; $('hGreet').style.color = season.color; }
   const alarm = state.items.find((x) => x.kind === 'emergency');
   $('alarmOn').hidden = !alarm;
   if (alarm && $('alarmClear').dataset.id !== alarm.id) { clearTimeout($('alarmClear')._timer); $('alarmClear').disabled = false; $('alarmClear').dataset.sure = ''; $('alarmClear').textContent = 'Clear alert now'; }
@@ -392,7 +512,11 @@ function renderHome() {
       '</div></div><button type="button" class="end" data-end="' + esc(x.id) + '"' + (x.group ? ' data-group="1"' : '') + ' aria-label="' + (test ? 'Cancel ' : 'End ') + esc(x.title) + '">' + (test ? 'Cancel test' : 'End now') + '</button></div>'; }).join('');
   const rest = state.items.filter((x) => x.kind === 'card' || x.kind === 'poster');
   const n = (k) => rest.filter((x) => x.kind === k).length;
-  $('hCount').textContent = rest.length + ' of ' + state.limits.total + ' · ' + n('card') + (n('card') === 1 ? ' card, ' : ' cards, ') + n('poster') + (n('poster') === 1 ? ' poster' : ' posters');
+  const liveNow = rest.filter((x) => x.live).length, drillNow = alerts.find((x) => x.kind === 'drill' && x.live), noticesNow = alerts.filter((x) => x.kind === 'notice' && x.live).length;
+  $('hNow').innerHTML = alarm ? '<b style="color:#FDA29B">Emergency screen</b>' : drillNow ? '<b>Test screen</b> until ' + esc(new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(drillNow.endsAt)))
+    : '<b>' + liveNow + '</b> ' + (liveNow === 1 ? 'announcement' : 'announcements') + (noticesNow ? ' · <b>' + noticesNow + '</b> ' + (noticesNow === 1 ? 'notice' : 'notices') : '');
+  $('hLed').className = 'led' + (alarm ? ' red' : ''); $('hLedTxt').textContent = alarm ? 'ALERT' : 'LIVE';
+  $('hCount').textContent = rest.length + ' of ' + state.limits.total + ' slots used · ' + n('card') + (n('card') === 1 ? ' card, ' : ' cards, ') + n('poster') + (n('poster') === 1 ? ' poster' : ' posters');
   $('goNew').disabled = rest.length >= state.limits.total; $('goNew').textContent = rest.length >= state.limits.total ? 'Limit reached: end one to add another' : 'New announcement';
   $('hList').innerHTML = rest.length ? rest.map((x) =>
     '<div class="item"><div class="main"><div class="t">' + esc(x.title) + '</div><div class="s"><span class="kind ' + esc(x.kind) + '">' + esc(x.kind) + '</span>' +
@@ -636,6 +760,74 @@ async function endItem(id, btn) {
 }
 function resetEndButton(btn) { btn.disabled = false; btn.dataset.sure = ''; if (btn.dataset.label) btn.textContent = btn.dataset.label; }
 
+/* ---------- settings (administrators only) and roles ---------- */
+let newLogo = null;   // { blob, url, onLight, info } chosen but not saved yet; false = remove the logo
+function drawSettings() {
+  const st = state.settings || {};
+  $('cSName').textContent = $('sName').value.length + ' / 40';
+  $('sMockName').textContent = ($('sName').value || 'Building name');
+  $('sMockSub').textContent = [$('sAddr').value, $('sEmail').value].filter(Boolean).join(' · ');
+  const src = newLogo ? newLogo.url : newLogo === false ? '' : (st.logo || ''), onLight = newLogo ? newLogo.onLight : st.logoOnLight;
+  $('sMockLogo').hidden = !src; if (src) { $('sMockLogo').src = src; $('sMockLogo').className = onLight ? 'onlight' : ''; }
+  $('sLogoInfo').textContent = newLogo ? newLogo.info : newLogo === false ? 'The logo will be removed when you save.' : '';
+  $('sNoLogo').disabled = !src;
+}
+function openSettings() {
+  const st = state.settings || {}; newLogo = null; say('');
+  $('sName').value = st.name || ''; $('sAddr').value = st.address || ''; $('sEmail').value = st.email || '';
+  drawSettings(); show('vSet');
+}
+/* Logo auto-fit: trim the empty margins around the artwork, scale it into a 600 by 144 box (twice the size it is shown at, so it
+   stays sharp on a large TV), and decide whether it needs a light plate behind it to be visible on the dark screen. */
+async function pickLogo(file) {
+  if (!file) return;
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return say('Use a PNG, JPG or WebP file for the logo.', 'err');
+  if (file.size > 8 * 1024 * 1024) return say('That file is ' + (file.size / 1048576).toFixed(1) + ' MB. The limit is 8 MB.', 'err');
+  let bmp; try { bmp = await createImageBitmap(file); } catch (e) { return say('That file could not be read as an image.', 'err'); }
+  if (bmp.width < 40 || bmp.height < 40) return say('That logo is only ' + bmp.width + ' x ' + bmp.height + ' px. Use a larger file.', 'err');
+  const pre = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * pre)), h = Math.max(1, Math.round(bmp.height * pre));
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(bmp, 0, 0, w, h);
+  const px = x.getImageData(0, 0, w, h).data, at = (i) => [px[i], px[i + 1], px[i + 2], px[i + 3]];
+  const corner = at(0), opaqueBg = corner[3] > 245;
+  // "empty" means transparent, or, for a logo saved on a flat background, the same color as its top-left corner
+  const empty = (i) => px[i + 3] < 16 || (opaqueBg && Math.abs(px[i] - corner[0]) + Math.abs(px[i + 1] - corner[1]) + Math.abs(px[i + 2] - corner[2]) < 36);
+  let x0 = w, y0 = h, x1 = -1, y1 = -1, lum = 0, n = 0;
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { const i = (yy * w + xx) * 4; if (empty(i)) continue; if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; lum += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]; n++; }
+  if (x1 < 0) return say('That image looks empty.', 'err');
+  const cw = x1 - x0 + 1, ch = y1 - y0 + 1, fit = Math.min(600 / cw, 144 / ch, 2), ow = Math.max(1, Math.round(cw * fit)), oh = Math.max(1, Math.round(ch * fit));
+  const o = document.createElement('canvas'); o.width = ow; o.height = oh; const ox = o.getContext('2d'); ox.imageSmoothingQuality = 'high'; ox.drawImage(c, x0, y0, cw, ch, 0, 0, ow, oh);
+  const bgLum = 0.2126 * corner[0] + 0.7152 * corner[1] + 0.0722 * corner[2];
+  // Light plate when the artwork itself is dark (it would vanish on navy), or when the file has a solid light background.
+  const onLight = opaqueBg ? bgLum > 150 : lum / n < 105;
+  const blob = await new Promise((res) => o.toBlob(res, 'image/png'));
+  if (!blob || blob.size > 1400 * 1024) return say('That logo is too detailed. Try a simpler file.', 'err');
+  if (newLogo && newLogo.url) URL.revokeObjectURL(newLogo.url);
+  newLogo = { blob, url: URL.createObjectURL(blob), onLight, info: 'Fitted automatically: ' + bmp.width + ' x ' + bmp.height + ' px trimmed and sized to ' + ow + ' x ' + oh + '.' + (onLight ? ' It is dark or has a light background, so it gets a white plate to stay visible on the dark screen.' : '') };
+  say(''); drawSettings(); $('sFile').value = '';
+}
+async function saveSettingsForm() {
+  if (!$('sName').value.trim()) return say('The building name is required.', 'err');
+  const b = $('sSave'); b.disabled = true;
+  try {
+    const body = { name: $('sName').value, address: $('sAddr').value, email: $('sEmail').value };
+    if (newLogo === false) body.removeLogo = true;
+    else if (newLogo) {
+      if (HOSTED) { const r = await fetch('/api/manage/images?screen=' + SCREEN, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: newLogo.blob }); const d = await r.json().catch(() => ({})); if (!r.ok || !d.id) throw new Error(d.error || 'The logo could not be uploaded.'); body.logoId = d.id; }
+      body.logoOnLight = newLogo.onLight;
+    }
+    const out = await api('POST', 'settings', body);
+    state.settings = out.settings; state.screenName = out.settings.name; newLogo = null;
+    renderHome(); show('vHome'); say('Saved. The lobby screen will show it within a few seconds.', 'ok');
+  } catch (e) { say(e.message, 'err'); }
+  b.disabled = false;
+}
+function openRoles() {
+  const admin = state.role === 'admin';
+  $('roMe').innerHTML = 'You are signed in as <b>' + esc(state.user || '') + '</b>, with the role <b>' + (admin ? 'ECSG administrator' : 'Manager') + '</b>.';
+  $('roAdmin').hidden = !admin; say(''); show('vRoles');
+}
+$('sFile').addEventListener('change', () => pickLogo($('sFile').files[0]));
+
 /* ---------- residents ---------- */
 let residents = [], rLetter = '', rShown = 60, pendingImport = null;
 const fold = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -714,6 +906,11 @@ document.addEventListener('click', (ev) => {
   else if (t.id === 'goNew') openCompose();
   else if (t.id === 'goAlarm') { say(''); show('vAlerts'); }
   else if (t.id === 'goRes') openResidents();
+  else if (t.id === 'goSet') openSettings();
+  else if (t.id === 'goRoles') openRoles();
+  else if (t.id === 'sPick') $('sFile').click();
+  else if (t.id === 'sNoLogo') { if (newLogo && newLogo.url) URL.revokeObjectURL(newLogo.url); newLogo = false; drawSettings(); }
+  else if (t.id === 'sSave') saveSettingsForm();
   else if (t.dataset.letter !== undefined && t.closest('#rAz')) { rLetter = t.dataset.letter; rShown = 60; $('rSearch').value = ''; drawResidents(); }
   else if (t.id === 'rMore') { rShown += 100; drawResidents(); }
   else if (t.id === 'rAdd') addResident();
@@ -749,8 +946,9 @@ document.addEventListener('click', (ev) => {
 $('fFile').addEventListener('change', () => pickImage($('fFile').files[0]));
 $('fDate').addEventListener('change', () => { if ($('fDate').value) $('fUntil').value = $('fDate').value; drawCompose(); });
 $('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').value === ADD_PLACE) $('fWhereNew').focus(); });
-document.addEventListener('input', () => { if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
+document.addEventListener('input', () => { if ($('vSet').classList.contains('on')) drawSettings(); if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
 window.addEventListener('resize', sizeFrames);
+if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
 refresh(); setInterval(() => { if ($('vHome').classList.contains('on')) refresh(); }, 60000);
 if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').value = 'Coffee Social'; $('fText').value = 'Come to the party room for a cup of coffee and meet your neighbors.'; const t = new Date(Date.now() + 86400000); $('fDate').value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); $('fFrom').value = '09:00'; $('fTo').value = '11:00'; $('fPlace').value = location.search.includes('add') ? ADD_PLACE : 'Party Room'; kind = 'poster'; if (location.search.includes('up')) source = 'upload'; drawCompose();
   const fake = location.search.match(/fake=(\d+)x(\d+)/);

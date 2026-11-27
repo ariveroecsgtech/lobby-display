@@ -103,3 +103,11 @@ The screen is a support for the building's emergency plan, not a life-safety sys
 - Storage: Azure Table `announcements` in the storage account named by the `STORAGE_CONNECTION` app setting. Rows are removed a week after they end.
 - Rules and limits live in `api/lib/announcements.js`; `api/lib/store.js` is the only file that talks to Azure Tables.
 - Not built yet: per-building manager assignment (today a manager role covers the one screen, `confluence`), uploading custom poster art, sponsor management, editing an announcement after publishing.
+
+## Building settings, roles, install and seasons
+
+- **Settings (ECSG admin only).** `/manage` → Settings: building name, address, office email and logo. Saved by `POST /api/manage/settings`, which answers 403 to anyone without the `admin` role. The logo is trimmed and fitted in the browser to at most 600 × 144 px; a dark logo or one on a light background gets a white plate. The lobby screen reads these from `building` in `/api/community`, and emails use the name and office email.
+- **Roles.** `manager`: announcements, alerts, residents. `admin` (ECSG): the same plus settings and inviting managers from Azure (Role management). The app shows the table and, to admins, the invite command.
+- **Install as an app.** `manifest.webmanifest` (residents: the screen only, no options), `manage.webmanifest` (manager app), `sw.js` (no caching), `/install.html` with steps for iPhone, Android and computer.
+- **Seasons.** `season.js` → `window.lobbySeason(date)`: the mark beside the building name follows the US calendar (New Year, MLK Day, Valentine's, Presidents' Day, St. Patrick's, Memorial Day, Juneteenth, July 4, Labor Day, Halloween, Veterans Day, Thanksgiving, Holidays).
+- **Manager app look.** Drawn as a remote control for the screen: status display, one main key, three round alert keys, and a row of small keys.

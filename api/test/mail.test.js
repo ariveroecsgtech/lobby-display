@@ -92,6 +92,13 @@ const mem = () => { const res = new Map(), out = new Map(); let tag = 0; return 
   const sent5 = []; await M.drain(s5, 'confluence', { now: ny(18, 31), send: async (m) => sent5.push(m.subject) });
   assert.deepStrictEqual(sent5, ['Confluence: Event 1, Sat, Dec 12']);
 
+  // The building's own name and office email, once the administrator has set them, are used in the emails.
+  const s7 = mem(); await s7.residentPutMany('confluence', [{ id: id(1), firstName: 'R', lastName: '', email: 'b@example.com' }]);
+  await s7.put({ screen: 'confluence', id: '_settings', kind: '_meta', name: 'Harbor Point', email: 'office@harbor.example' });
+  await M.queue(s7, 'confluence', { id: 'n7', kind: 'notice', title: 'Water shut-off', endsAt: card.endsAt }, now);
+  const m7 = JSON.parse((await s7.outboxList('confluence'))[0].msg);
+  assert.deepStrictEqual([m7.subject, m7.from.name, m7.from.replyTo, m7.from.from], ['Harbor Point notice: Water shut-off', 'Harbor Point Management Office', 'office@harbor.example', 'confluence@notices.ecsgapps.com']);
+
   // Unsubscribe needs the signed link.
   assert.strictEqual(await M.unsubscribe(s, 'confluence', id(5), 'wrong'), false);
   assert.strictEqual(await M.unsubscribe(s, 'confluence', id(5), M.sign('confluence', id(6))), false, 'a link for someone else does not work');

@@ -147,6 +147,32 @@ async function create(store, screen, input, user, now = Date.now()) {
   return item;
 }
 
+// Building settings: name, address, contact email and logo, shown on the lobby screen and used in emails.
+// Only an administrator (ECSG) can change them. Stored as one row beside the announcements.
+const SETTINGS_ROW = '_settings';
+const EMAIL_RE = /^[^\s@<>(),;:"']+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+function settingsFrom(rows, screen) {
+  const b = assertScreen(screen), row = (rows || []).find((r) => r.id === SETTINGS_ROW) || {};
+  return { name: row.name || b.name, address: row.address || '', email: row.email || '', logo: row.imageId ? '/api/image/' + row.imageId : '', logoOnLight: row.logoOnLight === true };
+}
+async function getSettings(store, screen) { return settingsFrom(await store.list(screen), screen); }
+async function saveSettings(store, screen, input, user, now = Date.now()) {
+  assertScreen(screen);
+  const name = clean(input && input.name, 40), address = clean(input && input.address, 90), email = clean(input && input.email, 120).toLowerCase();
+  if (!name) throw fail('The building name is required');
+  if (email && !EMAIL_RE.test(email)) throw fail('That email address is not valid');
+  const rows = await store.list(screen), old = rows.find((r) => r.id === SETTINGS_ROW) || {};
+  let imageId = old.imageId || '', logoOnLight = old.logoOnLight === true;
+  if (input.removeLogo === true) { imageId = ''; logoOnLight = false; }
+  else if (input.logoId) {
+    if (!IMAGE_ID.test(String(input.logoId)) || !(await store.imageExists(String(input.logoId)))) throw fail('The logo was not found. Upload it again.');
+    imageId = String(input.logoId); logoOnLight = input.logoOnLight === true;
+  }
+  await store.put({ screen, id: SETTINGS_ROW, kind: '_meta', name, address, email, imageId, logoOnLight, updatedBy: clean(user, 120), updatedAt: new Date(now).toISOString() });
+  if (old.imageId && old.imageId !== imageId) await store.imageRemove(old.imageId).catch(() => {});
+  return getSettings(store, screen);
+}
+
 // Places for the Where field: the screen's starting list plus the ones managers added.
 async function getPlaces(store, screen) {
   const base = assertScreen(screen).places || [];
@@ -195,6 +221,7 @@ async function end(store, screen, id) {
 
 // What the lobby screen receives: only what is live right now, with no author details.
 function publicView(list, now = Date.now(), screen = '') {
+  const building = SCREENS[screen] ? settingsFrom(list, screen) : null;
   const live = list.filter((a) => isLive(a, now));
   const em = live.find((a) => a.kind === 'emergency'), dr = live.find((a) => a.kind === 'drill');
   const safety = (SCREENS[screen] && SCREENS[screen].safety) || {};
@@ -218,7 +245,8 @@ function publicView(list, now = Date.now(), screen = '') {
     drill: dr ? { id: dr.id, title: dr.title, text: dr.text, until: dr.endsAt } : null,
     // service notices: shown in the strip under the clock, the rest of the screen stays visible
     notices: live.filter((a) => a.kind === 'notice').sort((a, b) => a.endsAt.localeCompare(b.endsAt)).map((a) => ({ id: a.id, type: a.type || 'other', title: a.title, text: a.text, until: a.endsAt })),
-    items
+    items,
+    building
   };
 }
 
@@ -246,8 +274,8 @@ function principal(headerValue) {
   try {
     const p = JSON.parse(Buffer.from(String(headerValue || ''), 'base64').toString('utf8'));
     const roles = Array.isArray(p.userRoles) ? p.userRoles : [];
-    return { user: String(p.userDetails || ''), roles, allowed: roles.includes('manager') || roles.includes('admin') };
-  } catch (e) { return { user: '', roles: [], allowed: false }; }
+    return { user: String(p.userDetails || ''), roles, admin: roles.includes('admin'), allowed: roles.includes('manager') || roles.includes('admin') };
+  } catch (e) { return { user: '', roles: [], admin: false, allowed: false }; }
 }
 
-module.exports = { NOTICES, EMERGENCIES, ALERT_KINDS, totalFor, IMAGE, IMAGE_ID, sniffImage, saveImage, SCREENS, LIMITS, DESIGNS, MAX, create, listOpen, end, publicView, principal, assertScreen, getPlaces };
+module.exports = { getSettings, saveSettings, settingsFrom, NOTICES, EMERGENCIES, ALERT_KINDS, totalFor, IMAGE, IMAGE_ID, sniffImage, saveImage, SCREENS, LIMITS, DESIGNS, MAX, create, listOpen, end, publicView, principal, assertScreen, getPlaces };

@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Confluence — Lobby Display</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
 <style>
@@ -38,6 +44,17 @@
   #header { height: 96px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
   #bname { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--soft); }
   #bname i { display: block; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); }
+  #bMark { display: flex; align-items: center; flex-shrink: 0; }
+  #bMark svg { width: 46px; height: 46px; }
+  /* the building's logo: any shape fits a 300 by 72 box; a dark logo gets a light plate so it stays visible */
+  #bLogo { height: 72px; max-width: 300px; object-fit: contain; flex-shrink: 0; }
+  #bLogo.onlight { background: #FFFFFF; border-radius: 12px; padding: 6px 14px; }
+  #bSub { font-size: 21px; font-weight: 500; letter-spacing: 0.5px; text-transform: none; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 760px; }
+  #bSub:empty { display: none; }
+  #installHint { display: none; }
+  .mobile #installHint.show { display: flex; align-items: center; justify-content: center; min-height: 64px; margin-top: 4px; border: 2px solid var(--line); border-radius: 18px; color: var(--soft); font-size: 28px; font-weight: 600; text-decoration: none; }
+  .mobile #bLogo { height: 60px; max-width: 260px; }
+  .mobile #bSub { white-space: normal; max-width: none; }
   #hright { display: flex; align-items: center; gap: 36px; }
   #clock { display: flex; align-items: baseline; gap: 18px; }
   #date { font-size: 34px; font-weight: 500; color: var(--soft); margin-right: 18px; }
@@ -249,7 +266,7 @@
 <div id="stage">
 
   <div id="header">
-    <div id="bname"><i></i><span id="bnameText"></span></div>
+    <div id="bname"><span id="bMark"><i></i></span><img id="bLogo" alt="" hidden><div><div id="bnameText"></div><div id="bSub"></div></div></div>
     <div id="hright">
       <div id="clock">
         <div id="date"></div>
@@ -348,9 +365,11 @@
       <div id="hoursRows"></div>
     </div>
   </div>
+  <a id="installHint" href="/install.html">Install this as an app</a>
 </div>
 
 <script src="templates.js"></script>
+<script src="season.js"></script>
 <script>
 /* ============================================================
    CONFIG — one block per screen. Everything below reads from it.
@@ -790,7 +809,7 @@ function buildSequence() {
 async function loadCommunity() {
   if (PREVIEW) {
     cItems = PREVIEW.item ? [PREVIEW.item] : []; cSample = false;
-    showEmergency(PREVIEW.emergency || null, PREVIEW.drill || null); notes = PREVIEW.notice ? [PREVIEW.notice] : []; drawStrip(false);
+    applyBrand(PREVIEW.building); showEmergency(PREVIEW.emergency || null, PREVIEW.drill || null); notes = PREVIEW.notice ? [PREVIEW.notice] : []; drawStrip(false);
     $('cBadge').textContent = 'Preview';
   } else if (SAMPLE_MODE) { cItems = CONFIG.community.items; cSample = CONFIG.community.sample; const demo = { '#emergency': [null, { title: 'Fire alarm test', text: 'The alarm will sound. This is only a test. No action is needed.', until: new Date(Date.now() + 3600000).toISOString() }],
       '#fire': [{ action: 'evacuate', headline: 'EVACUATE NOW', title: 'Fire in the building', text: 'Leave now by the nearest stairs. Do not use the elevators.', route: location.search.includes('route') ? 'Stairs A and B, by the elevators' : '', assembly: location.search.includes('route') ? 'Sample meeting point' : '' }, null],
@@ -801,7 +820,7 @@ async function loadCommunity() {
     try {
       const d = await getJSON('/api/community?screen=' + encodeURIComponent(CONFIG.screenId));
       cItems = d.items; cSample = false;
-      showEmergency(d.emergency, d.drill || null); notes = d.notices || []; drawStrip(false);
+      showEmergency(d.emergency, d.drill || null); notes = d.notices || []; drawStrip(false); applyBrand(d.building);
     } catch (e) { console.error('Announcements failed', e); }     // keep what is on screen; the next check is 15 seconds away
   }
   // Redraw right away when the card on screen was removed, or when something new arrives while the welcome card is up.
@@ -809,6 +828,22 @@ async function loadCommunity() {
   const ids = cItems.map((x) => x.id || x.title);
   if (cIdx < 0 || !ids.includes(cShownId)) { cPos = Math.max(-1, Math.min(cPos, cSeq.length) - 1); showCommunity(); }
   else { cIdx = ids.indexOf(cShownId); const here = cSeq.findIndex((x, i) => i >= cPos && (x.id || x.title) === cShownId); cPos = here >= 0 ? here : cSeq.findIndex((x) => (x.id || x.title) === cShownId); drawCommunityExtras(); }
+}
+/* Branding set by the administrator in the manager app: name, address, email and logo. */
+function applyBrand(b) {
+  if (!b) return;
+  CONFIG.buildingName = b.name || CONFIG.buildingName;
+  $('bnameText').textContent = CONFIG.buildingName + (b.address ? '' : ' · ' + CONFIG.city);
+  $('bSub').textContent = [b.address, b.email].filter(Boolean).join(' · ');
+  document.title = CONFIG.buildingName + ' — Lobby Display';
+  const logo = $('bLogo'), src = typeof b.logo === 'string' && /^\/api\/image\/[a-z0-9]{12,40}$/.test(b.logo) ? b.logo : '';
+  logo.hidden = !src; logo.classList.toggle('onlight', !!b.logoOnLight); logo.alt = src ? CONFIG.buildingName + ' logo' : '';
+  if (src) { if (logo.getAttribute('src') !== src) logo.src = src; } else logo.removeAttribute('src');
+}
+/* The mark beside the name follows the US calendar: a tree in December, a leaf at Thanksgiving, a flag on July 4, and so on. */
+function applySeason() {
+  const s = window.lobbySeason ? window.lobbySeason(new Date()) : null;
+  $('bMark').innerHTML = s ? '<svg viewBox="0 0 24 24" role="img" aria-label="' + esc(s.label) + '">' + s.icon + '</svg>' : '<i></i>';
 }
 /* Takeovers. A real emergency always wins over a scheduled test. */
 function showEmergency(em, drill) {
@@ -989,6 +1024,11 @@ function demoFooterStep() {
 function start() {
   $('bnameText').textContent = CONFIG.buildingName + ' · ' + CONFIG.city;
   $('trainLabel').textContent = 'Trains from ' + CONFIG.trainStation;
+  applySeason(); setInterval(applySeason, 3600000);
+  // Installable as an app; the "install" link only shows in a phone browser, never inside the installed app or on the lobby TV.
+  if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  $('installHint').classList.toggle('show', !standalone && !PREVIEW);
   fit(); window.addEventListener('resize', fit);
   tickClock(); setInterval(tickClock, 1000);
   loadDrive(); setInterval(loadDrive, 5 * 60000);

@@ -40,7 +40,7 @@ app.http('manageList', {
         } else if (item.mailPending && Mail.configured()) mail = { queued: false, daily: true, recipients: 0 };
         context.log('announcement created', screen, item.kind, item.id, 'by', p.user);
       }
-      return { status: 200, jsonBody: { screen, screenName: A.assertScreen(screen).name, user: p.user, limits: { total: A.totalFor(screen), emergency: A.LIMITS.emergency, notice: A.LIMITS.notice, drill: A.LIMITS.drill }, noticeTypes: A.NOTICES, emergencyTypes: A.EMERGENCIES, safety: A.assertScreen(screen).safety || {}, mailOn: Mail.configured(), mailHour: (A.assertScreen(screen).mail || {}).digestHour, mail, max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
+      return { status: 200, jsonBody: { screen, screenName: (await A.getSettings(store, screen)).name, settings: await A.getSettings(store, screen), role: p.admin ? 'admin' : 'manager', user: p.user, limits: { total: A.totalFor(screen), emergency: A.LIMITS.emergency, notice: A.LIMITS.notice, drill: A.LIMITS.drill }, noticeTypes: A.NOTICES, emergencyTypes: A.EMERGENCIES, safety: A.assertScreen(screen).safety || {}, mailOn: Mail.configured(), mailHour: (A.assertScreen(screen).mail || {}).digestHour, mail, max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
     } catch (err) { return problem(err, context); }
   }
 });
@@ -76,6 +76,25 @@ app.http('manageImage', {
       const saved = await A.saveImage(store, screenOf(request), new Uint8Array(await request.arrayBuffer()));
       context.log('image uploaded', saved.id, saved.bytes, 'by', p.user);
       return { status: 200, jsonBody: { id: saved.id } };
+    } catch (err) { return problem(err, context); }
+  }
+});
+
+// Building settings (name, address, email, logo). Administrators only: a manager gets 403 here even though they can use the rest.
+app.http('manageSettings', {
+  methods: ['POST'],
+  authLevel: 'anonymous',
+  route: 'manage/settings',
+  handler: async (request, context) => {
+    const p = guard(request);
+    if (!p || !p.admin) return { status: 403, jsonBody: { error: 'Only an ECSG administrator can change the building settings.' } };
+    const screen = screenOf(request);
+    try {
+      let input; try { input = await request.json(); } catch (e) { return { status: 400, jsonBody: { error: 'Invalid request' } }; }
+      const settings = await A.saveSettings(store, screen, input, p.user);
+      _clearCache(screen);
+      context.log('settings saved', screen, 'by', p.user);
+      return { status: 200, jsonBody: { settings }, headers: { 'Cache-Control': 'no-store' } };
     } catch (err) { return problem(err, context); }
   }
 });
