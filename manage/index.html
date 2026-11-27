@@ -66,6 +66,22 @@
   #msg { display: none; border-radius: 12px; padding: 12px 14px; font-size: 15px; font-weight: 600; }
   #msg.err { display: block; background: #3A1A14; color: var(--bad); }
   #msg.ok { display: block; background: #12301F; color: var(--good); }
+  input[type=search], input[type=email] { width: 100%; background: var(--card); color: var(--text); border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 16px; }
+  .az { display: flex; flex-wrap: wrap; gap: 4px; }
+  .az button { min-width: 34px; min-height: 40px; padding: 0 6px; border-radius: 8px; border: 2px solid var(--line); background: none; color: var(--soft); font-size: 14px; font-weight: 700; }
+  .az button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .az button:disabled { opacity: 0.28; cursor: default; }
+  .res { background: var(--card); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+  .res .main { flex-grow: 1; min-width: 0; } .res .n { font-weight: 600; overflow-wrap: anywhere; } .res .e { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+  .res mark { background: none; color: var(--accent); font-weight: 700; }
+  .box { background: none; border: 2px solid var(--line); border-radius: 14px; padding: 4px 16px 14px; }
+  .box summary { min-height: 48px; display: flex; align-items: center; font-weight: 700; font-size: 16px; cursor: pointer; }
+  a.btn { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  .btn.small { min-height: 48px; font-size: 15px; }
+  .sum { background: var(--card); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+  .sum ul { margin: 0; padding-left: 20px; line-height: 1.6; } .sum .warn { color: var(--accent); font-size: 14px; }
+  .sum label { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; }
+  .sum input[type=radio] { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--accent); flex-shrink: 0; }
   .opt { text-align: left; border-radius: 14px; border: 2px solid var(--line); background: var(--card); color: var(--text); padding: 16px; display: flex; flex-direction: column; gap: 6px; min-height: 44px; }
   .opt b { font-size: 18px; } .opt span { font-size: 14px; line-height: 1.4; color: var(--soft); }
   .opt.red { border-color: #F97066; background: #3A1512; } .opt.red b { color: #FDA29B; }
@@ -107,6 +123,7 @@
     <div id="hList" style="display:flex;flex-direction:column;gap:10px"><div class="empty">Loading…</div></div>
     <button type="button" class="btn" id="goNew">New announcement</button>
     <button type="button" class="btn danger" id="goAlarm">Alerts and notices</button>
+    <button type="button" class="btn ghost" id="goRes">Residents</button>
     <div id="alertsBox" hidden>
       <div class="lbl" style="margin-bottom:10px">Notices and scheduled tests</div>
       <div id="aList" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -194,6 +211,46 @@
     <button type="button" class="btn ghost" id="pBack2">Back to edit</button>
   </section>
 
+  <!-- RESIDENTS: the list announcements and alerts will be emailed to -->
+  <section id="vRes" class="view">
+    <div class="top"><div><h1>Residents</h1><div class="who" id="rCount"></div></div><button type="button" class="link" data-home>Back</button></div>
+    <div class="note">Only first name, last name and email are kept. They are used to email announcements and alerts, and are never shown on the lobby screen. <b id="rMail">Email delivery is not turned on yet.</b></div>
+    <details class="box" id="rAddBox">
+      <summary>Add one resident</summary>
+      <div class="field" style="margin-top:12px">
+        <div class="two">
+          <div class="field"><label class="sub" for="rFirst">First name</label><input type="text" id="rFirst" autocomplete="off"></div>
+          <div class="field"><label class="sub" for="rLast">Last name</label><input type="text" id="rLast" autocomplete="off"></div>
+        </div>
+        <div class="field"><label class="sub" for="rEmail">Email</label><input type="email" id="rEmail" autocomplete="off" inputmode="email"></div>
+        <button type="button" class="btn" id="rAdd">Add resident</button>
+      </div>
+    </details>
+
+    <details class="box" id="rImpBox">
+      <summary>Import from a file</summary>
+      <div class="field" style="margin-top:12px">
+        <div class="note">1. Download the template and fill it in Excel: one resident per row, with the columns First name, Last name and Email.</div>
+        <div class="two">
+          <a class="btn ghost small" id="rTplCsv" download="residents-template.csv">Template (.csv)</a>
+          <a class="btn ghost small" href="residents-template.xlsx" download="residents-template.xlsx">Template (.xlsx)</a>
+        </div>
+        <div class="note">2. Choose your finished file (.csv or .xlsx). You will see a summary before anything is saved.</div>
+        <input type="file" id="rFile" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+        <button type="button" class="btn ghost" id="rPick">Choose a file</button>
+        <div id="rSum" class="sum" hidden></div>
+      </div>
+    </details>
+    <div class="field">
+      <label class="lbl" for="rSearch">Search</label>
+      <input type="search" id="rSearch" autocomplete="off" placeholder="Type a name or email" role="combobox" aria-controls="rList" aria-expanded="true">
+      <div class="az" id="rAz" role="group" aria-label="Filter by first letter of last name"></div>
+    </div>
+    <div id="rList" style="display:flex;flex-direction:column;gap:8px" aria-live="polite"></div>
+    <button type="button" class="link" id="rMore" hidden>Show more</button>
+
+  </section>
+
   <!-- ALERTS: three levels -->
   <section id="vAlerts" class="view">
     <div class="top"><h1>Alerts and notices</h1><button type="button" class="link" data-home>Cancel</button></div>
@@ -247,6 +304,7 @@
 
 </div>
 <script src="../templates.js"></script>
+<script src="files.js"></script>
 <script>
 const SCREEN = 'confluence';
 const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
@@ -285,7 +343,18 @@ const mock = { items: [
   { id: 'a2', kind: 'card', title: 'Rooftop Yoga', text: 'Bring your own mat', whenText: 'Saturday 10 AM', whereText: 'Rooftop', live: true, featured: true, endsAt: new Date(Date.now() + 2 * 86400000).toISOString() },
   { id: 'a3', kind: 'card', title: 'Office closed for the holiday', text: '', whenText: 'Thursday Dec 24', whereText: '', live: false, endsAt: new Date(Date.now() + 27 * 86400000).toISOString() }
 ] };
+const mockRes = [['Ana', 'Abreu'], ['Bruno', 'Baker'], ['Carla', 'Castillo'], ['David', 'Chen'], ['Elena', 'Diaz'], ['Farid', 'Haddad'], ['Grace', 'Kim'], ['Hugo', 'Lopez'], ['Ines', 'Lopez'], ['Jon', 'Miller'], ['Kate', "O'Brien"], ['Luis', 'Perez'], ['Maya', 'Singh'], ['Noah', 'Torres'], ['Olga', 'Vega'], ['Zoe', '']]
+  .map(([f, l], i) => ({ id: String(i).padStart(32, '0'), firstName: f, lastName: l, email: (f + (l ? '.' + l : '')).toLowerCase().replace(/[^a-z.]/g, '') + '@example.com' }));
 async function api(method, path, body) {
+  if (!HOSTED && path.startsWith('residents')) {
+    if (path === 'residents/import') { const ok = body.rows.filter((r) => /^\S+@\S+\.\S+$/.test(r.email) && (r.firstName || r.lastName));
+      const summary = { mode: body.mode, rows: body.rows.length, added: ok.length, updated: 0, unchanged: 0, removed: body.mode === 'replace' ? mockRes.length : 0, skippedCount: body.rows.length - ok.length, skipped: body.rows.map((r, i) => [r, i]).filter(([r]) => !ok.includes(r)).map(([r, i]) => ({ row: i + 2, reason: 'email is not valid' })), total: (body.mode === 'replace' ? 0 : mockRes.length) + ok.length };
+      if (!body.dryRun) { if (body.mode === 'replace') mockRes.length = 0; ok.forEach((r, i) => mockRes.push({ ...r, id: ('n' + Date.now() + i).padStart(32, '0') })); }
+      return { summary, residents: mockRes.slice() }; }
+    if (method === 'POST') mockRes.push({ ...body, id: ('n' + Date.now()).padStart(32, '0') });
+    if (method === 'DELETE') mockRes.splice(mockRes.findIndex((r) => r.id === path.split('/').pop()), 1);
+    return { residents: mockRes.slice() };
+  }
   if (!HOSTED) {
     if (method === 'POST') mock.items.push({ ...body, id: 'n' + Date.now(), startsAt: body.startsAt || new Date().toISOString(), live: !body.startsAt || new Date(body.startsAt) <= new Date() });
     if (method === 'DELETE') mock.items = mock.items.filter((x) => x.id !== path.split('/').pop().split('?')[0]);
@@ -303,7 +372,7 @@ async function api(method, path, body) {
   return d;
 }
 function say(text, cls) { const m = $('msg'); m.textContent = text || ''; m.className = text ? cls : ''; if (text) window.scrollTo(0, 0); }
-function show(view) { for (const v of ['vHome', 'vNew', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
+function show(view) { for (const v of ['vHome', 'vNew', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
 const fmtEnd = (iso) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 
 function renderHome() {
@@ -562,11 +631,90 @@ async function endItem(id, btn) {
 }
 function resetEndButton(btn) { btn.disabled = false; btn.dataset.sure = ''; if (btn.dataset.label) btn.textContent = btn.dataset.label; }
 
+/* ---------- residents ---------- */
+let residents = [], rLetter = '', rShown = 60, pendingImport = null;
+const fold = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const initial = (r) => { const c = fold(r.lastName || r.firstName).charAt(0).toUpperCase(); return /[A-Z]/.test(c) ? c : '#'; };
+const hit = (text, q) => { const i = q ? fold(text).indexOf(q) : -1; return i < 0 ? esc(text) : esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length)); };
+function drawResidents() {
+  const q = fold($('rSearch').value.trim());
+  $('rCount').textContent = residents.length + (residents.length === 1 ? ' resident' : ' residents');
+  const letters = new Set(residents.map(initial));
+  $('rAz').innerHTML = ['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), '#'].map((L) =>
+    '<button type="button" data-letter="' + L + '" aria-pressed="' + (L === rLetter) + '"' + (L && !letters.has(L) ? ' disabled' : '') + '>' + (L || 'All') + '</button>').join('');
+  // Search looks at the whole list (first name, last name, both orders, and email); the letter filter applies when not searching.
+  const list = residents.filter((r) => q ? [r.firstName + ' ' + r.lastName, r.lastName + ' ' + r.firstName, r.email].some((t) => fold(t).includes(q)) : !rLetter || initial(r) === rLetter);
+  $('rList').innerHTML = list.length ? list.slice(0, rShown).map((r) =>
+    '<div class="res"><div class="main"><div class="n">' + hit([r.lastName, r.firstName].filter(Boolean).join(', '), q) + '</div><div class="e">' + hit(r.email, q) + '</div></div>' +
+    '<button type="button" class="end" data-rdel="' + esc(r.id) + '" aria-label="Remove ' + esc(r.firstName + ' ' + r.lastName) + '">Remove</button></div>').join('')
+    : '<div class="empty">' + (residents.length ? 'No resident matches.' : 'No residents yet. Add them one by one, or import a file.') + '</div>';
+  $('rMore').hidden = list.length <= rShown; $('rMore').textContent = 'Show more (' + (list.length - rShown) + ' left)';
+}
+async function openResidents() {
+  say(''); $('rSearch').value = ''; rLetter = ''; rShown = 60; pendingImport = null; $('rSum').hidden = true;
+  $('rTplCsv').href = URL.createObjectURL(new Blob([window.residentTemplateCsv], { type: 'text/csv' }));
+  show('vRes'); $('rList').innerHTML = '<div class="empty">Loading…</div>';
+  try { residents = (await api('GET', 'residents')).residents; drawResidents(); } catch (e) { say(e.message, 'err'); }
+}
+async function addResident() {
+  const b = $('rAdd'); b.disabled = true;
+  try {
+    residents = (await api('POST', 'residents', { firstName: $('rFirst').value, lastName: $('rLast').value, email: $('rEmail').value })).residents;
+    for (const id of ['rFirst', 'rLast', 'rEmail']) $(id).value = '';
+    drawResidents(); say('Resident added.', 'ok');
+  } catch (e) { say(e.message, 'err'); }
+  b.disabled = false;
+}
+async function removeResident(id, btn) {
+  if (btn.dataset.sure !== '1') { btn.dataset.sure = '1'; btn.textContent = 'Tap to confirm'; setTimeout(() => { if (btn.isConnected) { btn.dataset.sure = ''; btn.textContent = 'Remove'; } }, 5000); return; }
+  btn.disabled = true;
+  try { residents = (await api('DELETE', 'residents/' + encodeURIComponent(id))).residents; drawResidents(); say('Resident removed.', 'ok'); }
+  catch (e) { say(e.message, 'err'); btn.disabled = false; }
+}
+/* Import: read the file here, ask the server what would change (nothing is saved), show it, then save only on confirm. */
+async function pickResidentFile(file) {
+  $('rSum').hidden = true; pendingImport = null;
+  try {
+    const { rows } = await window.readResidentFile(file);
+    const add = (await api('POST', 'residents/import', { rows, mode: 'add', dryRun: true })).summary;
+    const rep = (await api('POST', 'residents/import', { rows, mode: 'replace', dryRun: true })).summary;
+    pendingImport = { rows, name: file.name };
+    const skipped = add.skippedCount ? '<div class="warn">' + add.skippedCount + (add.skippedCount === 1 ? ' row' : ' rows') + ' will be skipped: ' +
+      esc(add.skipped.slice(0, 5).map((x) => 'row ' + x.row + ' (' + x.reason + ')').join(', ')) + (add.skippedCount > 5 ? ', and ' + (add.skippedCount - 5) + ' more' : '') + '.</div>' : '';
+    $('rSum').innerHTML = '<div><b>' + esc(file.name) + '</b>: ' + add.rows + (add.rows === 1 ? ' row' : ' rows') + ' read.</div>' + skipped +
+      '<label><input type="radio" name="rMode" value="add" checked><span><b>Add to the current list.</b> ' + add.added + ' new, ' + add.updated + ' with a name update, ' + add.unchanged + ' already there. Nobody is removed. The list will have ' + add.total + '.</span></label>' +
+      '<label><input type="radio" name="rMode" value="replace"><span><b>Replace the whole list with this file.</b> ' + rep.added + ' new, and <b>' + rep.removed + ' removed</b> because they are not in the file. The list will have ' + rep.total + '.</span></label>' +
+      '<button type="button" class="btn" id="rConfirm">Import</button><button type="button" class="link" id="rCancelImp">Cancel</button>';
+    $('rSum').hidden = false; say('');
+  } catch (e) { say(e.message, 'err'); }
+  $('rFile').value = '';
+}
+async function confirmImport(btn) {
+  if (!pendingImport) return;
+  const mode = (document.querySelector('input[name="rMode"]:checked') || {}).value || 'add';
+  btn.disabled = true;
+  try {
+    const out = await api('POST', 'residents/import', { rows: pendingImport.rows, mode });
+    residents = out.residents; pendingImport = null; $('rSum').hidden = true; $('rImpBox').open = false; drawResidents();
+    say('Imported: ' + out.summary.added + ' added, ' + out.summary.updated + ' updated' + (out.summary.removed ? ', ' + out.summary.removed + ' removed' : '') + '. The list now has ' + out.summary.total + '.', 'ok');
+  } catch (e) { say(e.message, 'err'); btn.disabled = false; }
+}
+$('rFile').addEventListener('change', () => pickResidentFile($('rFile').files[0]));
+$('rSearch').addEventListener('input', () => { rShown = 60; drawResidents(); });
+
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button, a'); if (!t) return;
   if (t.hasAttribute('data-home')) { say(''); show('vHome'); }
   else if (t.id === 'goNew') openCompose();
   else if (t.id === 'goAlarm') { say(''); show('vAlerts'); }
+  else if (t.id === 'goRes') openResidents();
+  else if (t.dataset.letter !== undefined && t.closest('#rAz')) { rLetter = t.dataset.letter; rShown = 60; $('rSearch').value = ''; drawResidents(); }
+  else if (t.id === 'rMore') { rShown += 100; drawResidents(); }
+  else if (t.id === 'rAdd') addResident();
+  else if (t.dataset.rdel) removeResident(t.dataset.rdel, t);
+  else if (t.id === 'rPick') $('rFile').click();
+  else if (t.id === 'rConfirm') confirmImport(t);
+  else if (t.id === 'rCancelImp') { pendingImport = null; $('rSum').hidden = true; }
   else if (t.dataset.go) { if (t.dataset.go === 'vAlerts') { say(''); show('vAlerts'); } else openAlertForm(t.dataset.go); }
   else if (t.dataset.ntype) { nType = t.dataset.ntype; const x = state.noticeTypes[nType]; $('nTitle').value = x.title; $('nText').value = x.text; drawAlerts(); }
   else if (t.dataset.etype) { eType = t.dataset.etype; const x = state.emergencyTypes[eType]; $('eTitle').value = x.title; $('eText').value = x.text; drawAlerts(); }

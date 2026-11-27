@@ -21,6 +21,21 @@ const fromEntity = (e) => {
   return { ...rest, screen: partitionKey, id: rowKey };
 };
 
+// Residents (first name, last name, email) live in their own table, apart from announcements.
+// PartitionKey = screen id, RowKey = resident id. Nothing in this table is ever sent to the lobby screen.
+let resClient = null, resReady = null;
+async function residents() {
+  const conn = process.env.STORAGE_CONNECTION;
+  if (!conn) { const e = new Error('STORAGE_CONNECTION is not set'); e.code = 'not_configured'; throw e; }
+  if (!resClient) resClient = TableClient.fromConnectionString(conn, 'residents');
+  if (!resReady) resReady = resClient.createTable().catch((e) => { if (e.statusCode !== 409) { resReady = null; throw e; } });
+  await resReady;
+  return resClient;
+}
+async function inBatches(t, actions) {
+  for (let i = 0; i < actions.length; i += 100) await t.submitTransaction(actions.slice(i, i + 100));   // Azure Tables: 100 per transaction, one partition
+}
+
 // Uploaded poster images live in a private blob container and are only served through /api/image/{id}.
 const CONTAINER = 'posters';
 let container = null, containerReady = null;
@@ -34,6 +49,17 @@ async function blobs() {
 }
 
 module.exports = {
+  async residentList(screen) {
+    const t = await residents(), out = [];
+    for await (const e of t.listEntities({ queryOptions: { filter: "PartitionKey eq '" + String(screen).replace(/'/g, "''") + "'" } })) out.push(fromEntity(e));
+    return out;
+  },
+  async residentPutMany(screen, rows) {
+    await inBatches(await residents(), rows.map(({ id, screen: _s, ...rest }) => ['upsert', { partitionKey: screen, rowKey: id, ...rest }, 'Replace']));
+  },
+  async residentRemoveMany(screen, ids) {
+    await inBatches(await residents(), ids.map((id) => ['delete', { partitionKey: screen, rowKey: id }]));
+  },
   async imagePut(id, bytes, type, screen) {
     await (await blobs()).getBlockBlobClient(id).uploadData(Buffer.from(bytes), { blobHTTPHeaders: { blobContentType: type }, metadata: { screen: String(screen) } });
   },

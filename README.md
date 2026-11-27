@@ -69,6 +69,16 @@ The test builds a fake Metro-North feed, so it runs offline. The real MTA feed h
 - The NewsData.io and Azure Maps calls are tested with simulated responses only until their keys are configured.
 - MTA feeds are subject to MTA's developer terms and conditions.
 
+## Residents
+
+`/manage` → Residents keeps the list that announcements and alerts will be emailed to: first name, last name and email, nothing else.
+
+- The manager can add one resident, remove one, search by name or email, filter by the first letter of the last name, and import a file.
+- Import: download the template (`.csv` or `.xlsx`), fill it, choose the file. The page reads the file in the browser (`manage/files.js`, no library; column names in English or Spanish; commas, semicolons or tabs in CSV), asks the server for a dry run, and shows what would change before anything is saved. "Add" keeps people not in the file; "Replace" makes the file the whole list.
+- One row per email address (the id is a hash of the lowercased email). Limit 3,000 residents per screen.
+- Stored in the Azure Table `residents`, reachable only through `/api/manage/residents*` with the manager or admin role. Never part of `/api/community`, never shown on the screen. Server logs record who changed the list, not the residents' details.
+- Email delivery is not connected yet: the list exists, nothing is sent.
+
 ## Alerts
 
 Three levels, all from `/manage` → Alerts and notices, all confirmed on a preview step:
