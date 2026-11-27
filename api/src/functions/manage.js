@@ -4,6 +4,7 @@ const A = require('../../lib/announcements');
 const { _clearCache } = require('./community');
 const Mail = require('../../lib/mail');
 const Push = require('../../lib/push');
+const Sent = require('../../lib/sent');
 
 // Manager endpoints. Azure Static Web Apps only lets signed-in people with the "manager" or "admin" role reach
 // /api/manage/* (see staticwebapp.config.json); the role is checked again here so a config mistake cannot open them.
@@ -32,15 +33,19 @@ app.http('manageList', {
       let mail = null, push = null;
       if (request.method === 'POST') {
         let input; try { input = await request.json(); } catch (e) { return { status: 400, jsonBody: { error: 'Invalid request' } }; }
-        const item = await A.create(store, screen, input, p.user);
+        const item = await A.create(store, screen, input, p.user, Date.now(), { admin: p.admin });
         _clearCache(screen);
         // Each announcement or alert is emailed once, when it is published. Alerts always; cards and posters unless the manager unticked it.
         // Alerts are emailed at once. Cards and posters wait for the building's one daily email (see digest in lib/mail.js).
-        if (A.ALERT_KINDS.includes(item.kind)) {
+        if (item.sponsored) { /* a paid message is shown on the screen only: never emailed or pushed to residents */ }
+        else if (A.ALERT_KINDS.includes(item.kind)) {
           try { mail = await Mail.queue(store, screen, item); } catch (e) { context.error('email queue failed', e); mail = { queued: false, recipients: 0, reason: 'error' }; }
         } else if (item.mailPending && Mail.configured()) mail = { queued: false, daily: true, recipients: 0 };
         // Every announcement and alert also goes once, right away, to the phones and computers that allowed notifications.
-        try { push = await Push.send(store, screen, item); } catch (e) { context.error('push failed', e); push = { sent: 0, devices: 0, reason: 'error' }; }
+        if (!item.sponsored) {
+          try { push = await Push.send(store, screen, item); } catch (e) { context.error('push failed', e); push = { sent: 0, devices: 0, reason: 'error' }; }
+          try { await Sent.record(store, screen, item, { push, mail }, p.user); } catch (e) { context.error('sent log failed', e); }
+        }
         context.log('announcement created', screen, item.kind, item.id, 'by', p.user);
       }
       return { status: 200, jsonBody: { screen, screenName: (await A.getSettings(store, screen)).name, settings: await A.getSettings(store, screen), role: p.admin ? 'admin' : 'manager', user: p.user, limits: { total: A.totalFor(screen), emergency: A.LIMITS.emergency, notice: A.LIMITS.notice, drill: A.LIMITS.drill }, noticeTypes: A.NOTICES, emergencyTypes: A.EMERGENCIES, safety: A.assertScreen(screen).safety || {}, mailOn: Mail.configured(), mailHour: (A.assertScreen(screen).mail || {}).digestHour, mail, push, pushOn: Push.configured(), max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
@@ -98,6 +103,27 @@ app.http('manageSettings', {
       _clearCache(screen);
       context.log('settings saved', screen, 'by', p.user);
       return { status: 200, jsonBody: { settings }, headers: { 'Cache-Control': 'no-store' } };
+    } catch (err) { return problem(err, context); }
+  }
+});
+
+// What was sent to residents, and corrections. GET lists the record; POST sends a correction to everyone, now.
+app.http('manageSent', {
+  methods: ['GET', 'POST'],
+  authLevel: 'anonymous',
+  route: 'manage/sent',
+  handler: async (request, context) => {
+    const p = guard(request);
+    if (!p) return { status: 403, jsonBody: { error: 'Not allowed' } };
+    const screen = screenOf(request);
+    try {
+      let result = null;
+      if (request.method === 'POST') {
+        let input; try { input = await request.json(); } catch (e) { return { status: 400, jsonBody: { error: 'Invalid request' } }; }
+        result = await Sent.correction(store, screen, input, p.user);
+        context.log('correction sent', screen, result.sent.id, 'by', p.user);
+      }
+      return { status: 200, jsonBody: { log: await Sent.list(store, screen), result, mailOn: Mail.configured(), pushOn: Push.configured() }, headers: { 'Cache-Control': 'no-store' } };
     } catch (err) { return problem(err, context); }
   }
 });

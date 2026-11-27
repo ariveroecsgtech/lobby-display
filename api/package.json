@@ -4,7 +4,7 @@
   "private": true,
   "main": "src/functions/*.js",
   "scripts": {
-    "test": "node test/trains.test.js && node test/drive.test.js && node test/news.test.js && node test/alerts.test.js && node test/announcements.test.js && node test/residents.test.js && node test/mail.test.js && node test/push.test.js"
+    "test": "node test/trains.test.js && node test/drive.test.js && node test/news.test.js && node test/alerts.test.js && node test/announcements.test.js && node test/residents.test.js && node test/mail.test.js && node test/push.test.js && node test/sent.test.js"
   },
   "dependencies": {
     "@azure/communication-email": "^1.1.0",

@@ -70,6 +70,10 @@
   .keys4 { display: flex; gap: 8px; } .keys4 > * { flex: 1 1 0; min-width: 0; }
   .skey { min-height: 66px; border-radius: 16px; font-size: 11.5px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: var(--soft); padding: 6px 2px; }
   .skey svg { width: 22px; height: 22px; }
+  #powered { text-align: center; font-size: 11.5px; line-height: 1.6; color: var(--muted); margin-top: 4px; } #powered b { color: var(--soft); } #powered a { color: inherit; }
+  .logrow { background: var(--card); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .logrow .t { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; } .logrow .s { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; } .logrow .x { font-size: 14px; color: var(--soft); overflow-wrap: anywhere; }
+  .logrow button { align-self: flex-start; margin-top: 6px; min-height: 40px; padding: 0 14px; border-radius: 20px; background: none; border: 1.5px solid var(--line); color: var(--text); font-size: 13px; font-weight: 700; }
   .chip { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; border-radius: 6px; padding: 2px 7px; border: 1.5px solid #6B7C99; color: var(--muted); margin-left: 6px; vertical-align: middle; }
   .chip.admin { border-color: var(--accent); color: var(--accent); }
   .mock { border-radius: 14px; background: #0B1220; border: 2px solid var(--line); padding: 14px 16px; display: flex; align-items: center; gap: 12px; min-height: 76px; }
@@ -196,6 +200,7 @@
     </div>
     <div class="keys4">
       <button type="button" class="key skey" id="goRes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 19c.5-3.3 2.8-5 6-5s5.5 1.7 6 5M16 5.2a3 3 0 0 1 0 5.600M18 14.3c1.7.7 2.7 2.3 3 4.7"></path></svg>Residents</button>
+      <button type="button" class="key skey" id="goSent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"></rect><path d="M3.5 7l8.5 6.5L20.5 7"></path></svg>Sent</button>
       <button type="button" class="key skey" id="goSet" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.600 5.600l1.8 1.8M16.600 16.600l1.8 1.8M5.600 18.400l1.8-1.8M16.600 7.400l1.8-1.8"></path></svg>Settings</button>
       <button type="button" class="key skey" id="goRoles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7.5 3v5.5c0 4.5-3 7.8-7.5 9.5-4.5-1.7-7.5-5-7.5-9.5V6z"></path><path d="M9 12l2.2 2.2L15.2 10"></path></svg>Roles</button>
       <a class="key skey" href="/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="12" rx="2"></rect><path d="M9 20h6M12 16.5V20"></path></svg>Screen</a>
@@ -208,6 +213,7 @@
       <div id="aList" style="display:flex;flex-direction:column;gap:10px"></div>
     </div>
     <a class="link" href="/logout" style="align-self:center">Sign out</a>
+    <div id="powered">Powered by <b>ECSG Display</b> · © <span class="yr">2026</span> Enterprise Cloud Solutions Group LLC. All rights reserved. Norwalk, CT. · <a href="https://www.ecsgtech.com/" target="_blank" rel="noopener">ecsgtech.com</a></div>
   </section>
 
   <!-- COMPOSE -->
@@ -267,6 +273,8 @@
       </div>
     </div>
     <label class="check" id="featBox"><input type="checkbox" id="fFeat"> Featured: shown first and twice as often</label>
+    <label class="check" id="spBox" hidden><input type="checkbox" id="fSp"> Sponsored: a paid message from a business (ECSG only)</label>
+    <div class="note" id="spNote" hidden>The screen labels it "Sponsored". It is not emailed or pushed to residents, and up to 3 can run at a time.</div>
     <label class="check" id="mailBox"><input type="checkbox" id="fMail" checked> <span id="fMailTxt">Also email it to residents, once</span></label>
     <div class="field">
       <label class="lbl" for="fUntil">Show on the screen until the end of</label>
@@ -291,6 +299,22 @@
     <div class="note" id="pNote"></div>
     <button type="button" class="btn" id="publish">Publish to lobby screen</button>
     <button type="button" class="btn ghost" id="pBack2">Back to edit</button>
+  </section>
+
+  <!-- SENT: the record of what went out to residents, and corrections -->
+  <section id="vSent" class="view">
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><div><h1>Sent messages</h1><div class="who" id="seInfo"></div></div></div>
+    <button type="button" class="btn" id="seNew">Write a correction</button>
+    <div id="seList" style="display:flex;flex-direction:column;gap:10px"><div class="empty">Loading…</div></div>
+  </section>
+  <section id="vFix" class="view">
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><div><h1>Correction</h1><div class="who" id="fxRef"></div></div></div>
+    <div class="field"><div class="row"><label class="lbl" for="fxTitle">What is being corrected</label><span class="count" id="cFxT"></span></div><input type="text" id="fxTitle" maxlength="80" autocomplete="off" placeholder="Coffee Social"></div>
+    <div class="field"><div class="row"><label class="lbl" for="fxText">The correction</label><span class="count" id="cFxX"></span></div><textarea id="fxText" rows="5" maxlength="500" placeholder="The Coffee Social is at 11 AM, not 10 AM. Sorry for the mix-up."></textarea></div>
+    <div class="note" id="fxWho"></div>
+    <button type="button" class="btn" id="fxSend">Send to everyone</button>
   </section>
 
   <!-- SETTINGS: administrators only. What is set here shows on the lobby screen and in emails. -->
@@ -479,9 +503,12 @@ const mock = { items: [
   { id: 'a3', kind: 'card', title: 'Office closed for the holiday', text: '', whenText: 'Thursday Dec 24', whereText: '', live: false, endsAt: new Date(Date.now() + 27 * 86400000).toISOString() }
 ] };
 let mockSettings = { name: 'Confluence', address: '', email: '', logo: '', logoOnLight: false };
+const mockLog = [{ id: 'l2', kind: 'notice', title: 'Water shut-off', text: 'Floors 3 to 5, 9 AM to noon.', by: 'preview@example.com', at: new Date(Date.now() - 3600000).toISOString(), pushSent: 14, pushDevices: 15, mail: 'now', mailRecipients: 212 },
+  { id: 'l1', kind: 'card', title: 'Coffee Social', text: 'Saturday at 10 AM in the lobby.', by: 'preview@example.com', at: new Date(Date.now() - 86400000).toISOString(), pushSent: 12, pushDevices: 15, mail: 'daily', mailRecipients: 0 }];
 const mockRes = [['Ana', 'Abreu'], ['Bruno', 'Baker'], ['Carla', 'Castillo'], ['David', 'Chen'], ['Elena', 'Diaz'], ['Farid', 'Haddad'], ['Grace', 'Kim'], ['Hugo', 'Lopez'], ['Ines', 'Lopez'], ['Jon', 'Miller'], ['Kate', "O'Brien"], ['Luis', 'Perez'], ['Maya', 'Singh'], ['Noah', 'Torres'], ['Olga', 'Vega'], ['Zoe', '']]
   .map(([f, l], i) => ({ id: String(i).padStart(32, '0'), firstName: f, lastName: l, email: (f + (l ? '.' + l : '')).toLowerCase().replace(/[^a-z.]/g, '') + '@example.com' }));
 async function api(method, path, body) {
+  if (!HOSTED && path === 'sent') { if (method === 'POST') mockLog.unshift({ id: 'l' + Date.now(), kind: 'correction', title: body.title, text: body.text, by: 'preview@example.com', at: new Date().toISOString(), pushSent: 14, pushDevices: 14, mail: 'off', mailRecipients: 0 }); return { log: mockLog.slice(), mailOn: false, pushOn: true, result: method === 'POST' ? { push: { sent: 14 }, mail: { queued: false } } : null }; }
   if (!HOSTED && path === 'settings') { mockSettings = { ...mockSettings, name: body.name.trim(), address: body.address.trim(), email: body.email.trim(), logo: body.removeLogo ? '' : (newLogo ? newLogo.url : mockSettings.logo), logoOnLight: !!body.logoOnLight }; return { settings: mockSettings }; }
   if (!HOSTED && path.startsWith('residents')) {
     if (path === 'residents/import') { const ok = body.rows.filter((r) => /^\S+@\S+\.\S+$/.test(r.email) && (r.firstName || r.lastName));
@@ -511,7 +538,7 @@ async function api(method, path, body) {
 function say(text, cls) { const m = $('msg'); m.textContent = text || ''; m.className = text ? cls : ''; if (text) window.scrollTo(0, 0); }
 let trail = [];
 function show(view) { const cur = (document.querySelector('.view.on') || {}).id; if (view === 'vHome') trail = []; else if (cur && cur !== view && trail[trail.length - 1] !== view) trail.push(cur); else if (trail[trail.length - 1] === view) trail.pop();
-  for (const v of ['vHome', 'vNew', 'vSet', 'vRoles', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
+  for (const v of ['vHome', 'vNew', 'vSent', 'vFix', 'vSet', 'vRoles', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
 const fmtEnd = (iso) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 
 function renderHome() {
@@ -640,7 +667,7 @@ function drawCompose() {
 function openCompose() {
   for (const id of ['fTitle', 'fText', 'fDate', 'fFrom', 'fTo', 'fWhereNew']) $(id).value = '';
   renderPlaces(); $('fPlace').value = ''; $('fSavePlace').checked = true;
-  $('fFeat').checked = false; $('fMail').checked = true; kind = 'card';
+  $('fFeat').checked = false; $('fMail').checked = true; $('fSp').checked = false; $('spBox').hidden = state.role !== 'admin'; $('spNote').hidden = true; $('fFeat').disabled = $('fMail').disabled = false; $('featBox').style.opacity = $('mailBox').style.opacity = 1; kind = 'card';
   const hr = state.mailHour == null ? 18 : state.mailHour;
   $('mailBox').hidden = !state.mailOn; $('fMailTxt').textContent = 'Include it in the daily email to residents (one email a day, at ' + (hr % 12 || 12) + (hr < 12 ? ' AM' : ' PM') + ')'; source = 'gallery'; clearPicked();
   const d = new Date(Date.now() + 86400000), iso = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
@@ -659,7 +686,7 @@ function composeBody() {
   const [y, m, d] = until.split('-').map(Number);
   return { kind, title: $('fTitle').value.trim(), text: $('fText').value.trim(), whenText: whenLabel(), timeText: timeLabel(), whereText: whereValue(),
     savePlace: $('fPlace').value === ADD_PLACE && $('fSavePlace').checked,
-    design: kind === 'poster' && source === 'gallery' ? design : '', ownImage: kind === 'poster' && source === 'upload', featured: $('fFeat').checked, email: $('fMail').checked, endsAt: new Date(y, m - 1, d, 23, 59, 59).toISOString() };
+    design: kind === 'poster' && source === 'gallery' ? design : '', ownImage: kind === 'poster' && source === 'upload', featured: $('fFeat').checked && !$('fSp').checked, sponsored: $('fSp').checked, email: $('fMail').checked && !$('fSp').checked, endsAt: new Date(y, m - 1, d, 23, 59, 59).toISOString() };
 }
 function sizeFrames() {
   const w = $('pFull').clientWidth; if (!w) return;
@@ -679,7 +706,7 @@ function openPreview(body, from) {
     : body.kind === 'drill' ? { drill: { title: body.title, text: body.text, until: body.endsAt } }
     : body.kind === 'notice' ? { notice: { title: body.title, text: body.text } }
     : { item: {
-    kind: body.kind, featured: body.featured, design: body.kind === 'poster' ? body.design : '', image: body.imageId && HOSTED ? '/api/image/' + body.imageId : '', theme: 'navy', icon: 'note',
+    kind: body.kind, featured: body.featured, sponsored: body.sponsored === true, design: body.kind === 'poster' ? body.design : '', image: body.imageId && HOSTED ? '/api/image/' + body.imageId : '', theme: 'navy', icon: 'note',
     eyebrow: body.kind === 'poster' && (state.designs[body.design] || {}).cat !== 'Building' ? 'You are invited' : 'From the management office',
     title: body.title, text: body.text, tags: [body.whenText, body.timeText, body.whereText].filter(Boolean), when: body.whenText } };
   const url = (HOSTED ? '/' : '../index.html') + '?sample#preview=' + encodeURIComponent(JSON.stringify(payload));
@@ -786,6 +813,47 @@ async function endItem(id, btn) {
 }
 function resetEndButton(btn) { btn.disabled = false; btn.dataset.sure = ''; if (btn.dataset.label) btn.textContent = btn.dataset.label; }
 
+/* ---------- sent messages and corrections ---------- */
+let sentLog = [], fixRef = '';
+const KIND_NAME = { card: 'Card', poster: 'Poster', notice: 'Notice', drill: 'Alarm test', emergency: 'Emergency', correction: 'Correction' };
+function drawSent() {
+  $('seInfo').textContent = sentLog.length ? sentLog.length + ' most recent' : '';
+  $('seList').innerHTML = sentLog.length ? sentLog.map((r) => {
+    const when = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(r.at));
+    const mail = r.mail === 'now' ? 'Email: ' + r.mailRecipients + (r.mailRecipients === 1 ? ' resident' : ' residents') : r.mail === 'daily' ? 'Email: in the daily email' : 'Email: not sent';
+    return '<div class="logrow"><div class="t"><span class="kind">' + esc(KIND_NAME[r.kind] || r.kind) + '</span>' + esc(r.title) + '</div>' + (r.text ? '<div class="x">' + esc(r.text) + '</div>' : '') +
+      '<div class="s">' + esc(when) + ' · ' + esc(r.by || '') + '</div><div class="s">Notification: ' + r.pushSent + (r.pushSent === 1 ? ' device' : ' devices') + ' · ' + mail + '</div>' +
+      (r.kind === 'correction' ? '' : '<button type="button" data-fix="' + esc(r.id) + '">Write a correction</button>') + '</div>';
+  }).join('') : '<div class="empty">Nothing has been sent yet. Announcements and alerts appear here when they are published.</div>';
+}
+async function openSent() {
+  say(''); show('vSent'); $('seList').innerHTML = '<div class="empty">Loading…</div>';
+  try { const d = await api('GET', 'sent'); sentLog = d.log || []; state.mailOn = d.mailOn; state.pushOn = d.pushOn; drawSent(); } catch (e) { $('seList').innerHTML = ''; say(e.message, 'err'); }
+}
+function drawFix() { $('cFxT').textContent = $('fxTitle').value.length + ' / 80'; $('cFxX').textContent = $('fxText').value.length + ' / 500'; }
+function openFix(ref) {
+  const r = sentLog.find((x) => x.id === ref); fixRef = r ? r.id : '';
+  $('fxTitle').value = r ? r.title.slice(0, 80) : ''; $('fxText').value = '';
+  $('fxRef').textContent = r ? 'About: ' + r.title : 'A general correction';
+  $('fxWho').textContent = 'It goes out right away, as a notification to every device that has them on' + (state.mailOn ? ' and as an email to the residents on the list.' : '. Email is not set up yet, so it does not go by email.') + ' It cannot be taken back.';
+  const b = $('fxSend'); b.dataset.sure = ''; b.textContent = 'Send to everyone'; b.disabled = false;
+  drawFix(); say(''); show('vFix');
+}
+async function sendFix() {
+  const b = $('fxSend');
+  if (!$('fxTitle').value.trim()) return say('Say what is being corrected.', 'err');
+  if ($('fxText').value.trim().length < 5) return say('Write the correction.', 'err');
+  if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'Tap again to send to everyone'; say(''); return; }
+  b.disabled = true;
+  try {
+    const d = await api('POST', 'sent', { title: $('fxTitle').value, text: $('fxText').value, ref: fixRef });
+    sentLog = d.log || sentLog; drawSent(); show('vSent'); trail = [];
+    const r = d.result || {}, p = (r.push || {}).sent || 0, m = r.mail && r.mail.queued ? r.mail.recipients : 0;
+    say('Correction sent: ' + p + (p === 1 ? ' device' : ' devices') + ' by notification' + (m ? ', ' + m + ' by email.' : '.'), 'ok');
+  } catch (e) { say(e.message, 'err'); b.dataset.sure = ''; b.textContent = 'Send to everyone'; }
+  b.disabled = false;
+}
+
 /* ---------- settings (administrators only) and roles ---------- */
 let newLogo = null;   // { blob, url, onLight, info } chosen but not saved yet; false = remove the logo
 function drawSettings() {
@@ -852,6 +920,8 @@ function openRoles() {
   $('roMe').innerHTML = 'You are signed in as <b>' + esc(state.user || '') + '</b>, with the role <b>' + (admin ? 'ECSG administrator' : 'Manager') + '</b>.';
   $('roAdmin').hidden = !admin; say(''); show('vRoles');
 }
+$('fSp').addEventListener('change', () => { const on = $('fSp').checked; $('spNote').hidden = !on; $('featBox').style.opacity = $('mailBox').style.opacity = on ? 0.4 : 1; $('fFeat').disabled = $('fMail').disabled = on; });
+for (const y of document.querySelectorAll('#powered .yr')) y.textContent = new Date().getFullYear();
 $('sFile').addEventListener('change', () => pickLogo($('sFile').files[0]));
 
 /* ---------- residents ---------- */
@@ -934,6 +1004,10 @@ document.addEventListener('click', (ev) => {
   else if (t.id === 'goAlarm') { say(''); show('vAlerts'); }
   else if (t.id === 'goRes') openResidents();
   else if (t.id === 'goSet') openSettings();
+  else if (t.id === 'goSent') openSent();
+  else if (t.id === 'seNew') openFix('');
+  else if (t.dataset.fix) openFix(t.dataset.fix);
+  else if (t.id === 'fxSend') sendFix();
   else if (t.id === 'goRoles') openRoles();
   else if (t.id === 'sPick') $('sFile').click();
   else if (t.id === 'sNoLogo') { if (newLogo && newLogo.url) URL.revokeObjectURL(newLogo.url); newLogo = false; drawSettings(); }
@@ -973,7 +1047,7 @@ document.addEventListener('click', (ev) => {
 $('fFile').addEventListener('change', () => pickImage($('fFile').files[0]));
 $('fDate').addEventListener('change', () => { if ($('fDate').value) $('fUntil').value = $('fDate').value; drawCompose(); });
 $('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').value === ADD_PLACE) $('fWhereNew').focus(); });
-document.addEventListener('input', () => { if ($('vSet').classList.contains('on')) drawSettings(); if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
+document.addEventListener('input', () => { if ($('vSet').classList.contains('on')) drawSettings(); if ($('vFix').classList.contains('on')) { drawFix(); const b = $('fxSend'); if (b.dataset.sure) { b.dataset.sure = ''; b.textContent = 'Send to everyone'; } } if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
 window.addEventListener('resize', sizeFrames);
 if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
 /* A tapped notification opens the app and shows its message here. */

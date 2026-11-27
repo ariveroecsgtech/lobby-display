@@ -78,7 +78,8 @@ function assertScreen(screen) {
 const isLive = (a, now) => new Date(a.startsAt).getTime() <= now && new Date(a.endsAt).getTime() > now;
 const isOpen = (a, now) => new Date(a.endsAt).getTime() > now;      // on air now or scheduled for later
 
-function build(input, user, now) {
+const SPONSOR_LIMIT = 3;
+function build(input, user, now, opts = {}) {
   const kind = String(input.kind || '');
   if (!KINDS.includes(kind)) throw fail('Unknown kind of announcement');
   const title = clean(input.title, MAX.title);
@@ -97,6 +98,9 @@ function build(input, user, now) {
   if (kind === 'emergency' && !EMERGENCIES[type]) throw fail('Choose the type of emergency');
   if (kind === 'notice' && !NOTICES[type]) throw fail('Choose the type of notice');
   if (endsAt - now > MAX_DAYS * 86400000) throw fail('Announcements can be scheduled up to ' + MAX_DAYS + ' days ahead');
+  // A sponsored message is a paid slot for a local business. Only an ECSG administrator can publish one, and the screen always labels it.
+  const sponsored = !alert && input.sponsored === true;
+  if (sponsored && !opts.admin) throw fail('Only an ECSG administrator can publish a sponsored message');
   const imageId = kind === 'poster' && input.imageId ? String(input.imageId) : '';
   if (imageId && !IMAGE_ID.test(imageId)) throw fail('The image is not valid. Upload it again.');
   const design = kind === 'poster' && !imageId ? String(input.design || '') : '';
@@ -109,8 +113,9 @@ function build(input, user, now) {
     timeText: alert ? '' : clean(input.timeText, MAX.time),
     whereText: alert ? '' : clean(input.whereText, MAX.where),
     design, imageId, type,
-    featured: !alert && input.featured === true,
-    mailPending: !alert && input.email !== false,     // waiting for the next daily email to residents
+    sponsored,
+    featured: !alert && !sponsored && input.featured === true,
+    mailPending: !alert && !sponsored && input.email !== false,     // waiting for the next daily email to residents
     startsAt: new Date(startsAt).toISOString(),
     endsAt: new Date(endsAt).toISOString(),
     createdBy: clean(user, 120),
@@ -118,12 +123,13 @@ function build(input, user, now) {
   };
 }
 
-async function create(store, screen, input, user, now = Date.now()) {
+async function create(store, screen, input, user, now = Date.now(), opts = {}) {
   assertScreen(screen);
-  const item = { ...build(input || {}, user, now), screen };
+  const item = { ...build(input || {}, user, now, opts), screen };
   if (item.imageId && !(await store.imageExists(item.imageId))) throw fail('The image was not found. Upload it again.');
   const open = (await store.list(screen)).filter((a) => KINDS.includes(a.kind) && isOpen(a, now));
   const count = (k) => open.filter((a) => a.kind === k).length, regular = open.filter((a) => !ALERT_KINDS.includes(a.kind)).length;
+  if (item.sponsored && open.filter((a) => a.sponsored === true).length >= SPONSOR_LIMIT) throw fail('The limit is ' + SPONSOR_LIMIT + ' sponsored messages at a time. End one before adding another.', 'limit');
   if (item.kind === 'emergency') {
     if (count('emergency') >= LIMITS.emergency) throw fail('An emergency alert is already on screen. Clear it first.', 'limit');
   } else if (item.kind === 'notice') {
@@ -226,13 +232,13 @@ function publicView(list, now = Date.now(), screen = '') {
   const em = live.find((a) => a.kind === 'emergency'), dr = live.find((a) => a.kind === 'drill');
   const safety = (SCREENS[screen] && SCREENS[screen].safety) || {};
   const items = live.filter((a) => a.kind === 'card' || a.kind === 'poster')
-    .sort((a, b) => (b.featured === true) - (a.featured === true) || a.endsAt.localeCompare(b.endsAt))
+    .sort((a, b) => (a.sponsored === true) - (b.sponsored === true) || (b.featured === true) - (a.featured === true) || a.endsAt.localeCompare(b.endsAt))
     .map((a) => {
       return {
-        id: a.id, kind: a.kind, featured: a.featured === true,
+        id: a.id, kind: a.kind, featured: a.featured === true, sponsored: a.sponsored === true,
         design: a.kind === 'poster' && !a.imageId ? (DESIGNS[a.design] ? a.design : 'notice') : '', theme: 'navy', icon: 'note',
         image: a.kind === 'poster' && a.imageId ? '/api/image/' + a.imageId : '',
-        eyebrow: a.kind === 'poster' && (DESIGNS[a.design] || {}).cat !== 'Building' ? 'You are invited' : 'From the management office',
+        eyebrow: a.sponsored === true ? 'Sponsored' : a.kind === 'poster' && (DESIGNS[a.design] || {}).cat !== 'Building' ? 'You are invited' : 'From the management office',
         title: a.title, text: a.text, tags: [a.whenText, a.timeText, a.whereText].filter(Boolean), when: a.whenText || a.timeText || ''
       };
     });

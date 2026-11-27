@@ -58,6 +58,17 @@ async function pushes() {
   return pushClient;
 }
 
+// Log of what was sent to residents (announcements, alerts, corrections). No resident details: only counts.
+let logClient = null, logReady = null;
+async function sentlog() {
+  const conn = process.env.STORAGE_CONNECTION;
+  if (!conn) { const e = new Error('STORAGE_CONNECTION is not set'); e.code = 'not_configured'; throw e; }
+  if (!logClient) logClient = TableClient.fromConnectionString(conn, 'sentlog');
+  if (!logReady) logReady = logClient.createTable().catch((e) => { if (e.statusCode !== 409) { logReady = null; throw e; } });
+  await logReady;
+  return logClient;
+}
+
 // Uploaded poster images live in a private blob container and are only served through /api/image/{id}.
 const CONTAINER = 'posters';
 let container = null, containerReady = null;
@@ -71,6 +82,13 @@ async function blobs() {
 }
 
 module.exports = {
+  async logList(screen) {
+    const t = await sentlog(), out = [];
+    for await (const e of t.listEntities({ queryOptions: { filter: "PartitionKey eq '" + String(screen).replace(/'/g, "''") + "'" } })) out.push(fromEntity(e));
+    return out;
+  },
+  async logPut(row) { const { screen, id, ...rest } = row; await (await sentlog()).upsertEntity({ partitionKey: screen, rowKey: id, ...rest }, 'Replace'); },
+  async logRemove(screen, id) { try { await (await sentlog()).deleteEntity(screen, id); } catch (e) { if (e.statusCode !== 404) throw e; } },
   async pushList(screen) {
     const t = await pushes(), out = [];
     for await (const e of t.listEntities({ queryOptions: { filter: "PartitionKey eq '" + String(screen).replace(/'/g, "''") + "'" } })) out.push(fromEntity(e));

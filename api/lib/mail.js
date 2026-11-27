@@ -35,6 +35,10 @@ function compose(item, screen, br) {
     if (item.text) lines.push(item.text);
     lines.push('In immediate danger, call 911. Follow instructions from emergency responders.');
     lines.push('This email may arrive late. It does not replace the building alarm.');
+  } else if (item.kind === 'correction') {
+    optional = item.optional === true;
+    subject = building + ' correction: ' + item.title; heading = 'Correction: ' + item.title;
+    if (item.text) lines.push(item.text);
   } else if (item.kind === 'drill') {
     const day = fmt(item.startsAt, tz, { weekday: 'long', month: 'long', day: 'numeric' }), from = fmt(item.startsAt, tz, { hour: 'numeric', minute: '2-digit' }), to = fmt(item.endsAt, tz, { hour: 'numeric', minute: '2-digit' });
     subject = building + ': ' + item.title + ' on ' + fmt(item.startsAt, tz, { weekday: 'short', month: 'short', day: 'numeric' });

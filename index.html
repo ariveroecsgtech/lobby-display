@@ -30,6 +30,10 @@
   }
   #stage.night { opacity: 0.55; }
   .card { background: var(--card); border-radius: 24px; }
+  /* ECSG's signature, in the bottom margin of the screen */
+  #powered { position: absolute; left: 0; right: 0; bottom: 9px; text-align: center; font-size: 16px; letter-spacing: 0.3px; color: var(--muted); white-space: nowrap; }
+  #powered b { color: var(--soft); font-weight: 700; } #powered a { color: inherit; text-decoration: none; }
+  .mobile #powered { position: static; white-space: normal; font-size: 20px; line-height: 1.5; padding: 10px 0 4px; }
   .label { font-size: 22px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
   .badge { font-size: 15px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 6px; padding: 4px 10px; white-space: nowrap; }
   .badge.sample { color: var(--muted); border: 1.5px solid #6B7C99; }
@@ -384,6 +388,7 @@
     <button type="button" id="pushBtn">Turn on alerts</button>
   </div>
   <a id="installHint" href="/install.html">Install this as an app</a>
+  <div id="powered">Powered by <b>ECSG Display</b> · © <span class="yr">2026</span> Enterprise Cloud Solutions Group LLC. All rights reserved. Norwalk, CT. · <a href="https://www.ecsgtech.com/" target="_blank" rel="noopener">ecsgtech.com</a></div>
 </div>
 
 <script src="templates.js"></script>
@@ -908,7 +913,7 @@ function soundAlarm(on) {
 function showCommunity() {
   const seq = cSeq.length ? cSeq : [WELCOME];
   cPos = (cPos + 1) % seq.length;
-  const it = seq[cPos], sponsor = it.kind === 'sponsor';
+  const it = seq[cPos], sponsor = it.kind === 'sponsor' || it.sponsored === true;
   cIdx = Math.max(0, cItems.indexOf(it));
   cShownId = it.id || it.title;
   // A poster uses its template's palette and illustration; anything else uses a built-in theme and a small icon.
@@ -938,7 +943,7 @@ function showCommunity() {
 function drawCommunityExtras() {
   const items = cItems.length ? cItems : [WELCOME];
   $('cDots').innerHTML = items.length > 1 ? items.map((_, i) => '<i' + (i === cIdx ? ' class="on"' : '') + '></i>').join('') : '';
-  const upcoming = items.filter((x, i) => i !== cIdx && x.kind !== 'sponsor').slice(0, 2);
+  const upcoming = items.filter((x, i) => i !== cIdx && x.kind !== 'sponsor' && !x.sponsored).slice(0, 2);
   $('cNext').innerHTML = upcoming.length ? '<div class="label">Also coming up</div>' +
     upcoming.map((x) => '<div class="nx"><b>' + esc(x.title) + '</b><span>' + esc(x.when || '') + '</span></div>').join('') : '';
   $('cBadge').style.display = cSample || PREVIEW ? '' : 'none';
@@ -1044,6 +1049,7 @@ function start() {
   $('bnameText').textContent = CONFIG.buildingName + ' · ' + CONFIG.city;
   $('trainLabel').textContent = 'Trains from ' + CONFIG.trainStation;
   applySeason(); setInterval(applySeason, 3600000);
+  for (const y of document.querySelectorAll('#powered .yr')) y.textContent = new Date().getFullYear();
   // Installable as an app; the "install" link only shows in a phone browser, never inside the installed app or on the lobby TV.
   if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
   const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;

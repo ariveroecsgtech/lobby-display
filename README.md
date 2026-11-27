@@ -128,3 +128,10 @@ The screen is a support for the building's emergency plan, not a life-safety sys
 
 The product is called **ECSG Display** (manager app: ECSG Display Manager). The ECSG monogram is the mascot: `window.lobbyMascot(date)` in `season.js` draws it with a hat on the "g" and a seasonal ornament in place of the dot. App icons use the white monogram on navy.
 Tapping a notification opens the app and shows the message at the top (`#msg=` hash or a message from `sw.js`). Every manager view has Back and Home keys.
+
+## Sent messages, corrections, sponsored messages, signature
+
+- **Sent** (`/manage` → Sent, `GET/POST /api/manage/sent`, table `sentlog`): one line per announcement, alert or correction with the time, who published it and how many devices and residents it went to (never who). Keeps the last 150.
+- **Correction**: "Write a correction" on any line (or a general one). Sent at once by notification and, when email is on, by email; recorded in the same list. A correction to an event skips residents who stopped event emails.
+- **Sponsored**: checkbox on a new card or poster, ECSG admin only. Labelled "Sponsored" on the screen, shown after the building's own items, never featured, emailed or pushed; 3 at a time.
+- **Signature**: "Powered by ECSG Display · © <year> Enterprise Cloud Solutions Group LLC. All rights reserved. Norwalk, CT. · ecsgtech.com" on the screen, the manager app and the install page.
