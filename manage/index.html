@@ -491,7 +491,8 @@ function openCompose() {
   for (const id of ['fTitle', 'fText', 'fDate', 'fFrom', 'fTo', 'fWhereNew']) $(id).value = '';
   renderPlaces(); $('fPlace').value = ''; $('fSavePlace').checked = true;
   $('fFeat').checked = false; $('fMail').checked = true; kind = 'card';
-  $('mailBox').hidden = !state.mailOn; $('fMailTxt').textContent = 'Also email it to residents, once'; source = 'gallery'; clearPicked();
+  const hr = state.mailHour == null ? 18 : state.mailHour;
+  $('mailBox').hidden = !state.mailOn; $('fMailTxt').textContent = 'Include it in the daily email to residents (one email a day, at ' + (hr % 12 || 12) + (hr < 12 ? ' AM' : ' PM') + ')'; source = 'gallery'; clearPicked();
   const d = new Date(Date.now() + 86400000), iso = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
   $('fUntil').min = iso(new Date()); $('fUntil').value = iso(d); $('fDate').min = iso(new Date());
   say(''); drawCompose(); show('vNew');
@@ -555,7 +556,8 @@ async function publish() {
     const scheduled = k === 'drill' && draft.body.startsAt;
     state = { ...state, ...(await api('POST', 'announcements', draft.body)) }; draft = null;
     renderHome(); renderPlaces(); show('vHome');
-    const m = state.mail, mailed = m && m.queued ? ' It is being emailed to ' + m.recipients + (m.recipients === 1 ? ' resident' : ' residents') + (m.recipients > 90 ? ', about 90 an hour.' : '.') : '';
+    const m = state.mail, dh = state.mailHour == null ? 18 : state.mailHour;
+    const mailed = m && m.daily ? ' It will be in the next daily email to residents, at ' + (dh % 12 || 12) + (dh < 12 ? ' AM.' : ' PM.') : m && m.queued ? ' It is being emailed to ' + m.recipients + (m.recipients === 1 ? ' resident' : ' residents') + (m.recipients > 90 ? ', about 90 an hour.' : '.') : '';
     say((k === 'emergency' ? 'The emergency screen is going up on the lobby display now.' : k === 'drill' ? (scheduled ? 'The test is scheduled. You can cancel it from this page.' : 'The test screen is going up now.')
       : k === 'notice' ? 'The notice is published.' : 'Published. It will be on the lobby screen in a few seconds.') + mailed, 'ok');
   } catch (e) { say(e.message, 'err'); }

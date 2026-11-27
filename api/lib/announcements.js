@@ -10,7 +10,9 @@ const SCREENS = { confluence: { name: 'Confluence', timeZone: 'America/New_York'
   safety: { route: '', assembly: '' },
   // Who emails to residents come from. "from" must be an address on a domain verified in Azure Communication Services.
   // replyTo is where a resident's reply goes (the building's office); empty means replies are not expected.
-  mail: { from: 'notices@ecsgapps.com', name: 'Confluence Management Office', replyTo: '', site: 'https://display.ecsgapps.com' } } };
+  // Sent from a subdomain kept only for building notices, so their reputation never touches ECSG's own mail on ecsgapps.com.
+  // digestHour: announcements (cards and posters) are gathered into one email a day, sent at this hour, building time. Alerts go at once.
+  mail: { from: 'confluence@notices.ecsgapps.com', name: 'Confluence Management Office', replyTo: '', site: 'https://display.ecsgapps.com', digestHour: 18 } } };
 const PLACES_ROW = '_places', MAX_SAVED_PLACES = 20;
 // How many announcements can be on air or scheduled at once: cards and posters share one total, so the manager
 // decides the mix. A screen can set its own total with maxAnnouncements (only ECSG changes it).
@@ -108,6 +110,7 @@ function build(input, user, now) {
     whereText: alert ? '' : clean(input.whereText, MAX.where),
     design, imageId, type,
     featured: !alert && input.featured === true,
+    mailPending: !alert && input.email !== false,     // waiting for the next daily email to residents
     startsAt: new Date(startsAt).toISOString(),
     endsAt: new Date(endsAt).toISOString(),
     createdBy: clean(user, 120),

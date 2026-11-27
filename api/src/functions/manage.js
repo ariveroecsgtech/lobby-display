@@ -34,12 +34,13 @@ app.http('manageList', {
         const item = await A.create(store, screen, input, p.user);
         _clearCache(screen);
         // Each announcement or alert is emailed once, when it is published. Alerts always; cards and posters unless the manager unticked it.
-        if (A.ALERT_KINDS.includes(item.kind) || input.email !== false) {
+        // Alerts are emailed at once. Cards and posters wait for the building's one daily email (see digest in lib/mail.js).
+        if (A.ALERT_KINDS.includes(item.kind)) {
           try { mail = await Mail.queue(store, screen, item); } catch (e) { context.error('email queue failed', e); mail = { queued: false, recipients: 0, reason: 'error' }; }
-        }
+        } else if (item.mailPending && Mail.configured()) mail = { queued: false, daily: true, recipients: 0 };
         context.log('announcement created', screen, item.kind, item.id, 'by', p.user);
       }
-      return { status: 200, jsonBody: { screen, screenName: A.assertScreen(screen).name, user: p.user, limits: { total: A.totalFor(screen), emergency: A.LIMITS.emergency, notice: A.LIMITS.notice, drill: A.LIMITS.drill }, noticeTypes: A.NOTICES, emergencyTypes: A.EMERGENCIES, safety: A.assertScreen(screen).safety || {}, mailOn: Mail.configured(), mail, max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
+      return { status: 200, jsonBody: { screen, screenName: A.assertScreen(screen).name, user: p.user, limits: { total: A.totalFor(screen), emergency: A.LIMITS.emergency, notice: A.LIMITS.notice, drill: A.LIMITS.drill }, noticeTypes: A.NOTICES, emergencyTypes: A.EMERGENCIES, safety: A.assertScreen(screen).safety || {}, mailOn: Mail.configured(), mailHour: (A.assertScreen(screen).mail || {}).digestHour, mail, max: A.MAX, designs: A.DESIGNS, image: A.IMAGE.rules, places: await A.getPlaces(store, screen), items: await A.listOpen(store, screen) }, headers: { 'Cache-Control': 'no-store' } };
     } catch (err) { return problem(err, context); }
   }
 });

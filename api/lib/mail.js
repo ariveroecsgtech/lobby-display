@@ -48,12 +48,45 @@ function render(msg, screen, resident) {
   const site = (msg.from.site || '').replace(/\/$/, '');
   const link = site + '/api/unsubscribe?s=' + encodeURIComponent(screen) + '&r=' + resident.id + '&t=' + sign(screen, resident.id);
   const foot = 'You get this because you are on the resident list of ' + msg.building + '.' + (msg.optional ? '' : ' Safety and service notices go to every resident.');
-  const text = [msg.heading, '', ...msg.lines, '', (msg.from.name || msg.building), '', foot, 'Stop event announcements: ' + link].join('\n');
+  const list = msg.list || [];
+  const text = [msg.heading, '', ...msg.lines, ...list.flatMap((x) => [x.title, x.body, '']), '', (msg.from.name || msg.building), '', foot, 'Stop event announcements: ' + link].join('\n');
   const html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#1a1a1a;max-width:560px">' +
     '<h1 style="font-size:22px;margin:0 0 12px">' + esc(msg.heading) + '</h1>' + msg.lines.map((l) => '<p style="margin:0 0 10px">' + esc(l) + '</p>').join('') +
+    list.map((x) => '<p style="margin:0 0 14px"><b>' + esc(x.title) + '</b><br>' + esc(x.body) + '</p>').join('') +
     '<p style="margin:18px 0 0;font-weight:bold">' + esc(msg.from.name || msg.building) + '</p>' +
     '<p style="margin:22px 0 0;font-size:12px;color:#666">' + esc(foot) + ' <a href="' + esc(link) + '" style="color:#666">Stop event announcements</a></p></div>';
   return { text, html };
+}
+
+// The daily email: every card and poster published since the last one, in a single message.
+function composeDigest(items, screen) {
+  const b = assertScreen(screen), lines = [];
+  for (const it of items) {
+    const where = [[it.whenText, it.timeText].filter(Boolean).join(', '), it.whereText].filter(Boolean).join(' · ');
+    lines.push({ title: it.title, body: [where, it.text].filter(Boolean).join('. ').replace(/\.\./g, '.') });
+  }
+  const subject = items.length === 1 ? b.name + ': ' + items[0].title + (items[0].whenText ? ', ' + items[0].whenText : '') : b.name + ': ' + items.length + ' new announcements';
+  return { subject: subject.slice(0, 150), heading: items.length === 1 ? items[0].title : 'New at ' + b.name, lines: items.length === 1 ? [lines[0].body].filter(Boolean) : [], list: items.length === 1 ? [] : lines, optional: true, building: b.name, from: b.mail || {} };
+}
+const localParts = (now, timeZone) => { const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(now)).map((x) => [x.type, x.value])); return { day: p.year + '-' + p.month + '-' + p.day, hour: Number(p.hour) }; };
+const DIGEST_ROW = '_digest';
+// Once a day, at the building's digest hour, gather what is waiting and queue one email. Returns the number of announcements in it.
+async function digest(store, screen, now = Date.now(), rows = null) {
+  if (!configured()) return 0;
+  const b = assertScreen(screen), cfg = b.mail || {}, at = localParts(now, b.timeZone || 'UTC');
+  if (at.hour < (cfg.digestHour == null ? 18 : cfg.digestHour)) return 0;
+  rows = rows || await store.outboxList(screen);
+  const mark = rows.find((r) => r.id === DIGEST_ROW);
+  if (mark && mark.lastDay === at.day) return 0;
+  const waiting = (await store.list(screen)).filter((a) => a.mailPending === true && (a.kind === 'card' || a.kind === 'poster') && new Date(a.endsAt).getTime() > now)
+    .sort((x, y) => String(x.createdAt).localeCompare(String(y.createdAt)));
+  if (!waiting.length) return 0;                        // nothing to say today: no email, and a later announcement today can still go out
+  if (!(await store.outboxClaim(screen, { screen, id: DIGEST_ROW, lastDay: at.day }, mark && mark.etag))) return 0;
+  const msg = composeDigest(waiting, screen);
+  const people = (await store.residentList(screen)).filter((r) => r.email && r.unsub !== true);
+  if (people.length) await store.outboxPut({ screen, id: 'g' + at.day, itemId: 'digest-' + at.day, urgent: false, msg: JSON.stringify(msg), cursor: '', sent: 0, total: people.length, createdAt: new Date(now).toISOString() });
+  for (const a of waiting) await store.put({ ...a, mailPending: false, mailedAt: new Date(now).toISOString() });
+  return waiting.length;
 }
 
 // Put a message in the outbox. Returns how many residents it will go to (0 when email is off or the list is empty).
@@ -69,8 +102,9 @@ async function queue(store, screen, item, now = Date.now()) {
 // Send the next few. Called whenever a screen checks in; safe to call from several places at once.
 async function drain(store, screen, { now = Date.now(), send } = {}) {
   if (!configured() && !send) return { sent: 0 };
-  const rows = await store.outboxList(screen);
-  const jobs = rows.filter((r) => r.id !== RATE_ROW).sort((a, b) => (b.urgent === true) - (a.urgent === true) || String(a.createdAt).localeCompare(String(b.createdAt)));
+  let rows = await store.outboxList(screen);
+  if (configured() && await digest(store, screen, now, rows)) rows = await store.outboxList(screen);
+  const jobs = rows.filter((r) => r.id !== RATE_ROW && r.id !== DIGEST_ROW).sort((a, b) => (b.urgent === true) - (a.urgent === true) || String(a.createdAt).localeCompare(String(b.createdAt)));
   if (!jobs.length) return { sent: 0 };
   const rate = rows.find((r) => r.id === RATE_ROW) || { screen, id: RATE_ROW, last: 0, hourStart: 0, hourCount: 0 };
   if (now - Number(rate.last) < TURN_GAP_MS) return { sent: 0, waiting: 'turn' };
@@ -115,4 +149,4 @@ async function unsubscribe(store, screen, residentId, token) {
   return true;
 }
 
-module.exports = { configured, compose, render, queue, drain, unsubscribe, sign, verify, PER_HOUR, PER_TURN };
+module.exports = { digest, composeDigest, configured, compose, render, queue, drain, unsubscribe, sign, verify, PER_HOUR, PER_TURN };
