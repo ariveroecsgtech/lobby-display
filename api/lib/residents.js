@@ -20,7 +20,7 @@ function parse(input) {
   return { ok: true, resident: { id: idFor(email), firstName, lastName, email } };
 }
 const sorted = (rows) => rows.slice().sort((a, b) => (a.lastName || a.firstName).localeCompare(b.lastName || b.firstName, 'en', { sensitivity: 'base' }) || a.firstName.localeCompare(b.firstName, 'en', { sensitivity: 'base' }) || a.email.localeCompare(b.email));
-const view = (r) => ({ id: r.id, firstName: r.firstName || '', lastName: r.lastName || '', email: r.email || '', addedAt: r.addedAt || '' });
+const view = (r) => ({ id: r.id, firstName: r.firstName || '', lastName: r.lastName || '', email: r.email || '', addedAt: r.addedAt || '', unsub: r.unsub === true });
 
 async function list(store, screen) {
   assertScreen(screen);

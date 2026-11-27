@@ -187,6 +187,7 @@
       </div>
     </div>
     <label class="check" id="featBox"><input type="checkbox" id="fFeat"> Featured: shown first and twice as often</label>
+    <label class="check" id="mailBox"><input type="checkbox" id="fMail" checked> <span id="fMailTxt">Also email it to residents, once</span></label>
     <div class="field">
       <label class="lbl" for="fUntil">Show on the screen until the end of</label>
       <input type="date" id="fUntil">
@@ -489,7 +490,8 @@ function drawCompose() {
 function openCompose() {
   for (const id of ['fTitle', 'fText', 'fDate', 'fFrom', 'fTo', 'fWhereNew']) $(id).value = '';
   renderPlaces(); $('fPlace').value = ''; $('fSavePlace').checked = true;
-  $('fFeat').checked = false; kind = 'card'; source = 'gallery'; clearPicked();
+  $('fFeat').checked = false; $('fMail').checked = true; kind = 'card';
+  $('mailBox').hidden = !state.mailOn; $('fMailTxt').textContent = 'Also email it to residents, once'; source = 'gallery'; clearPicked();
   const d = new Date(Date.now() + 86400000), iso = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
   $('fUntil').min = iso(new Date()); $('fUntil').value = iso(d); $('fDate').min = iso(new Date());
   say(''); drawCompose(); show('vNew');
@@ -506,7 +508,7 @@ function composeBody() {
   const [y, m, d] = until.split('-').map(Number);
   return { kind, title: $('fTitle').value.trim(), text: $('fText').value.trim(), whenText: whenLabel(), timeText: timeLabel(), whereText: whereValue(),
     savePlace: $('fPlace').value === ADD_PLACE && $('fSavePlace').checked,
-    design: kind === 'poster' && source === 'gallery' ? design : '', ownImage: kind === 'poster' && source === 'upload', featured: $('fFeat').checked, endsAt: new Date(y, m - 1, d, 23, 59, 59).toISOString() };
+    design: kind === 'poster' && source === 'gallery' ? design : '', ownImage: kind === 'poster' && source === 'upload', featured: $('fFeat').checked, email: $('fMail').checked, endsAt: new Date(y, m - 1, d, 23, 59, 59).toISOString() };
 }
 function sizeFrames() {
   const w = $('pFull').clientWidth; if (!w) return;
@@ -553,8 +555,9 @@ async function publish() {
     const scheduled = k === 'drill' && draft.body.startsAt;
     state = { ...state, ...(await api('POST', 'announcements', draft.body)) }; draft = null;
     renderHome(); renderPlaces(); show('vHome');
-    say(k === 'emergency' ? 'The emergency screen is going up on the lobby display now.' : k === 'drill' ? (scheduled ? 'The test is scheduled. You can cancel it from this page.' : 'The test screen is going up now.')
-      : k === 'notice' ? 'The notice is published.' : 'Published. It will be on the lobby screen in a few seconds.', 'ok');
+    const m = state.mail, mailed = m && m.queued ? ' It is being emailed to ' + m.recipients + (m.recipients === 1 ? ' resident' : ' residents') + (m.recipients > 90 ? ', about 90 an hour.' : '.') : '';
+    say((k === 'emergency' ? 'The emergency screen is going up on the lobby display now.' : k === 'drill' ? (scheduled ? 'The test is scheduled. You can cancel it from this page.' : 'The test screen is going up now.')
+      : k === 'notice' ? 'The notice is published.' : 'Published. It will be on the lobby screen in a few seconds.') + mailed, 'ok');
   } catch (e) { say(e.message, 'err'); }
   $('publish').disabled = false;
 }
@@ -639,13 +642,14 @@ const hit = (text, q) => { const i = q ? fold(text).indexOf(q) : -1; return i < 
 function drawResidents() {
   const q = fold($('rSearch').value.trim());
   $('rCount').textContent = residents.length + (residents.length === 1 ? ' resident' : ' residents');
+  $('rMail').textContent = state.mailOn ? 'Email delivery is on.' : 'Email delivery is not turned on yet.';
   const letters = new Set(residents.map(initial));
   $('rAz').innerHTML = ['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), '#'].map((L) =>
     '<button type="button" data-letter="' + L + '" aria-pressed="' + (L === rLetter) + '"' + (L && !letters.has(L) ? ' disabled' : '') + '>' + (L || 'All') + '</button>').join('');
   // Search looks at the whole list (first name, last name, both orders, and email); the letter filter applies when not searching.
   const list = residents.filter((r) => q ? [r.firstName + ' ' + r.lastName, r.lastName + ' ' + r.firstName, r.email].some((t) => fold(t).includes(q)) : !rLetter || initial(r) === rLetter);
   $('rList').innerHTML = list.length ? list.slice(0, rShown).map((r) =>
-    '<div class="res"><div class="main"><div class="n">' + hit([r.lastName, r.firstName].filter(Boolean).join(', '), q) + '</div><div class="e">' + hit(r.email, q) + '</div></div>' +
+    '<div class="res"><div class="main"><div class="n">' + hit([r.lastName, r.firstName].filter(Boolean).join(', '), q) + '</div><div class="e">' + hit(r.email, q) + (r.unsub ? ' · <span style="color:var(--accent)">stopped event emails</span>' : '') + '</div></div>' +
     '<button type="button" class="end" data-rdel="' + esc(r.id) + '" aria-label="Remove ' + esc(r.firstName + ' ' + r.lastName) + '">Remove</button></div>').join('')
     : '<div class="empty">' + (residents.length ? 'No resident matches.' : 'No residents yet. Add them one by one, or import a file.') + '</div>';
   $('rMore').hidden = list.length <= rShown; $('rMore').textContent = 'Show more (' + (list.length - rShown) + ' left)';

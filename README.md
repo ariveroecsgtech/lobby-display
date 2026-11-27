@@ -77,7 +77,9 @@ The test builds a fake Metro-North feed, so it runs offline. The real MTA feed h
 - Import: download the template (`.csv` or `.xlsx`), fill it, choose the file. The page reads the file in the browser (`manage/files.js`, no library; column names in English or Spanish; commas, semicolons or tabs in CSV), asks the server for a dry run, and shows what would change before anything is saved. "Add" keeps people not in the file; "Replace" makes the file the whole list.
 - One row per email address (the id is a hash of the lowercased email). Limit 3,000 residents per screen.
 - Stored in the Azure Table `residents`, reachable only through `/api/manage/residents*` with the manager or admin role. Never part of `/api/community`, never shown on the screen. Server logs record who changed the list, not the residents' details.
-- Email delivery is not connected yet: the list exists, nothing is sent.
+- Email: once `ACS_CONNECTION` (Azure Communication Services) is set, every alert, and every card or poster unless the manager unticks it, is emailed once to the list when published. Wording is in `api/lib/mail.js`. The sender per building is `SCREENS[...].mail` (address on a verified domain, display name, reply-to).
+- Pacing: Azure starts each subscription at 30 emails a minute and 100 an hour on a custom domain. Messages go to the `outbox` table and are sent 6 recipients at a time each time a screen checks in (`/api/community`), at most 90 an hour (`MAIL_PER_HOUR`, `MAIL_PER_TURN`). A 300-resident building takes a bit over 3 hours per message until Microsoft raises the quota (support request). Emergencies jump the queue but are still paced: email is a record, not a warning system.
+- Every email ends with a signed link to stop event announcements (`/api/unsubscribe`; opening it shows a button, pressing it does it). Alerts still go to everyone.
 
 ## Alerts
 

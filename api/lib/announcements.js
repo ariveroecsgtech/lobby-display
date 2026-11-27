@@ -7,7 +7,10 @@ const crypto = require('crypto');
 // building's emergency plan: leave a field empty rather than guess. Only ECSG edits this.
 const SCREENS = { confluence: { name: 'Confluence', timeZone: 'America/New_York',
   places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'],
-  safety: { route: '', assembly: '' } } };
+  safety: { route: '', assembly: '' },
+  // Who emails to residents come from. "from" must be an address on a domain verified in Azure Communication Services.
+  // replyTo is where a resident's reply goes (the building's office); empty means replies are not expected.
+  mail: { from: 'notices@ecsgapps.com', name: 'Confluence Management Office', replyTo: '', site: 'https://display.ecsgapps.com' } } };
 const PLACES_ROW = '_places', MAX_SAVED_PLACES = 20;
 // How many announcements can be on air or scheduled at once: cards and posters share one total, so the manager
 // decides the mix. A screen can set its own total with maxAnnouncements (only ECSG changes it).

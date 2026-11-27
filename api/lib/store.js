@@ -36,6 +36,17 @@ async function inBatches(t, actions) {
   for (let i = 0; i < actions.length; i += 100) await t.submitTransaction(actions.slice(i, i + 100));   // Azure Tables: 100 per transaction, one partition
 }
 
+// Email outbox: one row per message waiting to go out, plus one "_rate" row per screen that paces sending.
+let outClient = null, outReady = null;
+async function outbox() {
+  const conn = process.env.STORAGE_CONNECTION;
+  if (!conn) { const e = new Error('STORAGE_CONNECTION is not set'); e.code = 'not_configured'; throw e; }
+  if (!outClient) outClient = TableClient.fromConnectionString(conn, 'outbox');
+  if (!outReady) outReady = outClient.createTable().catch((e) => { if (e.statusCode !== 409) { outReady = null; throw e; } });
+  await outReady;
+  return outClient;
+}
+
 // Uploaded poster images live in a private blob container and are only served through /api/image/{id}.
 const CONTAINER = 'posters';
 let container = null, containerReady = null;
@@ -49,6 +60,19 @@ async function blobs() {
 }
 
 module.exports = {
+  async outboxList(screen) {
+    const t = await outbox(), out = [];
+    for await (const e of t.listEntities({ queryOptions: { filter: "PartitionKey eq '" + String(screen).replace(/'/g, "''") + "'" } })) out.push({ ...fromEntity(e), etag: e.etag });
+    return out;
+  },
+  async outboxPut(row) { const { screen, id, etag, ...rest } = row; await (await outbox()).upsertEntity({ partitionKey: screen, rowKey: id, ...rest }, 'Replace'); },
+  async outboxRemove(screen, id) { try { await (await outbox()).deleteEntity(screen, id); } catch (e) { if (e.statusCode !== 404) throw e; } },
+  // Take the turn to send: succeeds for exactly one caller when several screens ask at the same moment.
+  async outboxClaim(screen, row, previousEtag) {
+    const t = await outbox(), { screen: _s, id, etag, ...rest } = row, entity = { partitionKey: screen, rowKey: id, ...rest };
+    try { if (previousEtag) await t.updateEntity(entity, 'Replace', { etag: previousEtag }); else await t.createEntity(entity); return true; }
+    catch (e) { if (e.statusCode === 412 || e.statusCode === 409) return false; throw e; }
+  },
   async residentList(screen) {
     const t = await residents(), out = [];
     for await (const e of t.listEntities({ queryOptions: { filter: "PartitionKey eq '" + String(screen).replace(/'/g, "''") + "'" } })) out.push(fromEntity(e));
