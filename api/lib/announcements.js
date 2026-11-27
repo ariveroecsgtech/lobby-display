@@ -2,7 +2,10 @@
 // All rules live here (what is valid, how many can be on air, what the screen receives) so they can be tested without Azure.
 const crypto = require('crypto');
 
-const SCREENS = { confluence: { name: 'Confluence', timeZone: 'America/New_York' } };
+// "places" is the starting list for the Where field; managers can add their own, which are saved per screen.
+const SCREENS = { confluence: { name: 'Confluence', timeZone: 'America/New_York',
+  places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'] } };
+const PLACES_ROW = '_places', MAX_SAVED_PLACES = 20;
 const LIMITS = { card: 5, poster: 3, emergency: 1 };
 const DESIGNS = {              // poster designs the manager can pick
   coffee: { theme: 'coffee', icon: 'cup', label: 'Coffee social' },
@@ -11,7 +14,7 @@ const DESIGNS = {              // poster designs the manager can pick
   wellness: { theme: 'green', icon: 'leaf', label: 'Wellness' },
   notice: { theme: 'navy', icon: 'note', label: 'Notice' }
 };
-const MAX = { title: 40, text: 140, when: 32, where: 32 };
+const MAX = { title: 40, text: 140, when: 24, time: 24, where: 32 };
 const MAX_DAYS = 60;
 const EMERGENCY_MAX_MS = 24 * 3600 * 1000;
 
@@ -44,6 +47,7 @@ function build(input, user, now) {
     kind, title,
     text: clean(input.text, MAX.text),
     whenText: kind === 'emergency' ? '' : clean(input.whenText, MAX.when),
+    timeText: kind === 'emergency' ? '' : clean(input.timeText, MAX.time),
     whereText: kind === 'emergency' ? '' : clean(input.whereText, MAX.where),
     design,
     featured: kind === 'card' && input.featured === true,
@@ -63,7 +67,25 @@ async function create(store, screen, input, user, now = Date.now()) {
       : 'The limit is ' + LIMITS[item.kind] + ' ' + item.kind + 's at a time. End one before adding another.', 'limit');
   }
   await store.put(item);
+  if (input.savePlace === true && item.whereText) await addPlace(store, screen, item.whereText);
   return item;
+}
+
+// Places for the Where field: the screen's starting list plus the ones managers added.
+async function getPlaces(store, screen) {
+  const base = assertScreen(screen).places || [];
+  const row = (await store.list(screen)).find((r) => r.id === PLACES_ROW);
+  let saved = []; try { saved = JSON.parse((row && row.list) || '[]'); } catch (e) { saved = []; }
+  const seen = new Set(), out = [];
+  for (const p of [...base, ...saved]) { const k = String(p).toLowerCase(); if (p && !seen.has(k)) { seen.add(k); out.push(String(p)); } }
+  return out;
+}
+async function addPlace(store, screen, place) {
+  const name = clean(place, MAX.where);
+  const all = await getPlaces(store, screen), base = assertScreen(screen).places || [];
+  if (!name || all.some((p) => p.toLowerCase() === name.toLowerCase())) return;
+  const saved = all.filter((p) => !base.includes(p)).concat(name).slice(-MAX_SAVED_PLACES);
+  await store.put({ screen, id: PLACES_ROW, kind: '_meta', list: JSON.stringify(saved) });
 }
 
 // What the manager sees: everything still on air or scheduled, soonest to end first. Expired rows are cleaned up on the way.
@@ -94,7 +116,7 @@ function publicView(list, now = Date.now()) {
         id: a.id, kind: a.kind, featured: a.featured === true,
         theme: a.kind === 'poster' ? d.theme : 'navy', icon: a.kind === 'poster' ? d.icon : 'note',
         eyebrow: a.kind === 'poster' ? 'You are invited' : 'From the management office',
-        title: a.title, text: a.text, tags: [a.whenText, a.whereText].filter(Boolean), when: a.whenText
+        title: a.title, text: a.text, tags: [a.whenText, a.timeText, a.whereText].filter(Boolean), when: a.whenText || a.timeText || ''
       };
     });
   return { emergency: emergency ? { title: emergency.title, text: emergency.text, until: emergency.endsAt } : null, items };
@@ -109,4 +131,4 @@ function principal(headerValue) {
   } catch (e) { return { user: '', roles: [], allowed: false }; }
 }
 
-module.exports = { SCREENS, LIMITS, DESIGNS, MAX, create, listOpen, end, publicView, principal, assertScreen };
+module.exports = { SCREENS, LIMITS, DESIGNS, MAX, create, listOpen, end, publicView, principal, assertScreen, getPlaces };

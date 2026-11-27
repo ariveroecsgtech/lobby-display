@@ -9,7 +9,7 @@ const memStore = () => { const rows = new Map(); return {
   const now = Date.UTC(2026, 10, 27, 17, 0, 0), H = 3600000, D = 24 * H;
   const at = (ms) => new Date(now + ms).toISOString();
   const store = memStore();
-  const card = (o) => ({ kind: 'card', title: 'Rooftop Yoga', text: 'Bring your own mat', whenText: 'Saturday 10 AM', whereText: 'Rooftop', endsAt: at(2 * D), ...o });
+  const card = (o) => ({ kind: 'card', title: 'Rooftop Yoga', text: 'Bring your own mat', whenText: 'Sat, Nov 28', timeText: '10 AM', whereText: 'Rooftop', endsAt: at(2 * D), ...o });
 
   // Validation
   await assert.rejects(() => A.create(store, 'nowhere', card(), 'm@x.com', now), (e) => e.code === 'unknown_screen');
@@ -42,7 +42,8 @@ const memStore = () => { const rows = new Map(); return {
   assert.strictEqual(view.items.length, 7, '4 live cards + 3 posters; the scheduled card is not live yet');
   assert.strictEqual(view.items[0].id, a1.id, 'featured first');
   assert.ok(view.items.every((i) => !('createdBy' in i)));
-  assert.deepStrictEqual(view.items[0].tags, ['Saturday 10 AM', 'Rooftop']);
+  assert.deepStrictEqual(view.items[0].tags, ['Sat, Nov 28', '10 AM', 'Rooftop']);
+  assert.strictEqual(view.items[0].when, 'Sat, Nov 28');
   const poster = view.items.find((i) => i.kind === 'poster');
   assert.deepStrictEqual([poster.theme, poster.icon, poster.eyebrow], ['coffee', 'cup', 'You are invited']);
   // After the emergency and posters end, they leave the screen by themselves.
@@ -59,9 +60,24 @@ const memStore = () => { const rows = new Map(); return {
   assert.strictEqual((await A.listOpen(store, 'confluence', now + 100)).length, 8);
   await assert.rejects(() => A.end(store, 'confluence', "x' or 1"), /Unknown announcement/);
   await A.create(store, 'confluence', card({ title: 'Room again' }), 'm', now + 200);   // a slot was freed
-  // Rows that ended more than a week ago are cleaned up.
+  // Places: the screen's starting list, plus ones a manager chose to save. No duplicates, never shown as announcements.
+  assert.deepStrictEqual((await A.getPlaces(store, 'confluence')).slice(0, 2), ['Party Room', 'Lobby']);
+  const before = (await A.getPlaces(store, 'confluence')).length;
+  const endCard = async () => A.end(store, 'confluence', (await A.listOpen(store, 'confluence', now + 100)).find((a) => a.kind === 'card').id);
+  await endCard();
+  await A.create(store, 'confluence', card({ title: 'Wine night', whereText: 'Pool Deck', savePlace: true }), 'm', now + 300);
+  await endCard();
+  await A.create(store, 'confluence', card({ title: 'Again', whereText: 'pool deck', savePlace: true }), 'm', now + 301);
+  await endCard();
+  await A.create(store, 'confluence', card({ title: 'Not saved', whereText: 'Garage' }), 'm', now + 302);
+  const places = await A.getPlaces(store, 'confluence');
+  assert.strictEqual(places.length, before + 1);
+  assert.strictEqual(places[places.length - 1], 'Pool Deck');
+  assert.ok((await A.listOpen(store, 'confluence', now + 400)).every((a) => a.kind !== '_meta'));
+  assert.ok(A.publicView(await store.list('confluence'), now + 400).items.every((i) => i.title));
+  // Rows that ended more than a week ago are cleaned up; the saved places stay.
   await A.listOpen(store, 'confluence', now + 30 * D);
-  assert.strictEqual(store.rows.size, 0);
+  assert.deepStrictEqual([...store.rows.keys()], ['confluence/_places']);
 
   // Sign-in header from Azure Static Web Apps.
   const hdr = (o) => Buffer.from(JSON.stringify(o)).toString('base64');

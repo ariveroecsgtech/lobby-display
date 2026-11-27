@@ -43,7 +43,9 @@
   .field { display: flex; flex-direction: column; gap: 6px; }
   .field .row { display: flex; justify-content: space-between; align-items: baseline; }
   .count { font-size: 12px; color: var(--muted); }
-  input[type=text], input[type=date], textarea, select { width: 100%; background: var(--card); color: var(--text); border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 16px; }
+  .sub { font-size: 13px; font-weight: 600; color: var(--muted); }
+  input[type=date], input[type=time] { color-scheme: dark; min-height: 50px; }
+  input[type=text], input[type=date], input[type=time], textarea, select { width: 100%; background: var(--card); color: var(--text); border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 16px; }
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   textarea { resize: none; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -109,9 +111,21 @@
       <div class="row"><label class="lbl" for="fText">Details</label><span class="count" id="cText"></span></div>
       <textarea id="fText" rows="3" placeholder="Come to the party room for a cup of coffee and meet your neighbors."></textarea>
     </div>
-    <div class="two">
-      <div class="field"><label class="lbl" for="fWhen">When</label><input type="text" id="fWhen" autocomplete="off" placeholder="Saturday 9 to 11 AM"></div>
-      <div class="field"><label class="lbl" for="fWhere">Where</label><input type="text" id="fWhere" autocomplete="off" placeholder="Party Room"></div>
+    <div class="field">
+      <div class="row"><label class="lbl" for="fDate">When</label><span class="count">Optional</span></div>
+      <input type="date" id="fDate" aria-label="Event date">
+      <div class="two">
+        <div class="field"><label class="sub" for="fFrom">From</label><input type="time" id="fFrom" step="900"></div>
+        <div class="field"><label class="sub" for="fTo">To</label><input type="time" id="fTo" step="900"></div>
+      </div>
+    </div>
+    <div class="field">
+      <div class="row"><label class="lbl" for="fPlace">Where</label><span class="count">Optional</span></div>
+      <select id="fPlace"></select>
+      <div id="newPlaceBox" class="field" hidden>
+        <input type="text" id="fWhereNew" autocomplete="off" placeholder="Name of the place" aria-label="New place name">
+        <label class="check"><input type="checkbox" id="fSavePlace" checked> Save this place for next time</label>
+      </div>
     </div>
     <div id="designBox" class="field" hidden>
       <div class="lbl">Design</div>
@@ -163,7 +177,30 @@ const PRESETS = [
   ['Elevator out of service', 'Please use the other elevator or the stairs.'],
   ['Severe weather', 'Stay indoors and away from windows until further notice.']
 ];
-let state = { items: [], limits: { card: 5, poster: 3 }, max: { title: 40, text: 140, when: 32, where: 32 }, designs: {} };
+let state = { items: [], limits: { card: 5, poster: 3 }, max: { title: 40, text: 140, when: 24, time: 24, where: 32 }, designs: {}, places: [] };
+const ADD_PLACE = '__add__';
+/* When: a date from the calendar and optional start and end times, turned into the short labels the screen shows. */
+function whenLabel() {
+  const v = $('fDate').value; if (!v) return '';
+  const [y, m, d] = v.split('-').map(Number);
+  return new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(y, m - 1, d));
+}
+function timeLabel() {
+  const part = (v) => { if (!v) return null; const [h, m] = v.split(':').map(Number); return { h: h % 12 || 12, m, pm: h >= 12 }; };
+  const txt = (t) => t.h + (t.m ? ':' + String(t.m).padStart(2, '0') : '');
+  const a = part($('fFrom').value), b = part($('fTo').value);
+  if (!a && !b) return '';
+  if (a && !b) return txt(a) + (a.pm ? ' PM' : ' AM');
+  if (!a) return 'Until ' + txt(b) + (b.pm ? ' PM' : ' AM');
+  return a.pm === b.pm ? txt(a) + ' to ' + txt(b) + (b.pm ? ' PM' : ' AM') : txt(a) + (a.pm ? ' PM' : ' AM') + ' to ' + txt(b) + (b.pm ? ' PM' : ' AM');
+}
+function whereValue() { const v = $('fPlace').value; return v === ADD_PLACE ? $('fWhereNew').value.trim() : v; }
+function renderPlaces() {
+  const keep = $('fPlace').value;
+  $('fPlace').innerHTML = '<option value="">No place</option>' + state.places.map((p) => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('') +
+    '<option value="' + ADD_PLACE + '">Add another place…</option>';
+  if ([...$('fPlace').options].some((o) => o.value === keep)) $('fPlace').value = keep;
+}
 let kind = 'card', design = 'coffee';
 
 /* Local preview (opened as a file): a pretend backend kept in memory, so the page can be reviewed without Azure. */
@@ -176,7 +213,7 @@ async function api(method, path, body) {
   if (!HOSTED) {
     if (method === 'POST') mock.items.push({ ...body, id: 'n' + Date.now(), live: true });
     if (method === 'DELETE') mock.items = mock.items.filter((x) => x.id !== path.split('/').pop().split('?')[0]);
-    return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { card: 5, poster: 3, emergency: 1 }, max: state.max,
+    return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { card: 5, poster: 3, emergency: 1 }, max: state.max, places: ['Party Room', 'Lobby', 'Leasing Office', 'Fitness Center', 'Rooftop Terrace', 'Courtyard'],
       designs: { coffee: { theme: 'coffee', label: 'Coffee social' }, celebration: { theme: 'teal', label: 'Celebration' }, movie: { theme: 'plum', label: 'Movie night' }, wellness: { theme: 'green', label: 'Wellness' }, notice: { theme: 'navy', label: 'Notice' } }, items: mock.items };
   }
   const r = await fetch('/api/manage/' + path + (path.includes('?') ? '&' : '?') + 'screen=' + SCREEN, {
@@ -207,7 +244,7 @@ function renderHome() {
     : '<div class="empty">Nothing is published. The screen shows a welcome card until you add an announcement.</div>';
 }
 async function refresh() {
-  try { state = { ...state, ...(await api('GET', 'announcements')) }; renderHome(); renderTiles(); }
+  try { state = { ...state, ...(await api('GET', 'announcements')) }; renderHome(); renderTiles(); renderPlaces(); }
   catch (e) { say(e.message, 'err'); }
 }
 
@@ -222,29 +259,34 @@ function drawCompose() {
   $('kCard').setAttribute('aria-pressed', kind === 'card'); $('kPoster').setAttribute('aria-pressed', kind === 'poster');
   $('designBox').hidden = kind !== 'poster'; $('featBox').hidden = kind !== 'card';
   const M = state.max;
-  $('fTitle').maxLength = M.title; $('fText').maxLength = M.text; $('fWhen').maxLength = M.when; $('fWhere').maxLength = M.where;
+  $('fTitle').maxLength = M.title; $('fText').maxLength = M.text; $('fWhereNew').maxLength = M.where;
+  $('newPlaceBox').hidden = $('fPlace').value !== ADD_PLACE;
   $('cTitle').textContent = $('fTitle').value.length + ' / ' + M.title; $('cText').textContent = $('fText').value.length + ' / ' + M.text;
   const t = kind === 'poster' ? (THEMES[(state.designs[design] || {}).theme] || THEMES.navy) : THEMES.navy;
   const pv = $('pv'); pv.style.background = t[0]; pv.style.color = t[1];
   pv.style.boxShadow = kind === 'card' && $('fFeat').checked ? 'inset 0 0 0 3px #F5B544' : 'none';
   $('pvE').style.color = t[2]; $('pvE').textContent = kind === 'poster' ? 'You are invited' : 'From the management office';
   $('pvT').textContent = $('fTitle').value || 'Your title';
-  $('pvD').textContent = [$('fText').value, [$('fWhen').value, $('fWhere').value].filter(Boolean).join(' · ')].filter(Boolean).join(' — ');
+  $('pvD').textContent = [$('fText').value, [whenLabel(), timeLabel(), whereValue()].filter(Boolean).join(' · ')].filter(Boolean).join(' — ');
   for (const b of document.querySelectorAll('.tile')) b.setAttribute('aria-pressed', b.dataset.design === design);
 }
 function openCompose() {
-  for (const id of ['fTitle', 'fText', 'fWhen', 'fWhere']) $(id).value = '';
+  for (const id of ['fTitle', 'fText', 'fDate', 'fFrom', 'fTo', 'fWhereNew']) $(id).value = '';
+  renderPlaces(); $('fPlace').value = ''; $('fSavePlace').checked = true;
   $('fFeat').checked = false; kind = 'card';
   const d = new Date(Date.now() + 86400000), iso = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
-  $('fUntil').min = iso(new Date()); $('fUntil').value = iso(d);
+  $('fUntil').min = iso(new Date()); $('fUntil').value = iso(d); $('fDate').min = iso(new Date());
   say(''); drawCompose(); show('vNew');
 }
 async function publish() {
   const until = $('fUntil').value;
   if (!$('fTitle').value.trim()) return say('Add a title first.', 'err');
   if (!until) return say('Choose the last day it should show.', 'err');
+  if ($('fPlace').value === ADD_PLACE && !$('fWhereNew').value.trim()) return say('Type the name of the place, or choose one from the list.', 'err');
+  if ($('fFrom').value && $('fTo').value && $('fTo').value <= $('fFrom').value) return say('The end time must be after the start time.', 'err');
   const [y, m, d] = until.split('-').map(Number);
-  const body = { kind, title: $('fTitle').value, text: $('fText').value, whenText: $('fWhen').value, whereText: $('fWhere').value,
+  const body = { kind, title: $('fTitle').value, text: $('fText').value, whenText: whenLabel(), timeText: timeLabel(), whereText: whereValue(),
+    savePlace: $('fPlace').value === ADD_PLACE && $('fSavePlace').checked,
     design: kind === 'poster' ? design : '', featured: kind === 'card' && $('fFeat').checked, endsAt: new Date(y, m - 1, d, 23, 59, 59).toISOString() };
   $('publish').disabled = true;
   try { state = { ...state, ...(await api('POST', 'announcements', body)) }; renderHome(); show('vHome'); say('Published. It will be on the lobby screen in a few seconds.', 'ok'); }
@@ -290,9 +332,12 @@ document.addEventListener('click', (ev) => {
   else if (t.dataset.end) endItem(t.dataset.end, t);
   else if (t.id === 'alarmClear') endItem(t.dataset.id, t);
 });
+// Picking the event date also sets "show until" to that day, which is what people want most of the time.
+$('fDate').addEventListener('change', () => { if ($('fDate').value) $('fUntil').value = $('fDate').value; drawCompose(); });
+$('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').value === ADD_PLACE) $('fWhereNew').focus(); });
 document.addEventListener('input', () => { if ($('vNew').classList.contains('on')) drawCompose(); if ($('vAlarm').classList.contains('on')) drawAlarm(); });
 refresh(); setInterval(() => { if ($('vHome').classList.contains('on')) refresh(); }, 60000);
-if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').value = 'Coffee Social'; $('fText').value = 'Come to the party room for a cup of coffee and meet your neighbors.'; $('fWhen').value = 'Saturday 9 to 11 AM'; $('fWhere').value = 'Party Room'; kind = 'poster'; drawCompose(); }, 300);
+if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').value = 'Coffee Social'; $('fText').value = 'Come to the party room for a cup of coffee and meet your neighbors.'; const t = new Date(Date.now() + 86400000); $('fDate').value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); $('fFrom').value = '09:00'; $('fTo').value = '11:00'; $('fPlace').value = location.search.includes('add') ? ADD_PLACE : 'Party Room'; kind = 'poster'; drawCompose(); }, 300);
 if (location.hash === '#alarm') setTimeout(() => { $('goAlarm').click(); document.querySelector('[data-preset="0"]').click(); }, 300);
 </script>
 </body>
