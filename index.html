@@ -397,6 +397,9 @@ const SAMPLE = {
 // Live data needs the hosted site. Opened as a local file, or with ?sample in the address, every panel shows labeled sample data.
 const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
 const SAMPLE_MODE = !HOSTED || /[?&]sample\b/.test(location.search);
+// The manager page shows a draft before publishing by opening this screen with #preview=<draft>. Nothing is saved or fetched for it.
+let PREVIEW = null;
+try { const m = location.hash.match(/^#preview=(.+)$/); if (m) PREVIEW = JSON.parse(decodeURIComponent(m[1])); } catch (e) { PREVIEW = null; }
 const START_CARD = (location.search.match(/[?&]card=(\d+)/) || [])[1];   // ?card=2 opens on that Community card, for previews
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -729,7 +732,11 @@ const WELCOME = { kind: 'card', theme: 'navy', icon: 'note', eyebrow: 'From the 
   text: 'Announcements and events from the management office appear here.', tags: [] };
 let cItems = [], cIdx = -1, cShownId = null, cSample = false;
 async function loadCommunity() {
-  if (SAMPLE_MODE) { cItems = CONFIG.community.items; cSample = CONFIG.community.sample; showEmergency(location.hash === '#emergency' ? { title: 'Fire alarm test', text: 'Testing until 2:00 PM. No action is needed.' } : null); }
+  if (PREVIEW) {
+    cItems = PREVIEW.item ? [PREVIEW.item] : []; cSample = false;
+    showEmergency(PREVIEW.emergency || null);
+    $('cBadge').textContent = 'Preview';
+  } else if (SAMPLE_MODE) { cItems = CONFIG.community.items; cSample = CONFIG.community.sample; showEmergency(location.hash === '#emergency' ? { title: 'Fire alarm test', text: 'Testing until 2:00 PM. No action is needed.' } : null); }
   else {
     try {
       const d = await getJSON('/api/community?screen=' + encodeURIComponent(CONFIG.screenId));
@@ -773,7 +780,7 @@ function drawCommunityExtras() {
   const upcoming = items.filter((x, i) => i !== cIdx && x.kind !== 'sponsor').slice(0, 2);
   $('cNext').innerHTML = upcoming.length ? '<div class="label">Also coming up</div>' +
     upcoming.map((x) => '<div class="nx"><b>' + esc(x.title) + '</b><span>' + esc(x.when || '') + '</span></div>').join('') : '';
-  $('cBadge').style.display = cSample ? '' : 'none';
+  $('cBadge').style.display = cSample || PREVIEW ? '' : 'none';
 }
 function rotateCommunity() {
   if (cItems.length < 2) return;

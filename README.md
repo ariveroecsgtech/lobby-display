@@ -72,6 +72,7 @@ The test builds a fake Metro-North feed, so it runs offline. The real MTA feed h
 
 - Sign-in uses Azure Static Web Apps' built-in Microsoft login. Only accounts with the `manager` or `admin` role can open `/manage` or call `/api/manage/*` (rules in `staticwebapp.config.json`, checked again in the API).
 - Roles are given by ECSG only: Azure portal → the Static Web App → Role management → Invite, provider Microsoft Entra ID (shown as "aad"), the person's email, role `manager`. Send them the invitation link it generates.
+- Before anything is published the manager sees a review step: the real screen page drawn with the draft (`/?sample#preview=...`, nothing saved), then confirms. The same step confirms an emergency alert.
 - Limits: 5 cards, 3 posters and 1 emergency alert at a time, counting scheduled ones. Every announcement has an end date and comes down by itself. An emergency alert lasts 24 hours at most.
 - Storage: Azure Table `announcements` in the storage account named by the `STORAGE_CONNECTION` app setting. Rows are removed a week after they end.
 - Rules and limits live in `api/lib/announcements.js`; `api/lib/store.js` is the only file that talks to Azure Tables.
