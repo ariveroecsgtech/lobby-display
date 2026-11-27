@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Lobby screen manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+  :root { --bg: #0B1220; --card: #131C2E; --line: #25324A; --text: #F4F7FB; --soft: #C9D4E5; --muted: #9FB0C8; --accent: #F5B544; --good: #5EE0A0; --bad: #FFA48F; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); }
+  body { font-family: Inter, system-ui, sans-serif; color: var(--text); font-size: 16px; line-height: 1.4; }
+  #app { max-width: 480px; margin: 0 auto; padding: 24px 20px 40px; display: flex; flex-direction: column; gap: 18px; min-height: 100vh; }
+  h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 600; line-height: 1.15; }
+  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .who { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+  .lbl { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  a.link, button.link { background: none; border: 0; padding: 0 2px; min-height: 44px; display: inline-flex; align-items: center; color: var(--soft); font: inherit; font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; }
+  button { font-family: inherit; cursor: pointer; }
+  button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 2px; }
+  .btn { min-height: 56px; width: 100%; border: 0; border-radius: 14px; background: var(--accent); color: var(--bg); font-size: 17px; font-weight: 700; }
+  .btn.ghost { background: none; border: 2px solid var(--line); color: var(--text); }
+  .btn.danger { background: none; border: 2px solid var(--bad); color: var(--bad); }
+  .btn.alarm { background: var(--bad); color: #2A0F08; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .item { background: var(--card); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .item .main { flex-grow: 1; min-width: 0; }
+  .item .t { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+  .item .s { font-size: 13px; color: var(--muted); }
+  .kind { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; border-radius: 6px; padding: 2px 7px; margin-right: 6px; color: var(--bg); background: var(--soft); }
+  .kind.poster { background: var(--accent); } .kind.sched { background: none; color: var(--muted); border: 1.5px solid #6B7C99; }
+  .end { flex-shrink: 0; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 2px solid var(--line); background: none; color: var(--soft); font-size: 14px; font-weight: 600; }
+  .empty { background: var(--card); border-radius: 14px; padding: 18px 16px; color: var(--muted); font-size: 15px; }
+  #alarmOn { background: var(--bad); color: #2A0F08; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  #alarmOn .t { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
+  #alarmOn button { min-height: 48px; border: 0; border-radius: 12px; background: #2A0F08; color: #FFFFFF; font-size: 16px; font-weight: 700; }
+  .seg { display: flex; background: var(--card); border-radius: 12px; padding: 4px; gap: 4px; }
+  .seg button { flex: 1 1 0; min-height: 44px; border: 0; border-radius: 9px; background: none; color: var(--soft); font-size: 15px; font-weight: 600; }
+  .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); font-weight: 700; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .count { font-size: 12px; color: var(--muted); }
+  input[type=text], input[type=date], textarea, select { width: 100%; background: var(--card); color: var(--text); border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 16px; }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: none; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .tile { min-height: 72px; border-radius: 12px; border: 2px solid var(--line); font-size: 13px; font-weight: 600; padding: 6px; }
+  .tile[aria-pressed="true"] { border-color: var(--accent); font-weight: 700; }
+  .check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; }
+  .check input { width: 22px; height: 22px; accent-color: var(--accent); }
+  #pv { border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; min-height: 130px; justify-content: center; }
+  #pv .e { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  #pv .t { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; line-height: 1.05; overflow-wrap: anywhere; }
+  #pv .d { font-size: 13px; }
+  .note { font-size: 13px; color: var(--muted); }
+  #msg { display: none; border-radius: 12px; padding: 12px 14px; font-size: 15px; font-weight: 600; }
+  #msg.err { display: block; background: #3A1A14; color: var(--bad); }
+  #msg.ok { display: block; background: #12301F; color: var(--good); }
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .presets button { min-height: 52px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--text); font-size: 14px; font-weight: 600; padding: 6px 8px; }
+  .view { display: none; flex-direction: column; gap: 18px; }
+  .view.on { display: flex; }
+  .spacer { flex-grow: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="msg" role="status"></div>
+
+  <!-- HOME -->
+  <section id="vHome" class="view on">
+    <div class="top">
+      <div><h1 id="hName">Lobby screen</h1><div class="who" id="hWho"></div></div>
+      <a class="link" href="/logout">Sign out</a>
+    </div>
+    <div id="alarmOn" hidden>
+      <div class="lbl" style="color:#2A0F08">Emergency alert is on the screen</div>
+      <div class="t" id="alarmTitle"></div>
+      <div id="alarmUntil" style="font-size:14px;font-weight:600"></div>
+      <button type="button" id="alarmClear">Clear alert now</button>
+    </div>
+    <div class="row" style="display:flex;justify-content:space-between;align-items:baseline">
+      <div class="lbl">On the screen and scheduled</div>
+      <div class="count" id="hCount"></div>
+    </div>
+    <div id="hList" style="display:flex;flex-direction:column;gap:10px"><div class="empty">Loading…</div></div>
+    <button type="button" class="btn" id="goNew">New announcement</button>
+    <button type="button" class="btn danger" id="goAlarm">Emergency alert</button>
+    <a class="link" href="/" target="_blank" rel="noopener">Open the lobby screen</a>
+  </section>
+
+  <!-- COMPOSE -->
+  <section id="vNew" class="view">
+    <div class="top"><h1>New announcement</h1><button type="button" class="link" data-home>Cancel</button></div>
+    <div class="seg" role="group" aria-label="Format">
+      <button type="button" id="kCard" aria-pressed="true">Card</button>
+      <button type="button" id="kPoster" aria-pressed="false">Poster</button>
+    </div>
+    <div class="field">
+      <div class="row"><label class="lbl" for="fTitle">Title</label><span class="count" id="cTitle"></span></div>
+      <input type="text" id="fTitle" autocomplete="off" placeholder="Coffee Social">
+    </div>
+    <div class="field">
+      <div class="row"><label class="lbl" for="fText">Details</label><span class="count" id="cText"></span></div>
+      <textarea id="fText" rows="3" placeholder="Come to the party room for a cup of coffee and meet your neighbors."></textarea>
+    </div>
+    <div class="two">
+      <div class="field"><label class="lbl" for="fWhen">When</label><input type="text" id="fWhen" autocomplete="off" placeholder="Saturday 9 to 11 AM"></div>
+      <div class="field"><label class="lbl" for="fWhere">Where</label><input type="text" id="fWhere" autocomplete="off" placeholder="Party Room"></div>
+    </div>
+    <div id="designBox" class="field" hidden>
+      <div class="lbl">Design</div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <label class="check" id="featBox"><input type="checkbox" id="fFeat"> Featured: shown first, with a gold frame</label>
+    <div class="field">
+      <label class="lbl" for="fUntil">Show on the screen until the end of</label>
+      <input type="date" id="fUntil">
+    </div>
+    <div class="field">
+      <div class="lbl">Preview</div>
+      <div id="pv"><div class="e" id="pvE"></div><div class="t" id="pvT"></div><div class="d" id="pvD"></div></div>
+      <div class="note">It appears in the Community panel of the lobby screen within about 15 seconds and comes down by itself after the date above.</div>
+    </div>
+    <button type="button" class="btn" id="publish">Publish to lobby screen</button>
+  </section>
+
+  <!-- EMERGENCY -->
+  <section id="vAlarm" class="view">
+    <div class="top"><h1>Emergency alert</h1><button type="button" class="link" data-home>Cancel</button></div>
+    <div class="note">Covers the whole lobby screen until it ends or you clear it. Use it only for things residents must know right now.</div>
+    <div class="field"><div class="lbl">Quick start</div><div class="presets" id="presets"></div></div>
+    <div class="field">
+      <div class="row"><label class="lbl" for="aTitle">Headline</label><span class="count" id="cATitle"></span></div>
+      <input type="text" id="aTitle" autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="row"><label class="lbl" for="aText">What residents should do</label><span class="count" id="cAText"></span></div>
+      <textarea id="aText" rows="3"></textarea>
+    </div>
+    <div class="field">
+      <label class="lbl" for="aFor">Keep it on the screen for</label>
+      <select id="aFor"><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option><option value="720">12 hours</option></select>
+    </div>
+    <button type="button" class="btn alarm" id="sendAlarm">Show on the lobby screen</button>
+  </section>
+
+</div>
+<script>
+const SCREEN = 'confluence';
+const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const THEMES = { coffee: ['#2B1D17', '#F7EBDD', '#F5B544'], teal: ['#0F2A33', '#EAF7F4', '#F5B544'], plum: ['#1E1B3A', '#ECEAFB', '#B9B1F5'], green: ['#12301F', '#E9F7EE', '#7ADC9E'], navy: ['#1B2740', '#F4F7FB', '#F5B544'] };
+const PRESETS = [
+  ['Fire alarm test', 'Testing in progress. No action is needed.'],
+  ['Water shut-off', 'Water is off for repairs. We will update this screen when it is back.'],
+  ['Elevator out of service', 'Please use the other elevator or the stairs.'],
+  ['Severe weather', 'Stay indoors and away from windows until further notice.']
+];
+let state = { items: [], limits: { card: 5, poster: 3 }, max: { title: 40, text: 140, when: 32, where: 32 }, designs: {} };
+let kind = 'card', design = 'coffee';
+
+/* Local preview (opened as a file): a pretend backend kept in memory, so the page can be reviewed without Azure. */
+const mock = { items: [
+  { id: 'a1', kind: 'poster', design: 'coffee', title: 'Coffee Social', text: '', whenText: 'Saturday 9 to 11 AM', whereText: 'Party Room', live: true, endsAt: new Date(Date.now() + 86400000).toISOString() },
+  { id: 'a2', kind: 'card', title: 'Rooftop Yoga', text: 'Bring your own mat', whenText: 'Saturday 10 AM', whereText: 'Rooftop', live: true, featured: true, endsAt: new Date(Date.now() + 2 * 86400000).toISOString() },
+  { id: 'a3', kind: 'card', title: 'Office closed for the holiday', text: '', whenText: 'Thursday Dec 24', whereText: '', live: false, endsAt: new Date(Date.now() + 27 * 86400000).toISOString() }
+] };
+async function api(method, path, body) {
+  if (!HOSTED) {
+    if (method === 'POST') mock.items.push({ ...body, id: 'n' + Date.now(), live: true });
+    if (method === 'DELETE') mock.items = mock.items.filter((x) => x.id !== path.split('/').pop().split('?')[0]);
+    return { screenName: 'Confluence', user: 'preview@example.com (local preview)', limits: { card: 5, poster: 3, emergency: 1 }, max: state.max,
+      designs: { coffee: { theme: 'coffee', label: 'Coffee social' }, celebration: { theme: 'teal', label: 'Celebration' }, movie: { theme: 'plum', label: 'Movie night' }, wellness: { theme: 'green', label: 'Wellness' }, notice: { theme: 'navy', label: 'Notice' } }, items: mock.items };
+  }
+  const r = await fetch('/api/manage/' + path + (path.includes('?') ? '&' : '?') + 'screen=' + SCREEN, {
+    method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401 || r.status === 403 || r.redirected) { location.href = '/login'; throw new Error('Signing in…'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Something went wrong. Try again.');
+  return d;
+}
+function say(text, cls) { const m = $('msg'); m.textContent = text || ''; m.className = text ? cls : ''; if (text) window.scrollTo(0, 0); }
+function show(view) { for (const v of ['vHome', 'vNew', 'vAlarm']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
+const fmtEnd = (iso) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+
+function renderHome() {
+  $('hName').textContent = (state.screenName || 'Lobby') + ' lobby screen';
+  $('hWho').textContent = state.user ? 'Signed in as ' + state.user : '';
+  const alarm = state.items.find((x) => x.kind === 'emergency');
+  $('alarmOn').hidden = !alarm;
+  if (alarm) { $('alarmTitle').textContent = alarm.title; $('alarmUntil').textContent = 'Ends by itself ' + fmtEnd(alarm.endsAt); $('alarmClear').dataset.id = alarm.id; }
+  $('goAlarm').hidden = !!alarm;
+  const rest = state.items.filter((x) => x.kind !== 'emergency');
+  const n = (k) => rest.filter((x) => x.kind === k).length;
+  $('hCount').textContent = n('card') + ' of ' + state.limits.card + ' cards · ' + n('poster') + ' of ' + state.limits.poster + ' posters';
+  $('hList').innerHTML = rest.length ? rest.map((x) =>
+    '<div class="item"><div class="main"><div class="t">' + esc(x.title) + '</div><div class="s"><span class="kind ' + esc(x.kind) + '">' + esc(x.kind) + '</span>' +
+    (x.live ? '' : '<span class="kind sched">Scheduled</span>') + (x.featured ? '<span class="kind sched">Featured</span>' : '') +
+    'until ' + esc(fmtEnd(x.endsAt)) + '</div></div><button type="button" class="end" data-end="' + esc(x.id) + '" aria-label="End ' + esc(x.title) + ' now">End now</button></div>').join('')
+    : '<div class="empty">Nothing is published. The screen shows a welcome card until you add an announcement.</div>';
+}
+async function refresh() {
+  try { state = { ...state, ...(await api('GET', 'announcements')) }; renderHome(); renderTiles(); }
+  catch (e) { say(e.message, 'err'); }
+}
+
+/* compose */
+function renderTiles() {
+  const keys = Object.keys(state.designs);
+  if (keys.length && !state.designs[design]) design = keys[0];
+  $('tiles').innerHTML = keys.map((k) => { const t = THEMES[state.designs[k].theme] || THEMES.navy;
+    return '<button type="button" class="tile" data-design="' + esc(k) + '" aria-pressed="' + (k === design) + '" style="background:' + t[0] + ';color:' + t[1] + '">' + esc(state.designs[k].label) + '</button>'; }).join('');
+}
+function drawCompose() {
+  $('kCard').setAttribute('aria-pressed', kind === 'card'); $('kPoster').setAttribute('aria-pressed', kind === 'poster');
+  $('designBox').hidden = kind !== 'poster'; $('featBox').hidden = kind !== 'card';
+  const M = state.max;
+  $('fTitle').maxLength = M.title; $('fText').maxLength = M.text; $('fWhen').maxLength = M.when; $('fWhere').maxLength = M.where;
+  $('cTitle').textContent = $('fTitle').value.length + ' / ' + M.title; $('cText').textContent = $('fText').value.length + ' / ' + M.text;
+  const t = kind === 'poster' ? (THEMES[(state.designs[design] || {}).theme] || THEMES.navy) : THEMES.navy;
+  const pv = $('pv'); pv.style.background = t[0]; pv.style.color = t[1];
+  pv.style.boxShadow = kind === 'card' && $('fFeat').checked ? 'inset 0 0 0 3px #F5B544' : 'none';
+  $('pvE').style.color = t[2]; $('pvE').textContent = kind === 'poster' ? 'You are invited' : 'From the management office';
+  $('pvT').textContent = $('fTitle').value || 'Your title';
+  $('pvD').textContent = [$('fText').value, [$('fWhen').value, $('fWhere').value].filter(Boolean).join(' · ')].filter(Boolean).join(' — ');
+  for (const b of document.querySelectorAll('.tile')) b.setAttribute('aria-pressed', b.dataset.design === design);
+}
+function openCompose() {
+  for (const id of ['fTitle', 'fText', 'fWhen', 'fWhere']) $(id).value = '';
+  $('fFeat').checked = false; kind = 'card';
+  const d = new Date(Date.now() + 86400000), iso = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+  $('fUntil').min = iso(new Date()); $('fUntil').value = iso(d);
+  say(''); drawCompose(); show('vNew');
+}
+async function publish() {
+  const until = $('fUntil').value;
+  if (!$('fTitle').value.trim()) return say('Add a title first.', 'err');
+  if (!until) return say('Choose the last day it should show.', 'err');
+  const [y, m, d] = until.split('-').map(Number);
+  const body = { kind, title: $('fTitle').value, text: $('fText').value, whenText: $('fWhen').value, whereText: $('fWhere').value,
+    design: kind === 'poster' ? design : '', featured: kind === 'card' && $('fFeat').checked, endsAt: new Date(y, m - 1, d, 23, 59, 59).toISOString() };
+  $('publish').disabled = true;
+  try { state = { ...state, ...(await api('POST', 'announcements', body)) }; renderHome(); show('vHome'); say('Published. It will be on the lobby screen in a few seconds.', 'ok'); }
+  catch (e) { say(e.message, 'err'); }
+  $('publish').disabled = false;
+}
+
+/* emergency: two taps to send, so it cannot go out by accident */
+let armed = false;
+function drawAlarm() {
+  $('aTitle').maxLength = state.max.title; $('aText').maxLength = state.max.text;
+  $('cATitle').textContent = $('aTitle').value.length + ' / ' + state.max.title; $('cAText').textContent = $('aText').value.length + ' / ' + state.max.text;
+  $('sendAlarm').textContent = armed ? 'Tap again to confirm' : 'Show on the lobby screen';
+}
+async function sendAlarm() {
+  if (!$('aTitle').value.trim()) return say('Add a headline first.', 'err');
+  if (!armed) { armed = true; drawAlarm(); setTimeout(() => { armed = false; drawAlarm(); }, 6000); return; }
+  armed = false; $('sendAlarm').disabled = true;
+  try {
+    state = { ...state, ...(await api('POST', 'announcements', { kind: 'emergency', title: $('aTitle').value, text: $('aText').value, endsAt: new Date(Date.now() + Number($('aFor').value) * 60000).toISOString() })) };
+    renderHome(); show('vHome'); say('The alert is going up on the lobby screen now.', 'ok');
+  } catch (e) { say(e.message, 'err'); }
+  $('sendAlarm').disabled = false; drawAlarm();
+}
+async function endItem(id, btn) {
+  if (btn.dataset.sure !== '1') { btn.dataset.sure = '1'; const old = btn.textContent; btn.textContent = 'Tap to confirm'; setTimeout(() => { btn.dataset.sure = ''; btn.textContent = old; }, 5000); return; }
+  btn.disabled = true;
+  try { state = { ...state, ...(await api('DELETE', 'announcements/' + encodeURIComponent(id))) }; renderHome(); say('Removed from the lobby screen.', 'ok'); }
+  catch (e) { say(e.message, 'err'); btn.disabled = false; }
+}
+
+$('presets').innerHTML = PRESETS.map((p, i) => '<button type="button" data-preset="' + i + '">' + esc(p[0]) + '</button>').join('');
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('button, a'); if (!t) return;
+  if (t.hasAttribute('data-home')) { say(''); show('vHome'); }
+  else if (t.id === 'goNew') openCompose();
+  else if (t.id === 'goAlarm') { $('aTitle').value = ''; $('aText').value = ''; armed = false; say(''); drawAlarm(); show('vAlarm'); }
+  else if (t.id === 'kCard' || t.id === 'kPoster') { kind = t.id === 'kCard' ? 'card' : 'poster'; drawCompose(); }
+  else if (t.dataset.design) { design = t.dataset.design; drawCompose(); }
+  else if (t.id === 'publish') publish();
+  else if (t.dataset.preset) { const p = PRESETS[Number(t.dataset.preset)]; $('aTitle').value = p[0]; $('aText').value = p[1]; drawAlarm(); }
+  else if (t.id === 'sendAlarm') sendAlarm();
+  else if (t.dataset.end) endItem(t.dataset.end, t);
+  else if (t.id === 'alarmClear') endItem(t.dataset.id, t);
+});
+document.addEventListener('input', () => { if ($('vNew').classList.contains('on')) drawCompose(); if ($('vAlarm').classList.contains('on')) drawAlarm(); });
+refresh(); setInterval(() => { if ($('vHome').classList.contains('on')) refresh(); }, 60000);
+if (location.hash === '#new') setTimeout(() => { openCompose(); $('fTitle').value = 'Coffee Social'; $('fText').value = 'Come to the party room for a cup of coffee and meet your neighbors.'; $('fWhen').value = 'Saturday 9 to 11 AM'; $('fWhere').value = 'Party Room'; kind = 'poster'; drawCompose(); }, 300);
+if (location.hash === '#alarm') setTimeout(() => { $('goAlarm').click(); document.querySelector('[data-preset="0"]').click(); }, 300);
+</script>
+</body>
+</html>

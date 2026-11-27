@@ -121,6 +121,9 @@
   .theme-teal { --c-bg: #0F2A33; --c-text: #EAF7F4; --c-soft: #BFDCD6; --c-accent: #F5B544; --c-on: #0F2A33; --c-line: #3C6E78; --c-fill: #1B4652; }
   .theme-cream { --c-bg: #F3E9DA; --c-text: #2A2018; --c-soft: #2A2018; --c-accent: #B4521E; --c-on: #F3E9DA; --c-line: #B4521E; --c-fill: #E7D3B8; }
   .theme-navy { --c-bg: #1B2740; --c-text: #F4F7FB; --c-soft: #C9D4E5; --c-accent: #F5B544; --c-on: #0B1220; --c-line: #3A4A66; --c-fill: #25324A; }
+  .theme-plum { --c-bg: #1E1B3A; --c-text: #ECEAFB; --c-soft: #C9C4F0; --c-accent: #B9B1F5; --c-on: #1E1B3A; --c-line: #4A4480; --c-fill: #2B2752; }
+  .theme-green { --c-bg: #12301F; --c-text: #E9F7EE; --c-soft: #BFE0CB; --c-accent: #7ADC9E; --c-on: #12301F; --c-line: #2F6B47; --c-fill: #1B4630; }
+  #cCard.featured { box-shadow: inset 0 0 0 4px var(--accent); }
   #cTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   #cEyebrow { font-size: 20px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--c-accent); margin-bottom: 12px; }
   #cEyebrow.tagged { display: inline-block; letter-spacing: 2.5px; color: var(--c-bg); background: var(--c-text); border-radius: 8px; padding: 5px 12px; }
@@ -136,6 +139,16 @@
   #cNext .nx { display: flex; justify-content: space-between; gap: 16px; font-size: 26px; }
   #cNext .nx b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
   #cNext .nx span { color: var(--soft); }
+
+  /* emergency takeover: published by the manager, covers everything except the clock */
+  #emergency { display: none; position: absolute; left: 40px; right: 40px; top: 160px; bottom: 40px; z-index: 5; border-radius: 24px; background: var(--bad); color: #2A0F08; padding: 72px 88px; flex-direction: column; justify-content: center; gap: 28px; }
+  #emergency.active { display: flex; }
+  #emLabel { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; }
+  #emTitle { font-size: 132px; font-weight: 700; line-height: 1; letter-spacing: -3px; }
+  #emText { font-size: 54px; font-weight: 500; line-height: 1.25; }
+  #emFrom { font-size: 28px; font-weight: 600; opacity: 0.8; }
+  .mobile #emergency { position: static; padding: 36px; order: -1; }
+  .mobile #emTitle { font-size: 76px; } .mobile #emText { font-size: 38px; }
 
   /* footer */
   #footer { height: 120px; flex-shrink: 0; display: flex; gap: 24px; align-items: stretch; }
@@ -274,6 +287,13 @@
     </div>
   </div>
 
+  <div id="emergency" role="alert">
+    <div id="emLabel"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17h-19L12 3z"></path><path d="M12 10v4.5M12 17.5h.01"></path></svg>Building alert</div>
+    <div id="emTitle" class="num"></div>
+    <div id="emText"></div>
+    <div id="emFrom"></div>
+  </div>
+
   <div id="footer">
     <div id="news" class="card">
       <span class="tag" id="newsTag">News</span>
@@ -331,8 +351,8 @@ const CONFIG = {
     ]
   },
 
-  // Community panel. These cards are placeholders until the manager app exists and publishes real ones;
-  // sample: true keeps a "Sample" label on screen. kind 'sponsor' is a paid local-business slot and is
+  // Community panel. On the hosted screen the cards come from the manager app (/manage). The items below are only
+  // shown in sample mode (local file or ?sample), with a "Sample" label. kind 'sponsor' is a paid local-business slot and is
   // always labeled "Sponsored". The bakery below is an invented business.
   community: {
     sample: true,
@@ -699,33 +719,64 @@ const C_ICONS = {
   cup: '<path d="M3.5 10h13v4.5A5.5 5.5 0 0 1 11 20h-2a5.5 5.5 0 0 1-5.5-5.5V10z" fill="var(--c-fill)" stroke="var(--c-accent)"></path><path stroke="var(--c-accent)" d="M16.5 11h1.4a2.7 2.7 0 0 1 0 5.4h-1.4"></path><path stroke="var(--c-soft)" d="M7 2c-1 1.3 1 2.4 0 4M10.5 1.5c-1 1.3 1 2.4 0 4M14 2c-1 1.3 1 2.4 0 4"></path>',
   bread: '<path d="M4 11.5a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4c0 1.2-.8 2-2 2.3V18a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18v-4.2c-1.2-.3-2-1.1-2-2.3z" fill="var(--c-fill)" stroke="var(--c-accent)"></path><path stroke="var(--c-accent)" d="M9 8.5l1.2 3M12.5 8l1.2 3M16 8.5l1 2.5"></path>',
   burst: '<path stroke="var(--c-accent)" d="M12 12V4M12 12v8M12 12H4M12 12h8M12 12L6.3 6.3M12 12l5.7 5.7M12 12l-5.7 5.7M12 12l5.7-5.7"></path><circle cx="12" cy="2.6" r="0.6" fill="var(--c-soft)" stroke="none"></circle><circle cx="21.4" cy="12" r="0.6" fill="var(--c-soft)" stroke="none"></circle><circle cx="2.6" cy="12" r="0.6" fill="var(--c-soft)" stroke="none"></circle><circle cx="12" cy="21.4" r="0.6" fill="var(--c-soft)" stroke="none"></circle>',
+  film: '<rect x="3.5" y="6" width="17" height="12" rx="2" fill="var(--c-fill)" stroke="var(--c-accent)"></rect><path fill="var(--c-accent)" stroke="var(--c-accent)" d="M10 9.5l5 2.5-5 2.5v-5z"></path>',
+  leaf: '<path d="M5 19c0-8 5-13 14-14 0 9-5 14-14 14z" fill="var(--c-fill)" stroke="var(--c-accent)"></path><path stroke="var(--c-accent)" d="M5 19c3-5 6-8 10-10"></path>',
   note: '<rect x="4" y="5" width="16" height="15" rx="2.5" fill="var(--c-fill)" stroke="var(--c-accent)"></rect><path stroke="var(--c-accent)" d="M4 10h16M8.5 3v4M15.5 3v4"></path>'
 };
-let cIdx = -1;
+/* Cards come from the manager app (/api/community, checked every 15 seconds). With nothing published the panel shows a
+   quiet welcome card. The sample cards in CONFIG only appear in sample mode, never on the hosted screen. */
+const WELCOME = { kind: 'card', theme: 'navy', icon: 'note', eyebrow: 'From the management office', title: 'Welcome home',
+  text: 'Announcements and events from the management office appear here.', tags: [] };
+let cItems = [], cIdx = -1, cShownId = null, cSample = false;
+async function loadCommunity() {
+  if (SAMPLE_MODE) { cItems = CONFIG.community.items; cSample = CONFIG.community.sample; showEmergency(location.hash === '#emergency' ? { title: 'Fire alarm test', text: 'Testing until 2:00 PM. No action is needed.' } : null); }
+  else {
+    try {
+      const d = await getJSON('/api/community?screen=' + encodeURIComponent(CONFIG.screenId));
+      cItems = d.items; cSample = false;
+      showEmergency(d.emergency);
+    } catch (e) { console.error('Announcements failed', e); }     // keep what is on screen; the next check is 15 seconds away
+  }
+  // Redraw right away when the card on screen was removed, or when something new arrives while the welcome card is up.
+  const ids = cItems.map((x) => x.id || x.title);
+  if (cIdx < 0 || !ids.includes(cShownId)) { cIdx = Math.max(-1, Math.min(cIdx, cItems.length) - 1); showCommunity(); }
+  else { cIdx = ids.indexOf(cShownId); drawCommunityExtras(); }
+}
+function showEmergency(em) {
+  $('emergency').classList.toggle('active', !!em);
+  if (!em) return;
+  $('emTitle').textContent = em.title;
+  $('emText').textContent = em.text || '';
+  $('emFrom').textContent = CONFIG.buildingName + ' management office';
+}
 function showCommunity() {
-  const items = CONFIG.community.items;
-  if (!items.length) { $('community').style.display = 'none'; return; }
+  const items = cItems.length ? cItems : [WELCOME];
   cIdx = (cIdx + 1) % items.length;
   const it = items[cIdx], sponsor = it.kind === 'sponsor';
-  $('cCard').className = 'theme-' + (it.theme || 'navy');
+  cShownId = it.id || it.title;
+  $('cCard').className = 'theme-' + (it.theme || 'navy') + (it.featured ? ' featured' : '');
   $('cEyebrow').textContent = sponsor ? 'Sponsored' : (it.eyebrow || 'From the management office');   // a paid slot is always labeled
   $('cEyebrow').className = sponsor ? 'tagged' : '';
   const len = it.title.length;
-  $('cTitle').style.fontSize = (len <= 14 ? 84 : len <= 20 ? 60 : 50) + 'px';
+  $('cTitle').style.fontSize = (len <= 14 ? 84 : len <= 20 ? 60 : len <= 30 ? 50 : 42) + 'px';
   $('cTitle').textContent = it.title;
   $('cIcon').innerHTML = C_ICONS[it.icon] || C_ICONS.note;
   $('cBig').textContent = it.big || '';
   $('cBig').style.display = it.big ? '' : 'none';
   $('cText').textContent = it.text || '';
   $('cTags').innerHTML = (it.tags || []).map((t) => '<span>' + esc(t) + '</span>').join('');
+  drawCommunityExtras();
+}
+function drawCommunityExtras() {
+  const items = cItems.length ? cItems : [WELCOME];
   $('cDots').innerHTML = items.length > 1 ? items.map((_, i) => '<i' + (i === cIdx ? ' class="on"' : '') + '></i>').join('') : '';
-  const upcoming = items.filter((x, i) => i !== cIdx && x.kind !== 'sponsor' && x.when).slice(0, 2);
+  const upcoming = items.filter((x, i) => i !== cIdx && x.kind !== 'sponsor').slice(0, 2);
   $('cNext').innerHTML = upcoming.length ? '<div class="label">Also coming up</div>' +
-    upcoming.map((x) => '<div class="nx"><b>' + esc(x.title) + '</b><span>' + esc(x.when) + '</span></div>').join('') : '';
-  $('cBadge').style.display = CONFIG.community.sample ? '' : 'none';
+    upcoming.map((x) => '<div class="nx"><b>' + esc(x.title) + '</b><span>' + esc(x.when || '') + '</span></div>').join('') : '';
+  $('cBadge').style.display = cSample ? '' : 'none';
 }
 function rotateCommunity() {
-  if (CONFIG.community.items.length < 2) return;
+  if (cItems.length < 2) return;
   $('cCard').classList.add('fade');
   setTimeout(showCommunity, 500);
 }
@@ -829,8 +880,8 @@ function start() {
   loadDrive(); setInterval(loadDrive, 5 * 60000);
   loadTrains(); setInterval(loadTrains, 30000); setInterval(renderTrains, 15000);
   loadNotices(); setInterval(loadNotices, 3 * 60000); setInterval(showNotice, 12000);
-  if (START_CARD) cIdx = Number(START_CARD) - 2;
-  showCommunity(); setInterval(rotateCommunity, CONFIG.community.rotateSec * 1000);
+  loadCommunity().then(() => { if (START_CARD) { cIdx = Number(START_CARD) - 2; showCommunity(); } });
+  setInterval(loadCommunity, 15000); setInterval(rotateCommunity, CONFIG.community.rotateSec * 1000);
   renderHours();
   document.documentElement.classList.add('footer-' + CONFIG.footer);
   if (CONFIG.footer === 'news') {

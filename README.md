@@ -13,7 +13,8 @@ Informational screen for a building lobby. Pilot: Confluence, 26 Belden Ave, Nor
 | Metro-North service notices | Live when hosted | `/api/alerts?routes=3,5`: MTA alerts feed, New Haven Line and Danbury Branch. One line under the trains, shown only while a notice is in effect |
 | Drive times | Live when hosted and `AZURE_MAPS_KEY` is set | `/api/drive`: Stamford, New Haven and Danbury with live traffic from Azure Maps. Each destination lists the highways Azure Maps returned (I-95, Merritt, Route 7), fastest first; a highway only appears if Azure Maps offers a route on it |
 | Feels like, wind, sunrise/sunset, next two days | Live | Computed in the browser from the National Weather Service forecast; sun times from NOAA's equation |
-| Community panel | **Sample** | Placeholder cards from `CONFIG.community` (a coffee social, an invented sponsored bakery, a New Year's Eve event), labeled "Sample". The manager app will publish real cards here |
+| Community panel | Live when hosted | Cards published from the manager page (`/manage`), read from `/api/community` every 15 seconds. With nothing published it shows a welcome card. The cards in `CONFIG.community` (including an invented sponsored bakery) only appear in sample mode, labeled "Sample" |
+| Emergency alert | Live when hosted | Published from `/manage`; covers the screen except the clock until it ends or is cleared |
 | Open today (building hours) | **Sample** | `CONFIG.buildingHours`, labeled "Sample hours" until the real hours are confirmed |
 | Markets strip | **Simulated** | Random demo numbers for showing the layout, labeled "Simulated · demo only" on screen. Not real quotes |
 | Sports results (demo) | **Simulated** | Invented NBA, NFL, NHL, MLB scores (city names only) and a made-up golf leaderboard, labeled "Simulated · demo only". Not real results |
@@ -64,3 +65,14 @@ The test builds a fake Metro-North feed, so it runs offline. The real MTA feed h
 - Track numbers appear only when Metro-North has posted one for that stop; the feed often has none until shortly before departure.
 - The NewsData.io and Azure Maps calls are tested with simulated responses only until their keys are configured.
 - MTA feeds are subject to MTA's developer terms and conditions.
+
+## Manager page
+
+`/manage` is where the building's community manager publishes to the Community panel: cards, posters from built-in designs, and an emergency alert.
+
+- Sign-in uses Azure Static Web Apps' built-in Microsoft login. Only accounts with the `manager` or `admin` role can open `/manage` or call `/api/manage/*` (rules in `staticwebapp.config.json`, checked again in the API).
+- Roles are given by ECSG only: Azure portal → the Static Web App → Role management → Invite, provider Microsoft Entra ID (shown as "aad"), the person's email, role `manager`. Send them the invitation link it generates.
+- Limits: 5 cards, 3 posters and 1 emergency alert at a time, counting scheduled ones. Every announcement has an end date and comes down by itself. An emergency alert lasts 24 hours at most.
+- Storage: Azure Table `announcements` in the storage account named by the `STORAGE_CONNECTION` app setting. Rows are removed a week after they end.
+- Rules and limits live in `api/lib/announcements.js`; `api/lib/store.js` is the only file that talks to Azure Tables.
+- Not built yet: per-building manager assignment (today a manager role covers the one screen, `confluence`), uploading custom poster art, sponsor management, editing an announcement after publishing.
