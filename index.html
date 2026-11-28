@@ -30,6 +30,7 @@
   }
   #stage.night { opacity: 0.55; }
   .card { background: var(--card); border-radius: 24px; }
+  html.idle:not(.mobile), html.idle:not(.mobile) * { cursor: none !important; }
   /* ECSG's signature, in the bottom margin of the screen */
   #powered { position: absolute; left: 0; right: 0; bottom: 9px; text-align: center; font-size: 16px; letter-spacing: 0.3px; color: var(--muted); white-space: nowrap; }
   #powered b { color: var(--soft); font-weight: 700; } #powered a { color: inherit; text-decoration: none; }
@@ -46,7 +47,7 @@
 
   /* header */
   #header { height: 96px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
-  #bname { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--soft); }
+  #bname { display: flex; align-items: center; gap: 18px; min-width: 0; flex: 1 1 0; font-size: 34px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--soft); }
   #bname i { display: block; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); }
   #bMark { display: flex; align-items: center; flex-shrink: 0; }
   #bMark svg { width: 46px; height: 46px; display: block; }
@@ -80,11 +81,13 @@
   .mobile #bSub { white-space: normal; max-width: none; }
   #hright { display: flex; align-items: center; gap: 36px; }
   #clock { display: flex; align-items: baseline; gap: 18px; }
-  #date { font-size: 34px; font-weight: 500; color: var(--soft); margin-right: 18px; }
+  #date { font-size: 34px; font-weight: 500; color: var(--soft); margin-right: 18px; white-space: nowrap; }
+  #hright { flex-shrink: 0; } #bname > div { min-width: 0; } #bnameText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mobile #bnameText, .mobile #date { white-space: normal; } .mobile #bname { flex: none; }
   #time { font-size: 96px; font-weight: 600; line-height: 1; letter-spacing: -2px; }
   #ampm { font-size: 38px; font-weight: 500; color: var(--muted); }
   #qr { display: flex; align-items: center; gap: 16px; padding-left: 36px; border-left: 3px solid var(--line); }
-  #qr .txt { font-size: 24px; font-weight: 600; line-height: 1.25; color: var(--soft); text-align: right; }
+  #qr .txt { font-size: 24px; font-weight: 600; line-height: 1.25; color: var(--soft); text-align: right; white-space: nowrap; }
   #qrBox { width: 92px; height: 92px; background: #FFFFFF; border-radius: 10px; padding: 4px; flex-shrink: 0; }
   #qrBox img { display: block; width: 100%; height: 100%; }
 
@@ -151,6 +154,8 @@
   /* community panel */
   #community { width: 600px; flex-shrink: 0; border: 4px solid var(--accent); padding: 20px; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
   #community .head { padding: 0 8px; }
+  /* while a paid message is showing, the panel says so and loses the building's amber frame */
+  #community.paid { border-color: #6B7C99; } #community.paid .head .label { color: var(--soft); }
   #community .label { color: var(--accent); }
   #cDots { display: flex; align-items: center; gap: 10px; margin-left: auto; }
   #cDots i { width: 10px; height: 10px; border-radius: 5px; background: #3A4A66; }
@@ -751,8 +756,12 @@ async function loadDrive() {
       return;
     } catch (e) {
       console.error('Drive times failed', e);
-      // Keep the last live numbers for up to 30 minutes; after that fall back to labeled sample data.
+      // Keep the last live numbers for up to 30 minutes; after that say so. The real screen never shows made-up times.
       if (lastDriveOk && Date.now() - lastDriveOk < 30 * 60000) { setBadge('driveBadge', 'stale', 'Last update ' + fmtTime(new Date(lastDriveOk))); return; }
+      $('fastKey').style.display = 'none';
+      $('driveRows').innerHTML = '<div class="tmsg">Live drive times are unavailable right now</div>';
+      setBadge('driveBadge', 'stale', 'Offline');
+      return;
     }
   }
   renderDrive(SAMPLE.drive);
@@ -861,12 +870,18 @@ async function loadCommunity() {
   else { cIdx = ids.indexOf(cShownId); const here = cSeq.findIndex((x, i) => i >= cPos && (x.id || x.title) === cShownId); cPos = here >= 0 ? here : cSeq.findIndex((x) => (x.id || x.title) === cShownId); drawCommunityExtras(); }
 }
 /* Branding set by the administrator in the manager app: name, address, email and logo. */
+/* A long building name gets smaller letters until it fits on one line beside the clock. */
+function fitName() {
+  const el = $('bnameText'); el.style.fontSize = ''; el.style.letterSpacing = '';
+  if (document.documentElement.classList.contains('mobile')) return;
+  for (let size = 34; size > 22 && el.scrollWidth > el.clientWidth + 1; size -= 2) { el.style.fontSize = size + 'px'; el.style.letterSpacing = '2px'; }
+}
 function applyBrand(b) {
   if (!b) return;
   CONFIG.buildingName = b.name || CONFIG.buildingName;
   $('bnameText').textContent = CONFIG.buildingName + (b.address ? '' : ' · ' + CONFIG.city);
   $('bSub').textContent = [b.address, b.email].filter(Boolean).join(' · ');
-  document.title = CONFIG.buildingName + ' — ECSG Display';
+  document.title = CONFIG.buildingName + ' — ECSG Display'; requestAnimationFrame(fitName);
   const logo = $('bLogo'), src = typeof b.logo === 'string' && /^\/api\/image\/[a-z0-9]{12,40}$/.test(b.logo) ? b.logo : '';
   $('bLogoWrap').hidden = !src; $('bLogoWrap').classList.toggle('onlight', !!b.logoOnLight); $('bDress').style.setProperty('--hx', typeof b.logoHatX === 'number' ? Math.min(1, Math.max(0, b.logoHatX)) : 0.5); applySeason(); logo.alt = src ? CONFIG.buildingName + ' logo' : '';
   if (src) { if (logo.getAttribute('src') !== src) logo.src = src; } else logo.removeAttribute('src');
@@ -940,6 +955,7 @@ function showCommunity() {
   icon.style.stroke = tpl ? 'none' : '';
   $('cEyebrow').textContent = sponsor ? 'Sponsored' : (it.eyebrow || 'From the management office');   // a paid slot is always labeled
   $('cEyebrow').className = sponsor ? 'tagged' : '';
+  $('community').classList.toggle('paid', sponsor); $('community').querySelector('.head .label').textContent = sponsor ? 'Advertisement' : 'Community';
   const len = it.title.length;
   $('cTitle').style.fontSize = (len <= 14 ? 84 : len <= 20 ? 60 : len <= 30 ? 50 : 42) + 'px';
   $('cTitle').textContent = it.title;
@@ -1087,6 +1103,20 @@ function start() {
   const fromHash = () => { const h = /^#msg=(.+)$/.exec(location.hash); if (!h) return; try { showMsg(JSON.parse(decodeURIComponent(h[1]))); } catch (e) { /* not a message */ } history.replaceState(null, '', location.pathname + location.search); };
   fromHash(); window.addEventListener('hashchange', fromHash);
   if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', (ev) => { if (ev.data && ev.data.type === 'lobby-msg') showMsg(ev.data.msg); });
+  // After the computer sleeps, loses the network or the page is hidden, bring every panel up to date at once instead of
+  // waiting for each panel's own timer. The network is often not ready in the first seconds after waking, so try three times.
+  let lastBeat = Date.now(), lastRefresh = 0;
+  const refreshAll = () => {
+    if (PREVIEW || Date.now() - lastRefresh < 20000) return; lastRefresh = Date.now();
+    const run = () => { loadWeather(); loadAlerts(); loadDrive(); loadTrains(); loadNotices(); loadCommunity(); loadAir(); tickClock(); applySeason(); };
+    run(); setTimeout(run, 8000); setTimeout(run, 30000);
+  };
+  setInterval(() => { const now = Date.now(); if (now - lastBeat > 90000) refreshAll(); lastBeat = now; }, 20000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAll(); });
+  window.addEventListener('online', refreshAll);
+  // On the lobby TV the mouse pointer hides itself after a few seconds without moving.
+  let idleTimer = 0; const wake = () => { document.documentElement.classList.remove('idle'); clearTimeout(idleTimer); idleTimer = setTimeout(() => document.documentElement.classList.add('idle'), 4000); };
+  window.addEventListener('mousemove', wake); wake();
   // New version published: the lobby TV and the resident app reload by themselves (there is nobody to press a button on a TV).
   if (window.lobbyUpdate && !PREVIEW) window.lobbyUpdate(['/', '/templates.js', '/season.js', '/push-client.js', '/update.js'], () => setTimeout(() => location.reload(), 3000));
   // The bar itself only exists in the phone layout (see CSS), so the lobby TV never shows it.
