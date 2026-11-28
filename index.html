@@ -64,13 +64,20 @@
   #bSub { font-size: 21px; font-weight: 500; letter-spacing: 0.5px; text-transform: none; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 760px; }
   #bSub:empty { display: none; }
   #installHint, #pushBar, #inbox { display: none; }
-  /* the message a resident tapped on in a notification, shown at the top of the app until they close it */
-  #inbox.show { display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: 22px; background: #FFF4D6; color: #1F1503; order: -2; }
-  #inbox .il { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
-  #inbox .it { font-size: 36px; font-weight: 700; line-height: 1.15; } #inbox .ib { font-size: 28px; line-height: 1.35; }
-  #inbox.urgent { background: #B42318; color: #FFFFFF; }
-  #inbox button { align-self: flex-start; min-height: 68px; padding: 0 36px; border: 0; border-radius: 34px; background: #0B1220; color: #FFFFFF; font: inherit; font-size: 26px; font-weight: 700; cursor: pointer; }
-  html:not(.mobile) #inbox.show { position: fixed; z-index: 50; left: 50%; top: 40px; transform: translateX(-50%); width: 720px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  /* the message view: opens over the screen when a resident taps a notification, or opens the app with an unread message */
+  #inbox.show { display: flex; position: fixed; inset: 0; z-index: 60; background: rgba(4, 7, 14, 0.94); align-items: flex-start; justify-content: center; overflow-y: auto; padding: 40px 28px; }
+  #inbox .sheet { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 18px; }
+  #inbox .mcard { background: #FFF4D6; color: #1F1503; border-radius: 26px; padding: 30px; display: flex; flex-direction: column; gap: 12px; }
+  #inbox.urgent .mcard { background: #B42318; color: #FFFFFF; }
+  #inbox .il { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.75; }
+  #inbox .it { font-size: 40px; font-weight: 700; line-height: 1.12; overflow-wrap: anywhere; } #inbox .ib { font-size: 29px; line-height: 1.35; overflow-wrap: anywhere; }
+  #inbox .when { font-size: 22px; opacity: 0.75; }
+  #inbox button { min-height: 76px; border: 0; border-radius: 38px; background: var(--accent); color: #1F1503; font: inherit; font-size: 28px; font-weight: 700; cursor: pointer; }
+  #inbox button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
+  #inEarlier { display: flex; flex-direction: column; gap: 10px; } #inEarlier:empty { display: none; }
+  #inEarlier .eh { font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+  #inEarlier .er { background: var(--card); border-radius: 18px; padding: 18px 22px; } #inEarlier .er b { display: block; font-size: 25px; color: var(--text); overflow-wrap: anywhere; } #inEarlier .er span { font-size: 22px; color: var(--soft); overflow-wrap: anywhere; } #inEarlier .er i { display: block; font-style: normal; font-size: 19px; color: var(--muted); margin-top: 4px; }
+  #inboxBtn { display: none; } .mobile #inboxBtn.show { display: flex; align-items: center; justify-content: center; min-height: 64px; margin-top: 4px; border: 2px solid var(--line); border-radius: 18px; background: none; color: var(--soft); font: inherit; font-size: 28px; font-weight: 600; }
   .mobile #pushBar.show { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; padding: 24px; border-radius: 22px; background: var(--card); border: 2px solid var(--accent); }
   #pushBar .pt { font-size: 30px; font-weight: 700; } #pushBar .ps { font-size: 24px; color: var(--soft); line-height: 1.35; }
   #pushBar button { min-height: 76px; border: 0; border-radius: 38px; background: var(--accent); color: #1F1503; font: inherit; font-size: 30px; font-weight: 700; cursor: pointer; }
@@ -393,7 +400,7 @@
       <div id="hoursRows"></div>
     </div>
   </div>
-  <div id="inbox" role="alert"><div class="il" id="inL"></div><div class="it" id="inT"></div><div class="ib" id="inB"></div><button type="button" id="inOk">OK</button></div>
+  <button type="button" id="inboxBtn">Messages from your building</button>
   <div id="pushBar" role="region" aria-label="Building alerts">
     <div class="pt" id="pushT"></div><div class="ps" id="pushS"></div>
     <button type="button" id="pushBtn">Turn on alerts</button>
@@ -401,6 +408,12 @@
   <a id="installHint" href="/install.html">Install this as an app</a>
   <div id="powered">Powered by <b>ECSG Display</b> · © <span class="yr">2026</span> Enterprise Cloud Solutions Group LLC. All rights reserved. Norwalk, CT. · <a href="https://www.ecsgtech.com/" target="_blank" rel="noopener">ecsgtech.com</a></div>
 </div>
+
+<div id="inbox" role="dialog" aria-modal="true" aria-labelledby="inT"><div class="sheet">
+  <div class="mcard"><div class="il" id="inL"></div><div class="it" id="inT"></div><div class="ib" id="inB"></div><div class="when" id="inW"></div></div>
+  <button type="button" id="inOk">Go to the screen</button>
+  <div id="inEarlier"></div>
+</div></div>
 
 <script src="templates.js"></script>
 <script src="season.js"></script>
@@ -1092,16 +1105,33 @@ function start() {
     if (txt) { $('pushT').textContent = txt[0]; $('pushS').textContent = txt[1]; }
     if (st === 'on') setTimeout(() => bar.classList.remove('show'), 6000);
   };
-  // A resident tapped a notification: show that message at the top of the app until they close it.
-  const showMsg = (m) => {
+  // Messages. Tapping a notification opens the app on that message; opening the app with an unread message does the same.
+  // The service worker keeps the last 10 messages on this device, so earlier ones can be read again.
+  const SEEN = 'lobbySeenMsg', seen = () => { try { return Number(localStorage.getItem(SEEN)) || 0; } catch (e) { return 0; } };
+  const whenOf = (ts) => ts ? new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(ts)) : '';
+  const stored = async () => { try { const c = await caches.open('lobby-inbox'), r = await c.match('/__inbox'); const l = r ? await r.json() : []; return Array.isArray(l) ? l.filter((m) => m && typeof m.t === 'string' && !m.m) : []; } catch (e) { return []; } };
+  const showMsg = async (m) => {
     if (!m || typeof m.t !== 'string' || !m.t) return;
-    $('inL').textContent = 'Message from your building' + (m.ts ? ' · ' + new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(m.ts)) : '');
-    $('inT').textContent = m.t.slice(0, 120); $('inB').textContent = String(m.b || '').slice(0, 300);
-    $('inbox').classList.toggle('urgent', m.e === true); $('inbox').classList.add('show'); window.scrollTo(0, 0);
+    const title = m.t.slice(0, 120).replace(new RegExp('^(EMERGENCY at )?' + CONFIG.buildingName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '( notice| correction)?: ', 'i'), '');
+    $('inL').textContent = m.e === true ? 'Emergency · ' + CONFIG.buildingName : 'Message from ' + CONFIG.buildingName;
+    $('inT').textContent = title || m.t.slice(0, 120); $('inB').textContent = String(m.b || '').slice(0, 300); $('inW').textContent = whenOf(m.ts);
+    const rest = (await stored()).filter((x) => x.ts !== m.ts).slice(0, 5);
+    $('inEarlier').innerHTML = rest.length ? '<div class="eh">Earlier messages</div>' + rest.map((x) => '<div class="er"><b>' + esc(x.t.slice(0, 120)) + '</b><span>' + esc(String(x.b || '').slice(0, 300)) + '</span><i>' + esc(whenOf(x.ts)) + '</i></div>').join('') : '';
+    $('inbox').classList.toggle('urgent', m.e === true); $('inbox').classList.add('show'); $('inOk').focus();
+    try { localStorage.setItem(SEEN, String(Math.max(seen(), m.ts || Date.now()))); } catch (e) { /* shown again next time, which is harmless */ }
   };
-  $('inOk').addEventListener('click', () => $('inbox').classList.remove('show'));
-  const fromHash = () => { const h = /^#msg=(.+)$/.exec(location.hash); if (!h) return; try { showMsg(JSON.parse(decodeURIComponent(h[1]))); } catch (e) { /* not a message */ } history.replaceState(null, '', location.pathname + location.search); };
-  fromHash(); window.addEventListener('hashchange', fromHash);
+  const checkInbox = async (force) => {
+    if (PREVIEW) return; const list = await stored();
+    $('inboxBtn').classList.toggle('show', list.length > 0);
+    if (list.length && (force || list[0].ts > seen()) && !$('inbox').classList.contains('show')) showMsg(list[0]);
+  };
+  $('inOk').addEventListener('click', () => { $('inbox').classList.remove('show'); window.scrollTo(0, 0); });
+  $('inboxBtn').addEventListener('click', () => checkInbox(true));
+  const fromHash = () => { const h = /^#msg=(.+)$/.exec(location.hash); if (!h) return false; let ok = false; try { showMsg(JSON.parse(decodeURIComponent(h[1]))); ok = true; } catch (e) { /* not a message */ } history.replaceState(null, '', location.pathname + location.search); return ok; };
+  if (!fromHash()) checkInbox(false);
+  window.addEventListener('hashchange', fromHash);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => checkInbox(false), 400); });
+  window.addEventListener('focus', () => setTimeout(() => checkInbox(false), 400));
   if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', (ev) => { if (ev.data && ev.data.type === 'lobby-msg') showMsg(ev.data.msg); });
   // After the computer sleeps, loses the network or the page is hidden, bring every panel up to date at once instead of
   // waiting for each panel's own timer. The network is often not ready in the first seconds after waking, so try three times.

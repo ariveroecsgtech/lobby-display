@@ -137,3 +137,8 @@ Tapping a notification opens the app and shows the message at the top (`#msg=` h
 - **Signature**: "Powered by ECSG Display · © <year> Enterprise Cloud Solutions Group LLC. All rights reserved. Norwalk, CT. · ecsgtech.com" on the screen, the manager app and the install page.
 
 **Update:** the ECSG monogram is no longer shown in the apps. The building's own logo wears the season instead: `window.lobbyDress(date)` gives a hat (or a small badge on days without a hat) that sits on the logo's top corner. Without a logo, a small seasonal mark shows beside the name.
+
+## Support tickets and the message view
+
+- **Support** (`/manage` → Support): builds a ticket email to support@ecsgtech.com, sent from the manager's own mail app so ECSG's email-to-ticket flow matches the client by email domain and its replies reach the manager. Subject: `ECSG Display - [URGENT - ]<Building> - <subject>`; body ends with Product, Client / building, Address, Screen ID, reporter, priority, time and device.
+- **Message view** (resident app): the service worker keeps the last 10 pushed messages on the device (Cache `lobby-inbox`). Tapping a notification, or opening the app with an unread message, opens a full view of the message with earlier ones below; "Messages from your building" reopens it.

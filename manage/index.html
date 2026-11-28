@@ -71,7 +71,7 @@
   .cap.blue { background: radial-gradient(circle at 35% 28%, #3A4666, #1D2944); box-shadow: 0 5px 0 #080D18, inset 0 0 0 2px #8FB8FF, inset 0 1px 0 rgba(255, 255, 255, 0.2); color: #8FB8FF; }
   .cap.red { background: radial-gradient(circle at 35% 28%, #F97066, #B42318); box-shadow: 0 5px 0 #55100A, inset 0 1px 0 rgba(255, 255, 255, 0.35); color: #FFFFFF; }
   .rkey:active .cap.red { box-shadow: 0 1px 0 #55100A; } .rkey:active .cap.amber, .rkey:active .cap.blue { box-shadow: 0 1px 0 #080D18, inset 0 0 0 2px currentColor; }
-  .keys4 { display: flex; gap: 8px; } .keys4 > * { flex: 1 1 0; min-width: 0; }
+  .keys4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .keys4 > * { min-width: 0; }
   .skey { min-height: 66px; border-radius: 16px; font-size: 11.5px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: var(--soft); padding: 6px 2px; }
   .skey svg { width: 22px; height: 22px; }
   #powered { text-align: center; font-size: 11.5px; line-height: 1.6; color: var(--muted); margin-top: 4px; } #powered b { color: var(--soft); } #powered a { color: inherit; }
@@ -208,6 +208,7 @@
       <button type="button" class="key skey" id="goSet" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.600 5.600l1.8 1.8M16.600 16.600l1.8 1.8M5.600 18.400l1.8-1.8M16.600 7.400l1.8-1.8"></path></svg>Settings</button>
       <button type="button" class="key skey" id="goRoles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7.5 3v5.5c0 4.5-3 7.8-7.5 9.5-4.5-1.7-7.5-5-7.5-9.5V6z"></path><path d="M9 12l2.2 2.2L15.2 10"></path></svg>Roles</button>
       <a class="key skey" href="/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="12" rx="2"></rect><path d="M9 20h6M12 16.5V20"></path></svg>Screen</a>
+      <button type="button" class="key skey" id="goHelp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M9.6 9.5a2.5 2.5 0 1 1 3.6 2.3c-.8.5-1.200 1-1.200 2M12 16.800h.01"></path></svg>Support</button>
       <a class="key skey" href="/install.html?app=manager" id="goInstall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M8 10.5l4 4 4-4M5 19.5h14"></path></svg>Install</a>
     </div>
     <div class="lbl">On the screen and scheduled</div>
@@ -319,6 +320,19 @@
     <div class="field"><div class="row"><label class="lbl" for="fxText">The correction</label><span class="count" id="cFxX"></span></div><textarea id="fxText" rows="5" maxlength="500" placeholder="The Coffee Social is at 11 AM, not 10 AM. Sorry for the mix-up."></textarea></div>
     <div class="note" id="fxWho"></div>
     <button type="button" class="btn" id="fxSend">Send to everyone</button>
+  </section>
+
+  <!-- SUPPORT: a ticket to ECSG. It is sent from the manager's own email so the reply and the ticket thread reach them. -->
+  <section id="vHelp" class="view">
+    <div class="navrow"><button type="button" class="key navk" data-back><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"></path></svg>Back</button><button type="button" class="key navk" data-home><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"></path></svg>Home</button></div>
+    <div class="top"><div><h1>ECSG Support</h1><div class="who">Tell us what is wrong and we open a ticket.</div></div></div>
+    <div class="field"><div class="row"><label class="lbl" for="hSub">Subject</label><span class="count" id="cHSub"></span></div><input type="text" id="hSub" maxlength="80" autocomplete="off" placeholder="The lobby screen is not updating"></div>
+    <div class="field"><div class="row"><label class="lbl" for="hText">What is happening</label><span class="count" id="cHText"></span></div><textarea id="hText" rows="5" maxlength="1000" placeholder="What you see, since when, and what you already tried."></textarea></div>
+    <label class="check"><input type="checkbox" id="hUrgent"> Urgent: the screen is down or an alert is not working</label>
+    <button type="button" class="btn" id="hSend">Open the email to ECSG Support</button>
+    <button type="button" class="btn ghost" id="hCopy">Copy the ticket text</button>
+    <div class="note" id="hNote">Your email app opens with the ticket ready. Press Send there, from your work email, so we recognise your building and you get our reply. Nothing is sent until you press Send.</div>
+    <div class="empty">Email: <b>support@ecsgtech.com</b><br>Phone, for emergencies: <b>203-822-1558</b><br>Hours: Monday to Friday, 9 AM to 5 PM</div>
   </section>
 
   <!-- SETTINGS: administrators only. What is set here shows on the lobby screen and in emails. -->
@@ -543,7 +557,7 @@ async function api(method, path, body) {
 function say(text, cls) { const m = $('msg'); m.textContent = text || ''; m.className = text ? cls : ''; if (text) window.scrollTo(0, 0); }
 let trail = [];
 function show(view) { const cur = (document.querySelector('.view.on') || {}).id; if (view === 'vHome') trail = []; else if (cur && cur !== view && trail[trail.length - 1] !== view) trail.push(cur); else if (trail[trail.length - 1] === view) trail.pop();
-  for (const v of ['vHome', 'vNew', 'vSent', 'vFix', 'vSet', 'vRoles', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
+  for (const v of ['vHome', 'vNew', 'vHelp', 'vSent', 'vFix', 'vSet', 'vRoles', 'vRes', 'vAlerts', 'vNotice', 'vDrill', 'vEmerg', 'vPreview']) $(v).classList.toggle('on', v === view); window.scrollTo(0, 0); }
 const fmtEnd = (iso) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 
 function renderHome() {
@@ -820,6 +834,35 @@ async function endItem(id, btn) {
 }
 function resetEndButton(btn) { btn.disabled = false; btn.dataset.sure = ''; if (btn.dataset.label) btn.textContent = btn.dataset.label; }
 
+/* ---------- support ticket to ECSG ---------- */
+// The subject always starts with "ECSG Display" and the building's name, so the ticket is recognised at a glance in
+// ECSG's ticket list; the body carries the details ECSG needs to find the building.
+function ticket() {
+  const st = state.settings || {}, name = st.name || state.screenName || '', urgent = $('hUrgent').checked;
+  const subject = 'ECSG Display - ' + (urgent ? 'URGENT - ' : '') + name + ' - ' + $('hSub').value.trim();
+  const body = [$('hText').value.trim(), '', '----------------------------------------', 'Product: ECSG Display', 'Client / building: ' + name, 'Address: ' + (st.address || 'not set'),
+    'Screen ID: ' + SCREEN, 'Screen address: ' + location.origin + '/', 'Reported by: ' + (state.user || 'unknown') + ' (' + (state.role === 'admin' ? 'ECSG administrator' : 'Manager') + ')',
+    'Priority: ' + (urgent ? 'Urgent' : 'Normal'), 'Sent from the app: ' + new Date().toString(), 'Device: ' + navigator.userAgent].join('\n');
+  return { subject, body };
+}
+function ticketReady() {
+  if ($('hSub').value.trim().length < 3) { say('Write a short subject.', 'err'); return false; }
+  if ($('hText').value.trim().length < 10) { say('Tell us what is happening.', 'err'); return false; }
+  return true;
+}
+function drawHelp() { $('cHSub').textContent = $('hSub').value.length + ' / 80'; $('cHText').textContent = $('hText').value.length + ' / 1000'; }
+function openHelp() { $('hSub').value = ''; $('hText').value = ''; $('hUrgent').checked = false; drawHelp(); say(''); show('vHelp'); }
+function sendTicket() {
+  if (!ticketReady()) return; const t = ticket();
+  location.href = 'mailto:support@ecsgtech.com?subject=' + encodeURIComponent(t.subject) + '&body=' + encodeURIComponent(t.body);
+  say('Your email app should open with the ticket. Press Send there. If nothing opened, use "Copy the ticket text" and email it to support@ecsgtech.com.', 'ok');
+}
+async function copyTicket() {
+  if (!ticketReady()) return; const t = ticket(), text = 'To: support@ecsgtech.com\nSubject: ' + t.subject + '\n\n' + t.body;
+  try { await navigator.clipboard.writeText(text); say('Copied. Paste it into an email to support@ecsgtech.com.', 'ok'); }
+  catch (e) { say('Could not copy on this device. Email support@ecsgtech.com with the subject: ' + t.subject, 'err'); }
+}
+
 /* ---------- sent messages and corrections ---------- */
 let sentLog = [], fixRef = '';
 const KIND_NAME = { card: 'Card', poster: 'Poster', notice: 'Notice', drill: 'Alarm test', emergency: 'Emergency', correction: 'Correction' };
@@ -1033,6 +1076,9 @@ document.addEventListener('click', (ev) => {
   else if (t.id === 'goRes') openResidents();
   else if (t.id === 'goSet') openSettings();
   else if (t.id === 'goSent') openSent();
+  else if (t.id === 'goHelp') openHelp();
+  else if (t.id === 'hSend') sendTicket();
+  else if (t.id === 'hCopy') copyTicket();
   else if (t.id === 'seNew') openFix('');
   else if (t.dataset.fix) openFix(t.dataset.fix);
   else if (t.id === 'fxSend') sendFix();
@@ -1075,7 +1121,7 @@ document.addEventListener('click', (ev) => {
 $('fFile').addEventListener('change', () => pickImage($('fFile').files[0]));
 $('fDate').addEventListener('change', () => { if ($('fDate').value) $('fUntil').value = $('fDate').value; drawCompose(); });
 $('fPlace').addEventListener('change', () => { drawCompose(); if ($('fPlace').value === ADD_PLACE) $('fWhereNew').focus(); });
-document.addEventListener('input', () => { if ($('vSet').classList.contains('on')) drawSettings(); if ($('vFix').classList.contains('on')) { drawFix(); const b = $('fxSend'); if (b.dataset.sure) { b.dataset.sure = ''; b.textContent = 'Send to everyone'; } } if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
+document.addEventListener('input', () => { if ($('vSet').classList.contains('on')) drawSettings(); if ($('vHelp').classList.contains('on')) drawHelp(); if ($('vFix').classList.contains('on')) { drawFix(); const b = $('fxSend'); if (b.dataset.sure) { b.dataset.sure = ''; b.textContent = 'Send to everyone'; } } if ($('vNew').classList.contains('on')) drawCompose(); if (['vNotice', 'vDrill', 'vEmerg'].some((v) => $(v).classList.contains('on'))) drawAlerts(); });
 window.addEventListener('resize', sizeFrames);
 if ('serviceWorker' in navigator && HOSTED) navigator.serviceWorker.register('/sw.js').catch(() => {});
 /* A tapped notification opens the app and shows its message here. */
